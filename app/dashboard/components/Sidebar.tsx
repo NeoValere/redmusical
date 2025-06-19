@@ -42,8 +42,8 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
       });
 
       if (response.ok) {
-        await supabase.auth.updateUser({ data: { role: 'contractor' } });
-        router.push('/dashboard');
+        const { redirectUrl } = await response.json();
+        router.push(redirectUrl);
         router.refresh();
       } else {
         const errorData = await response.json();
@@ -74,8 +74,8 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
       });
 
       if (response.ok) {
-        await supabase.auth.updateUser({ data: { role: 'both' } });
-        router.push('/dashboard');
+        const { redirectUrl } = await response.json(); // Get redirectUrl from response
+        router.push(redirectUrl);
         router.refresh();
       } else {
         const errorData = await response.json();

@@ -9,8 +9,6 @@ import {
   Typography,
   Button,
   Container,
-  AppBar,
-  Toolbar,
   IconButton,
   Avatar,
   Chip,
@@ -18,8 +16,9 @@ import {
   Link as MuiLink,
   CircularProgress,
   Paper,
+  useTheme,
 } from '@mui/material';
-import { ArrowLeft, PencilSimple, YoutubeLogo, InstagramLogo, MusicNoteSimple } from 'phosphor-react';
+import { ArrowLeft, PencilSimple, YoutubeLogo, InstagramLogo, MusicNotesSimple } from 'phosphor-react';
 import ProfileImageUploader from './components/ProfileImageUploader';
 
 // Manually define types based on prisma/schema.prisma
@@ -47,10 +46,12 @@ export default function MusicianProfilePage() {
   const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false); // To check if the logged-in user is the profile owner
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // To check if any user is logged in
   const router = useRouter();
   const params = useParams();
   const supabase = createClientComponentClient();
   const id = params.id as string;
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchProfileAndCheckOwner = async () => {
@@ -70,9 +71,15 @@ export default function MusicianProfilePage() {
 
         // Check if logged-in user is the owner of this profile
         const { data: { user } = {} } = await supabase.auth.getUser(); // Destructure with default empty object
-        if (user && user.id === id) {
-          setIsOwner(true);
+        if (user) {
+          setIsLoggedIn(true);
+          if (user.id === id) {
+            setIsOwner(true);
+          } else {
+            setIsOwner(false);
+          }
         } else {
+          setIsLoggedIn(false);
           setIsOwner(false);
         }
       } catch (error) {
@@ -105,23 +112,27 @@ export default function MusicianProfilePage() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
-      <AppBar position="static" color="transparent" elevation={0} sx={{ bgcolor: 'background.paper' }}>
-        <Toolbar>
-          <IconButton edge="start" color="inherit" aria-label="back to dashboard" component={Link} href="/dashboard">
-            <ArrowLeft />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, ml: 2 }}>
-            Perfil de Músico
-          </Typography>
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          {isLoggedIn ? (
+            <IconButton edge="start" color="inherit" aria-label="back to dashboard" component={Link} href="/dashboard">
+              <ArrowLeft />
+            </IconButton>
+          ) : (
+            <MuiLink component={Link} href="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
+              <MusicNotesSimple size={24} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 8 }} />
+              <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
+                redmusical.ar
+              </Typography>
+            </MuiLink>
+          )}
           {isOwner && (
             <Button component={Link} href={`/musicians/${id}/edit`} variant="outlined" startIcon={<PencilSimple />}>
               Editar Perfil
             </Button>
           )}
-        </Toolbar>
-      </AppBar>
+        </Box>
 
-      <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, textAlign: 'center' }}>
           {isOwner ? (
             <ProfileImageUploader
@@ -134,7 +145,7 @@ export default function MusicianProfilePage() {
           ) : (
             <Box sx={{ position: 'relative', width: 120, height: 120, mx: 'auto', mb: 2 }}>
               <Avatar
-                src={musicianProfile.profileImageUrl || "/images/musicians-bw.jpg"}
+                src={musicianProfile.profileImageUrl || "/images/musicians-bw.png"}
                 alt={musicianProfile.fullName || "Musician Profile"}
                 sx={{ width: '100%', height: '100%' }}
               />
@@ -184,7 +195,7 @@ export default function MusicianProfilePage() {
             {musicianProfile.soundcloudUrl && (
               <MuiLink href={musicianProfile.soundcloudUrl} target="_blank" rel="noopener noreferrer" color="inherit">
                 <IconButton color="primary">
-                  <MusicNoteSimple />
+                  <MusicNotesSimple />
                 </IconButton>
               </MuiLink>
             )}

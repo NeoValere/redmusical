@@ -46,7 +46,9 @@ const RegisterCard = () => {
     checkUser();
 
     const roleParam = searchParams.get('role');
-    if (roleParam && (roleParam === 'musician' || roleParam === 'contractor') && !role) {
+    if (!roleParam) {
+      setRole('musician'); // Set musician as default if no role is specified
+    } else if ((roleParam === 'musician' || roleParam === 'contractor') && !role) {
       setRole(roleParam);
     }
     if (role && formRef.current) {
@@ -208,14 +210,14 @@ const RegisterCard = () => {
     if (role === 'musician') {
       return (
         <>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>Ofrecé tu talento en todo el país</Typography>
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>Ofrecé tu talento<br/> en todo el país</Typography>
           <Typography variant="body1" color="text.secondary" align="center">Subí tu perfil, mostrá tu trabajo y empezá a recibir propuestas. Ya hay contratantes buscando músicos como vos.</Typography>
         </>
       );
     } else if (role === 'contractor') {
       return (
         <>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>Encontrá músicos reales, sin vueltas</Typography>
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 1 }}>Encontrá músicos reales,<br/>sin vueltas</Typography>
           <Typography variant="body1" color="text.secondary" align="center">Filtrá por zona, estilo e instrumento. Guardá tus favoritos. Todo en una red profesional hecha en Argentina.</Typography>
         </>
       );
@@ -238,153 +240,156 @@ const RegisterCard = () => {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 4, borderRadius: 2, maxWidth: 450, width: '100%', mx: 'auto', position: 'relative', overflow: 'hidden' }}>
+<Paper elevation={3} sx={{ p: 4, borderRadius: 2, maxWidth: 550, width: '100%', mx: 'auto', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100vh', my: 'auto' }}>
       {/* Subtle background illustration/texture */}
       <Box sx={{ position: 'absolute', inset: 0, opacity: 0.1, zIndex: 0, backgroundImage: 'url(/path/to/subtle-musical-texture.svg)', backgroundSize: 'cover' }} />
 
-      <Box sx={{ position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+      <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+       {/*  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <Image src="/next.svg" alt="redmusical.ar Logo" width={150} height={40} />
-        </Box>
+        </Box> */}
 
-        <Box sx={{ textAlign: 'center', mb: 4, transition: 'opacity 500ms' }}>
+        <Box sx={{ textAlign: 'center', mb: 4, transition: 'opacity 500ms', flexShrink: 0, minHeight: '20%' }}>
           {getMotivationalCopy()}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 4 }}>
-          <ToggleButtonGroup
-            value={role}
-            exclusive
-            onChange={handleRoleSelect}
-            aria-label="select role"
-            sx={{
-              '& .MuiToggleButton-root': {
-                borderRadius: '9999px', // full rounded
-                fontWeight: 'semibold',
-                transition: 'all 300ms',
-                px: 3,
-                py: 1.5,
-                '&.Mui-selected': {
-                  bgcolor: 'error.main', // Red background for selected
-                  color: 'white',
-                  boxShadow: 3,
-                  '&:hover': {
-                    bgcolor: 'error.dark',
+        <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 4, flexShrink: 0 }}>
+            <ToggleButtonGroup
+              value={role}
+              exclusive
+              onChange={handleRoleSelect}
+              aria-label="select role"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  borderRadius: '8px',
+                  fontWeight: 'semibold',
+                  transition: 'all 300ms',
+                  px: 1.5,
+                  py: 1,
+                  '&.Mui-selected': {
+                    bgcolor: '#53887a',
+                    color: 'white',
+                    boxShadow: 3,
+                    '&:hover': {
+                      bgcolor: '#4a7a6e',
+                    },
+                  },
+                  '&:not(.Mui-selected)': {
+                    bgcolor: 'grey.200',
+                    color: 'text.secondary',
+                    '&:hover': {
+                      bgcolor: 'grey.300',
+                    },
                   },
                 },
-                '&:not(.Mui-selected)': {
-                  bgcolor: 'grey.200', // Gray background for unselected
-                  color: 'text.secondary',
-                  '&:hover': {
-                    bgcolor: 'grey.300',
-                  },
-                },
-              },
-            }}
-          >
-            <ToggleButton value="musician" aria-label="musician">
-              <MusicNotes size={24} style={{ marginRight: 8 }} /> Soy músico
-            </ToggleButton>
-            <ToggleButton value="contractor" aria-label="contractor">
-              <Headphones size={24} style={{ marginRight: 8 }} /> Soy contratante
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-
-        {role && (
-          <Box ref={formRef} sx={{ transition: 'opacity 500ms ease-in-out', opacity: 1 }}>
-            <form onSubmit={handleSubmit}>
-              <Stack spacing={2} sx={{ mb: 3 }}>
-                <TextField
-                  label="Nombre completo"
-                  type="text"
-                  fullWidth
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  error={!!errors.fullName}
-                  helperText={errors.fullName}
-                  variant="outlined"
-                />
-                <TextField
-                  label="Email"
-                  type="email"
-                  fullWidth
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setErrors(prev => {
-                      const newErrors = { ...prev };
-                      if (newErrors.email === 'Este email ya está registrado. Por favor, iniciá sesión.') {
-                        delete newErrors.email;
-                      }
-                      return newErrors;
-                    });
-                  }}
-                  onBlur={(e) => checkEmailExistence(e.target.value)}
-                  error={!!errors.email}
-                  helperText={errors.email}
-                  variant="outlined"
-                />
-                <TextField
-                  label="Contraseña"
-                  type="password"
-                  fullWidth
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  error={!!errors.password}
-                  helperText={errors.password}
-                  variant="outlined"
-                />
-                <TextField
-                  label="Confirmar contraseña"
-                  type="password"
-                  fullWidth
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword}
-                  variant="outlined"
-                />
-              </Stack>
-
-              {errors.general && (
-                <Alert severity="error" sx={{ mb: 3 }}>
-                  {errors.general}
-                </Alert>
-              )}
-
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                fullWidth
-                disabled={isLoading}
-                sx={{ py: 1.5, fontWeight: 'semibold', mb: 2 }}
-              >
-                {isLoading ? <CircularProgress size={24} color="inherit" /> : getButtonCopy()}
-              </Button>
-            </form>
-
-            <Button
-              onClick={handleGoogleLogin}
-              variant="contained"
-              color="error"
-              fullWidth
-              disabled={isLoading}
-              startIcon={<FcGoogle />}
-              sx={{ py: 1.5, fontWeight: 'semibold', mb: 3 }}
+              }}
             >
-              {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Registrarse con Google'}
-            </Button>
+              <ToggleButton sx={{ fontSize : "15px" ,marginRight: 1}} value="musician" aria-label="musician">
+                <MusicNotes size={28} style={{ marginRight: 8 }} /> Soy músico
+              </ToggleButton>
+              <ToggleButton sx={{ fontSize : "15px" }} value="contractor" aria-label="contractor">
+                <Headphones size={28} style={{ marginRight: 8 }} /> Soy contratante
+              </ToggleButton>
+            </ToggleButtonGroup>
           </Box>
-        )}
 
-        <Typography variant="body2" align="center" color="text.secondary" sx={{ mt: 3 }}>
-          ¿Ya tenés cuenta?{' '}
-          <MuiLink href="/login" underline="hover" color="error">
-            Iniciar sesión
-          </MuiLink>
-        </Typography>
+          {role && (
+            <Box ref={formRef} sx={{ transition: 'opacity 500ms ease-in-out', opacity: 1, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <Stack spacing={2} sx={{ mb: 3, flexShrink: 0 }}>
+                    <TextField
+                      label="Nombre completo"
+                      type="text"
+                      fullWidth
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      error={!!errors.fullName}
+                      helperText={errors.fullName}
+                      variant="outlined"
+                    />
+                    <TextField
+                      label="Email"
+                      type="email"
+                      fullWidth
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          if (newErrors.email === 'Este email ya está registrado. Por favor, iniciá sesión.') {
+                            delete newErrors.email;
+                          }
+                          return newErrors;
+                        });
+                      }}
+                      onBlur={(e) => checkEmailExistence(e.target.value)}
+                      error={!!errors.email}
+                      helperText={errors.email}
+                      variant="outlined"
+                    />
+                    <TextField
+                      label="Contraseña"
+                      type="password"
+                      fullWidth
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      error={!!errors.password}
+                      helperText={errors.password}
+                      variant="outlined"
+                    />
+                    <TextField
+                      label="Confirmar contraseña"
+                      type="password"
+                      fullWidth
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      error={!!errors.confirmPassword}
+                      helperText={errors.confirmPassword}
+                      variant="outlined"
+                    />
+                  </Stack>
+
+                  {errors.general && (
+                    <Alert severity="error" sx={{ mb: 3, flexShrink: 0 }}>
+                      {errors.general}
+                    </Alert>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    disabled={isLoading}
+                    sx={{ py: 1.5, fontWeight: 'semibold', mb: 2, color: '#e3e4e7', flexShrink: 0 }}
+                  >
+                    {isLoading ? <CircularProgress size={24} color="inherit" /> : getButtonCopy()}
+                  </Button>
+                </form>
+
+                <Button
+                  onClick={handleGoogleLogin}
+                  variant="contained"
+                  fullWidth
+                  disabled={isLoading}
+                  startIcon={<FcGoogle />}
+                  sx={{ py: 1.5, fontWeight: 'semibold', mb: 3, bgcolor: '#53887a', '&:hover': { bgcolor: '#4a7a6e' }, color: '#e3e4e7', flexShrink: 0 }}
+                >
+                  {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Registrarse con Google'}
+                </Button>
+              </Box>
+
+              <Typography variant="body2" align="center" color="text.secondary" sx={{ mt: 3, flexShrink: 0 }}>
+                ¿Ya tenés cuenta?{' '}
+                <MuiLink href="/login" underline="hover">
+                  Iniciar sesión
+                </MuiLink>
+              </Typography>
+            </Box>
+          )}
+        </Box>
       </Box>
     </Paper>
   );

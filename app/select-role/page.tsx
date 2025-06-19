@@ -98,41 +98,14 @@ export default function SelectRolePage() {
           createProfile('contractor')
         ]);
 
-        // Update user metadata in Supabase Auth with a default role or a 'both' indicator
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: { role: 'both' }, // Or a default like 'contractor'
-        });
-
-        if (updateError) {
-          console.error('Error updating user metadata for both roles:', updateError);
-          setError(`Error al guardar tus roles: ${updateError.message}`);
-          setIsLoading(false);
-          return;
-        }
-
         router.push('/dashboard'); // Redirect to a general dashboard for 'both'
       } else {
         // Create single profile
-        await createProfile(role);
-
-        // Update user metadata in Supabase Auth
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: { role: role },
-        });
-
-        if (updateError) {
-          console.error('Error updating user metadata:', updateError);
-          setError(`Error al guardar tu rol: ${updateError.message}`);
-          setIsLoading(false);
-          return;
-        }
+        const result = await createProfile(role);
+        const { redirectUrl } = result; // Get redirectUrl from the API response
 
         // Redirect based on selected role
-        if (role === 'musician') {
-          router.push(`/musicians/${user.id}`);
-        } else {
-          router.push('/dashboard');
-        }
+        router.push(redirectUrl || '/dashboard'); // Use redirectUrl from API, fallback to /dashboard
       }
 
     } catch (err: any) {

@@ -5,13 +5,14 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
-import MuiThemeToggle from '../components/MuiThemeToggle';
-import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack } from '@mui/material';
+import { MusicNotesSimple, CheckCircle, User, Buildings } from 'phosphor-react';
+import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, Card, CardContent } from '@mui/material';
 
 export default function Home() {
   const [userSession, setUserSession] = useState(false);
   const router = useRouter();
   const supabase = createClientComponentClient();
+  const theme = useTheme();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -64,7 +65,8 @@ export default function Home() {
       {/* Navigation */}
       <AppBar position="static" color="transparent" elevation={0} sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
         <Toolbar sx={{ maxWidth: '1280px', width: '100%', mx: 'auto', px: { xs: 2, sm: 3 } }}>
-          <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ flexGrow: 1 }}>
+          <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <MusicNotesSimple size={24} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 8 }} />
             <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
               redmusical.ar
             </Typography>
@@ -72,7 +74,6 @@ export default function Home() {
           <Button component={Link} href="/login" sx={{ color: 'text.primary', '&:hover': { bgcolor: 'action.hover' } }}>
             Iniciar sesión
           </Button>
-          <MuiThemeToggle />
         </Toolbar>
       </AppBar>
 
@@ -87,7 +88,7 @@ export default function Home() {
           textAlign: 'center',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundImage: "url('/images/musicians-bw.jpg')",
+          backgroundImage: "url('/images/musicians-bw.png')",
           color: 'white',
         }}
       >
@@ -105,7 +106,7 @@ export default function Home() {
               href="/register?role=musician"
               variant="contained"
               sx={{
-                bgcolor: 'error.main', // Using error for red, can be customized
+                bgcolor: '#53887a',
                 color: 'white',
                 fontWeight: 'semibold',
                 '&:hover': { bgcolor: 'black', color: 'white' },
@@ -147,11 +148,23 @@ export default function Home() {
         <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
           Creamos un espacio donde los músicos pueden ofrecer su talento y las personas o productoras pueden encontrar músicos por estilo, instrumento y zona.
         </Typography>
-        <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, textAlign: 'left' }}>
-          <Typography variant="body1" color="text.secondary">Gratuito para empezar</Typography>
-          <Typography variant="body1" color="text.secondary">Hecho en Argentina</Typography>
-          <Typography variant="body1" color="text.secondary">Sin intermediarios</Typography>
-          <Typography variant="body1" color="text.secondary">Acceso directo al talento</Typography>
+        <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 3, textAlign: 'left' }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <CheckCircle size={24} color={theme.palette.primary.main} weight="fill" />
+            <Typography variant="body1" color="text.secondary">Gratuito para empezar</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <CheckCircle size={24} color={theme.palette.primary.main} weight="fill" />
+            <Typography variant="body1" color="text.secondary">Hecho en Argentina</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <CheckCircle size={24} color={theme.palette.primary.main} weight="fill" />
+            <Typography variant="body1" color="text.secondary">Sin intermediarios</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <CheckCircle size={24} color={theme.palette.primary.main} weight="fill" />
+            <Typography variant="body1" color="text.secondary">Acceso directo al talento</Typography>
+          </Stack>
         </Box>
       </Box>
 
@@ -163,23 +176,33 @@ export default function Home() {
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 6 }}>
             {/* Para músicos */}
-            <Box>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', mb: 2 }}>Para músicos:</Typography>
-              <Stack spacing={1.5} sx={{ color: 'text.secondary' }}>
-                <Typography>1. Registrate gratis</Typography>
-                <Typography>2. Subí tu perfil con links y disponibilidad</Typography>
-                <Typography>3. Empezá a recibir contactos</Typography>
-              </Stack>
-            </Box>
+            <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                  <User size={32} color={theme.palette.primary.main} weight="fill" />
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>Para músicos:</Typography>
+                </Stack>
+                <Stack spacing={1.5} sx={{ color: 'text.secondary' }}>
+                  <Typography>1. Registrate gratis</Typography>
+                  <Typography>2. Subí tu perfil con links y disponibilidad</Typography>
+                  <Typography>3. Empezá a recibir contactos</Typography>
+                </Stack>
+              </CardContent>
+            </Card>
             {/* Para contratantes */}
-            <Box>
-              <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', mb: 2 }}>Para contratantes:</Typography>
-              <Stack spacing={1.5} sx={{ color: 'text.secondary' }}>
-                <Typography>1. Usá filtros para buscar músicos por zona e instrumento</Typography>
-                <Typography>2. Escuchá su material</Typography>
-                <Typography>3. Contactalos directamente</Typography>
-              </Stack>
-            </Box>
+            <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                  <Buildings size={32} color={theme.palette.primary.main} weight="fill" />
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>Para contratantes:</Typography>
+                </Stack>
+                <Stack spacing={1.5} sx={{ color: 'text.secondary' }}>
+                  <Typography>1. Usá filtros para buscar músicos por zona e instrumento</Typography>
+                  <Typography>2. Escuchá su material</Typography>
+                  <Typography>3. Contactalos directamente</Typography>
+                </Stack>
+              </CardContent>
+            </Card>
           </Box>
         </Container>
       </Box>
@@ -189,26 +212,36 @@ export default function Home() {
         <Typography variant="h5" component="h2" sx={{ fontWeight: 'semibold', textAlign: 'center', mb: 5 }}>
           A quién está dirigido
         </Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 6 }}>
-          {/* ¿Sos músico? */}
-          <Box>
-            <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', mb: 2 }}>¿Sos músico?</Typography>
-            <Stack spacing={1} sx={{ color: 'text.secondary' }}>
-              <Typography>Solista, sesionista o parte de una banda</Typography>
-              <Typography>Tocás en vivo o hacés grabaciones</Typography>
-              <Typography>Querés que te encuentren</Typography>
-            </Stack>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 6 }}>
+            {/* ¿Sos músico? */}
+            <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                  <User size={32} color={theme.palette.primary.main} weight="fill" />
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>¿Sos músico?</Typography>
+                </Stack>
+                <Stack spacing={1} sx={{ color: 'text.secondary' }}>
+                  <Typography>Solista, sesionista o parte de una banda</Typography>
+                  <Typography>Tocás en vivo o hacés grabaciones</Typography>
+                  <Typography>Querés que te encuentren</Typography>
+                </Stack>
+              </CardContent>
+            </Card>
+            {/* ¿Buscás músicos? */}
+            <Card sx={{ p: 3, boxShadow: 3, borderRadius: 2 }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                  <Buildings size={32} color={theme.palette.primary.main} weight="fill" />
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>¿Buscás músicos?</Typography>
+                </Stack>
+                <Stack spacing={1} sx={{ color: 'text.secondary' }}>
+                  <Typography>Sos productor, organizador, director o particular</Typography>
+                  <Typography>Necesitás talento profesional para un evento o proyecto</Typography>
+                  <Typography>Querés dejar de buscar en grupos de WhatsApp</Typography>
+                </Stack>
+              </CardContent>
+            </Card>
           </Box>
-          {/* ¿Buscás músicos? */}
-          <Box>
-            <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold', mb: 2 }}>¿Buscás músicos?</Typography>
-            <Stack spacing={1} sx={{ color: 'text.secondary' }}>
-              <Typography>Sos productor, organizador, director o particular</Typography>
-              <Typography>Necesitás talento profesional para un evento o proyecto</Typography>
-              <Typography>Querés dejar de buscar en grupos de WhatsApp</Typography>
-            </Stack>
-          </Box>
-        </Box>
       </Box>
 
       {/* 5. Testimonio */}
@@ -236,7 +269,7 @@ export default function Home() {
           variant="contained"
           sx={{
             mt: 4,
-            bgcolor: 'error.main', // Using error for red
+            bgcolor: '#53887a',
             color: 'white',
             fontWeight: 'semibold',
             '&:hover': { bgcolor: 'black', color: 'white' },
@@ -245,7 +278,7 @@ export default function Home() {
             fontSize: '1.125rem',
           }}
         >
-          Ver planes →
+          Ver planes
         </Button>
       </Box>
 
@@ -259,17 +292,17 @@ export default function Home() {
             href="/register"
             variant="contained"
             sx={{
-              mt: 4,
-              bgcolor: 'error.main', // Using error for red
-              color: 'white',
-              fontWeight: 'semibold',
-              '&:hover': { bgcolor: 'white', color: 'black' },
-              px: 4,
-              py: 1.5,
-              fontSize: '1.125rem',
-            }}
+            mt: 4,
+            bgcolor: '#53887a',
+            color: 'white',
+            fontWeight: 'semibold',
+            '&:hover': { bgcolor: 'white', color: 'black' },
+            px: 4,
+            py: 1.5,
+            fontSize: '1.125rem',
+          }}
           >
-            Crear mi cuenta →
+            Crear mi cuenta
           </Button>
         </Container>
       </Box>

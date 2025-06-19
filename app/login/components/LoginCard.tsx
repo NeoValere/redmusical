@@ -128,7 +128,7 @@ export default function LoginCard() {
           color="primary"
           fullWidth
           disabled={loading}
-          sx={{ mb: 2 }}
+          sx={{ mb: 2, color: '#e3e4e7' }}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar sesión →'}
         </Button>
@@ -137,11 +137,10 @@ export default function LoginCard() {
       <Button
         onClick={handleGoogleLogin}
         variant="contained"
-        color="error" // Using error color for Google, or could define a custom color
         fullWidth
         disabled={loading}
         startIcon={<FcGoogle />}
-        sx={{ mb: 3 }}
+        sx={{ mb: 3, bgcolor: '#53887a', '&:hover': { bgcolor: '#4a7a6e' }, color: '#e3e4e7' }}
       >
         {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar sesión con Google'}
       </Button>

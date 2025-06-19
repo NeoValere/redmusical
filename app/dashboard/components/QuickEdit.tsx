@@ -49,7 +49,7 @@ export default function QuickEdit({ userId, musicianProfile }: QuickEditProps) {
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <Avatar
-          src={musicianProfile?.profileImageUrl || "/images/musicians-bw.jpg"}
+          src={musicianProfile?.profileImageUrl || "/images/musicians-bw.png"}
           alt="Profile Picture"
           sx={{ width: 80, height: 80, mr: 2 }}
         />

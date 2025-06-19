@@ -14,22 +14,31 @@ export async function middleware(req: NextRequest) {
   const protectedPaths = [
     '/dashboard',
     '/musicians/[id]/edit',
+    '/musicians/[id]/upload-image', // Add upload-image page to protected paths
     '/api/musicians', // All musician API routes
-    '/api/register-profile',
     '/api/switch-role',
     '/api/create-preference',
-    '/api/webhook', // Webhook might need different auth, but for now, include it
+    '/api/webhook',
     '/favorites',
     '/admin',
   ];
 
+  // Special handling for public musician profiles: they should not be protected
+  // This checks if the path starts with /musicians/ and does NOT contain /edit or /upload-image
+  const isPublicMusicianProfile = req.nextUrl.pathname.startsWith('/musicians/') &&
+                                 !req.nextUrl.pathname.includes('/edit') &&
+                                 !req.nextUrl.pathname.includes('/upload-image');
+
+  if (isPublicMusicianProfile) {
+    return res; // Allow access to public musician profiles without authentication
+  }
+
   // Check if the current path is protected
   const isProtected = protectedPaths.some(path => {
-    // Simple check for now, can be improved with a more robust path matching
     // For dynamic routes like /musicians/[id]/edit, we check if the path starts with the base
     if (path.includes('[id]')) {
       const base = path.split('[id]')[0];
-      return req.nextUrl.pathname.startsWith(base.replace(/\/$/, '')); // Remove trailing slash for base comparison
+      return req.nextUrl.pathname.startsWith(base.replace(/\/$/, ''));
     }
     return req.nextUrl.pathname.startsWith(path);
   });

@@ -1,11 +1,30 @@
 'use client';
 
-import React, { ReactNode, useMemo } from 'react';
+import React, { ReactNode, useMemo, useState, createContext, useContext } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider, PaletteMode } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 
+interface MuiThemeContextType {
+  toggleColorMode: () => void;
+  mode: PaletteMode;
+}
+
+const MuiThemeContext = createContext<MuiThemeContextType | undefined>(undefined);
+
+export const useMuiTheme = () => {
+  const context = useContext(MuiThemeContext);
+  if (context === undefined) {
+    throw new Error('useMuiTheme must be used within a MuiAppThemeProvider');
+  }
+  return context;
+};
+
 export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
-  const mode: PaletteMode = 'dark';
+  const [mode, setMode] = useState<PaletteMode>('dark');
+
+  const toggleColorMode = React.useCallback(() => {
+    setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+  }, []);
 
   const theme = useMemo(
     () =>
@@ -50,9 +69,11 @@ export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <MuiThemeProvider theme={theme}>
-      <CssBaseline />
-      {children}
-    </MuiThemeProvider>
+    <MuiThemeContext.Provider value={{ toggleColorMode, mode }}>
+      <MuiThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
+    </MuiThemeContext.Provider>
   );
 };

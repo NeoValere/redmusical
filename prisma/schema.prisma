@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://prisly.cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+
+model Musician {
+  id              String   @id @default(uuid())
+  userId          String   // Supabase Auth ID - Removed @unique
+  fullName        String
+  email           String   @unique // Keep email unique for musicians
+  location        String?
+  instruments     String[]
+  genres          String[]
+  bio             String?
+  hourlyRate      Int?
+  availability    String[]
+  youtubeUrl      String?
+  soundcloudUrl   String?
+  instagramUrl    String?
+  profileImageUrl String?
+  isPremium       Boolean  @default(false)
+  isFeatured      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  favorites       Favorite[]
+}
+
+model Contractor {
+  id         String   @id @default(uuid())
+  userId     String   // Supabase Auth ID - Removed @unique
+  fullName   String
+  email      String   @unique // Keep email unique for contractors
+  location   String?
+  isPremium  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  favorites  Favorite[]
+}
+
+model Favorite {
+  id            String     @id @default(uuid())
+  contractorId  String
+  musicianId    String
+  createdAt     DateTime   @default(now())
+  contractor    Contractor @relation(fields: [contractorId], references: [id])
+  musician      Musician   @relation(fields: [musicianId], references: [id])
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  userId    String   // puede ser músico o contratante
+  role      String   // 'musician' o 'contractor'
+  amount    Int
+  status    String
+  createdAt DateTime @default(now())
+}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { PencilSimpleLine, FloppyDisk } from 'phosphor-react';
 import {
   Box,
   Button,
@@ -187,47 +188,6 @@ const EditMusicianPage = () => {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
-
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Authentication required to upload image.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/musicians/${musicianId}/upload-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al subir la imagen.');
-      }
-
-      const data = await response.json();
-      setProfile(prev => prev ? { ...prev, profileImageUrl: data.publicUrl } : null);
-      alert('Imagen de perfil actualizada correctamente');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -258,8 +218,8 @@ const EditMusicianPage = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
       <Container maxWidth="md">
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary' }}>
-            Editar Mi Perfil 🎸
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary', display: 'flex', alignItems: 'center' }}>
+            Editar Mi Perfil <PencilSimpleLine size={32} style={{ marginLeft: 8 }} />
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
             Completá todos los datos que quieras mostrar públicamente.
@@ -449,20 +409,11 @@ const EditMusicianPage = () => {
                 5. Imagen de perfil
               </Typography>
               <Box sx={{ mb: 2 }}>
-                <InputLabel htmlFor="profileImage" sx={{ mb: 1, fontWeight: 'bold', color: 'text.primary' }}>Subida simple de imagen</InputLabel>
-                <input
-                  type="file"
-                  id="profileImage"
-                  name="profileImage"
-                  accept="image/jpeg, image/png"
-                  onChange={handleImageUpload}
-                  style={{ display: 'block', width: '100%', padding: '8px 0' }}
-                />
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  Subí una foto profesional que represente tu estilo musical. Formato JPG o PNG, tamaño máximo recomendado 2MB.
+                  La imagen de perfil se edita directamente desde tu perfil público.
                 </Typography>
                 {profile.profileImageUrl && (
-                  <Box sx={{ mt: 2 }}>
+                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <Typography variant="body2" color="text.primary" sx={{ mb: 1 }}>Imagen actual:</Typography>
                     <Avatar src={profile.profileImageUrl} alt="Profile" sx={{ width: 120, height: 120, objectFit: 'cover' }} />
                   </Box>
@@ -479,7 +430,7 @@ const EditMusicianPage = () => {
                 disabled={loading}
                 sx={{ py: 1, px: 3, fontWeight: 'semibold' }}
               >
-                {loading ? <CircularProgress size={24} color="inherit" /> : '💾 Guardar cambios'}
+                {loading ? <CircularProgress size={24} color="inherit" /> : <><FloppyDisk size={20} style={{ marginRight: 8 }} /> Guardar cambios</>}
               </Button>
             </Box>
           </form>

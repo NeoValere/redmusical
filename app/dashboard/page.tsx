@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
       setUserId(user.id);
       setUserRole(user.user_metadata.role);
-      setUserName(user.user_metadata.full_name || user.email?.split('@')[0] || 'Usuario');
+      let currentUserName = user.user_metadata.full_name || user.email?.split('@')[0] || 'Usuario';
 
       try {
         const musicianProfileRes = await fetch(`/api/register-profile?userId=${user.id}&role=musician`);
@@ -74,6 +74,7 @@ export default function DashboardPage() {
         if (musicianData.exists) {
           setHasMusicianProfile(true);
           setMusicianProfile(musicianData.profile as MusicianProfile);
+          currentUserName = musicianData.profile.fullName || currentUserName; // Use musician profile name if available
         } else {
           setHasMusicianProfile(false);
           setMusicianProfile(null);
@@ -83,6 +84,8 @@ export default function DashboardPage() {
         setHasMusicianProfile(false);
         setMusicianProfile(null);
       }
+
+      setUserName(currentUserName);
 
       try {
         const contractorProfileRes = await fetch(`/api/register-profile?userId=${user.id}&role=contractor`);
@@ -133,23 +136,23 @@ export default function DashboardPage() {
       <Box component="main" sx={{ flexGrow: 1, ml: '256px', p: 4 }}> {/* ml-64 is 256px */}
         <Header userName={userName || 'Músico'} />
 
-        <Box component="section" sx={{ mb: 4 }}>
+        <Box component="section" id="mi-perfil" sx={{ mb: 4 }}>
           <ProfileStatus userId={userId} profileStatus={musicianProfile ? 'Activo' : 'Incompleto'} />
         </Box>
 
-        <Box component="section" sx={{ mb: 4 }}>
+        <Box component="section" id="quick-edit" sx={{ mb: 4 }}>
           <QuickEdit userId={userId} musicianProfile={musicianProfile} />
         </Box>
 
-        <Box component="section" sx={{ mb: 4 }}>
+        <Box component="section" id="estadisticas" sx={{ mb: 4 }}>
           <Statistics />
         </Box>
 
-        <Box component="section" sx={{ mb: 4 }}>
+        <Box component="section" id="visibilidad" sx={{ mb: 4 }}>
           <VisibilitySettings />
         </Box>
 
-        <Box component="section" sx={{ mb: 4 }}>
+        <Box component="section" id="mi-plan" sx={{ mb: 4 }}>
           <CurrentPlan />
         </Box>
       </Box>

@@ -57,10 +57,10 @@ export default function QuickEdit({ userId, musicianProfile }: QuickEditProps) {
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{musicianProfile?.fullName || "Nombre Completo del Músico"}</Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
             {musicianProfile?.instruments.map((instrument, index) => (
-              <Chip key={index} label={instrument} size="small" sx={{ bgcolor: 'grey.200', color: 'text.primary' }} />
+              <Chip key={index} label={instrument} size="small" sx={{ bgcolor: 'grey.200', color: 'text.primary' }} clickable={false} />
             ))}
             {musicianProfile?.genres.map((genre, index) => (
-              <Chip key={index} label={genre} size="small" sx={{ bgcolor: 'grey.200', color: 'text.primary' }} />
+              <Chip key={index} label={genre} size="small" sx={{ bgcolor: 'grey.200', color: 'text.primary' }} clickable={false} />
             ))}
             {(!musicianProfile?.instruments?.length && !musicianProfile?.genres?.length) && (
               <>
@@ -101,7 +101,7 @@ export default function QuickEdit({ userId, musicianProfile }: QuickEditProps) {
         }}
         startIcon={<PencilSimple size={24} color="white" />}
       >
-        Editar perfil completo →
+        Editar perfil completo
       </Button>
     </Paper>
   );

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
-import * as jose from 'jose';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 export async function PUT(
   request: NextRequest,
@@ -8,33 +9,15 @@ export async function PUT(
 ) {
   const { id } = params;
 
-  // Get the Authorization header
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.error('API /api/musicians/[id]/update: Unauthorized - No Bearer token provided');
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+  if (sessionError || !session) {
+    console.error('API /api/musicians/[id]/update: Unauthorized - No active session or session error:', sessionError);
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const token = authHeader.split(' ')[1];
-  let userIdFromToken: string | null = null;
-
-  try {
-    const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-    if (!jwtSecret) {
-      throw new Error('SUPABASE_JWT_SECRET is not set');
-    }
-    const secret = new TextEncoder().encode(jwtSecret);
-    const { payload } = await jose.jwtVerify(token, secret);
-    userIdFromToken = payload.sub as string; // 'sub' contains the user ID
-  } catch (error) {
-    console.error('API /api/musicians/[id]/update: Token verification failed:', error);
-    return NextResponse.json({ message: 'Unauthorized - Invalid token' }, { status: 401 });
-  }
-
-  if (!userIdFromToken) {
-    console.error('API /api/musicians/[id]/update: Unauthorized - User ID not found in token');
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
+  const userIdFromSession = session.user.id;
 
   try {
     // Ensure the user is authorized to update this specific musician profile
@@ -47,8 +30,8 @@ export async function PUT(
       return NextResponse.json({ message: 'Musician not found' }, { status: 404 });
     }
 
-    if (!existingMusician || existingMusician.userId !== userIdFromToken) {
-      console.error(`API /api/musicians/[id]/update: Forbidden - User ${userIdFromToken} attempted to edit profile of ${existingMusician?.userId}`);
+    if (existingMusician.userId !== userIdFromSession) {
+      console.error(`API /api/musicians/[id]/update: Forbidden - User ${userIdFromSession} attempted to edit profile of ${existingMusician?.userId}`);
       return NextResponse.json({ message: 'Forbidden: You can only edit your own profile.' }, { status: 403 });
     }
 
@@ -60,12 +43,17 @@ export async function PUT(
       instruments,
       genres,
       bio,
-      hourlyRate,
+      hourlyRate: rawHourlyRate, // Rename to avoid conflict and process
       availability,
       youtubeUrl,
       soundcloudUrl,
       instagramUrl,
     } = body;
+
+    // Convert hourlyRate to a number, handle potential non-numeric input
+    const hourlyRate = rawHourlyRate !== undefined && rawHourlyRate !== null && rawHourlyRate !== ''
+      ? Number(rawHourlyRate)
+      : null; // Set to null if undefined, null, or empty string
 
     // Basic validation (more robust validation can be added with Zod/Yup)
     if (!fullName || fullName.length < 2) {
@@ -80,8 +68,8 @@ export async function PUT(
     if (!genres || genres.length === 0) {
       return NextResponse.json({ message: 'Al menos un género musical es requerido.' }, { status: 400 });
     }
-    if (hourlyRate !== undefined && (isNaN(hourlyRate) || hourlyRate <= 0)) {
-      return NextResponse.json({ message: 'Honorarios base debe ser un número positivo.' }, { status: 400 });
+    if (hourlyRate !== null && (isNaN(hourlyRate) || hourlyRate < 0)) { // Allow 0 if it's a valid rate
+      return NextResponse.json({ message: 'Honorarios base debe ser un número positivo o cero.' }, { status: 400 });
     }
     if (!availability || availability.length === 0) {
       return NextResponse.json({ message: 'Al menos un día de disponibilidad es requerido.' }, { status: 400 });
@@ -95,7 +83,7 @@ export async function PUT(
         instruments,
         genres,
         bio,
-        hourlyRate,
+        hourlyRate, // Use the converted number
         availability,
         youtubeUrl,
         soundcloudUrl,

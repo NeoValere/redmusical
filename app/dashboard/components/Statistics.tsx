@@ -10,7 +10,7 @@ export default function Statistics() {
         Estadísticas de tu perfil
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-        <ChartBar size={64} color="var(--mui-palette-text-secondary)" style={{ marginBottom: 16 }} />
+        <ChartBar size={64} style={{ marginBottom: 16 }} />
         <Typography variant="body1" color="text.secondary" align="center">
           Las estadísticas estarán disponibles pronto. Podrás ver cuántas veces visitan tu perfil, clics en enlaces y solicitudes de contacto.
         </Typography>

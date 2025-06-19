@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { CheckCircle, Warning } from 'phosphor-react';
-import { Box, Typography, Button, Paper, SvgIcon, Link as MuiLink } from '@mui/material';
+import { Box, Typography, Button, Paper, Link as MuiLink, useTheme } from '@mui/material';
 
 interface ProfileStatusProps {
   userId: string;
@@ -11,17 +11,18 @@ interface ProfileStatusProps {
 
 export default function ProfileStatus({ userId, profileStatus }: ProfileStatusProps) {
   const isActive = profileStatus === 'Activo';
+  const theme = useTheme();
 
   return (
-    <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+    <Paper sx={{ p: 3, mb: 4, borderRadius: '8px', bgcolor: 'background.paper' }}>
       <Typography variant="h5" component="h2" sx={{ fontWeight: 'semibold', mb: 2, color: 'text.primary' }}>
         Estado del Perfil
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         {isActive ? (
-          <CheckCircle size={24} color="var(--mui-palette-success-main)" style={{ marginRight: 8 }} />
+          <CheckCircle size={24} style={{ marginRight: 8 }} color={theme.palette.success.main} weight="fill" />
         ) : (
-          <Warning size={24} color="var(--mui-palette-warning-main)" style={{ marginRight: 8 }} />
+          <Warning size={24} style={{ marginRight: 8 }} color={theme.palette.warning.main} weight="fill" />
         )}
         <Typography variant="body1" sx={{ color: isActive ? 'success.main' : 'warning.main' }}>
           Estado actual: {isActive ? 'Activo' : 'Tu perfil está incompleto'}
@@ -41,7 +42,7 @@ export default function ProfileStatus({ userId, profileStatus }: ProfileStatusPr
           textTransform: 'none',
         }}
       >
-        Ver Perfil Público →
+        Ver Perfil Público
       </Button>
     </Paper>
   );

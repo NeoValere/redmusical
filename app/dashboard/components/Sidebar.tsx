@@ -16,8 +16,8 @@ import {
   Typography,
   Divider,
   Button,
-  SvgIcon,
   Link as MuiLink,
+  useTheme, // Import useTheme
 } from '@mui/material';
 
 interface SidebarProps {
@@ -30,6 +30,7 @@ interface SidebarProps {
 
 export default function Sidebar({ userRole, userId, hasContractorProfile, handleLogout, supabase }: SidebarProps) {
   const router = useRouter();
+  const theme = useTheme(); // Use the theme hook
 
   const handleSwitchRole = async () => {
     if (!userId) return;
@@ -93,7 +94,7 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
       sx={{
         width: 256, // w-64 is 256px
         flexShrink: 0,
-        bgcolor: 'background.paper', // Using paper background for sidebar
+        bgcolor: 'background.default', // Use default background for sidebar
         color: 'text.primary',
         py: 2,
         px: 1,
@@ -101,12 +102,12 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
         position: 'fixed',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: 2, // Subtle shadow
+        // Removed boxShadow as per image
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4 }}>
         <MuiLink component={Link} href="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-          <MusicNotesSimple size={24} color="var(--mui-palette-primary-main)" style={{ marginRight: 8 }} />
+          <MusicNotesSimple size={24} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 8 }} />
           <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
             redmusical.ar
           </Typography>
@@ -115,33 +116,41 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
 
       <List component="nav" sx={{ flexGrow: 1 }}>
         <ListItem disablePadding>
-          <ListItemButton component={Link} href="#mi-perfil" sx={{ borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}>
-            <ListItemIcon>
-              <User size={24} color="var(--mui-palette-text-secondary)" />
+          <ListItemButton component={Link} href="#mi-perfil" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              <User size={24} />
             </ListItemIcon>
             <ListItemText primary="Mi perfil" />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton component={Link} href="#estadisticas" sx={{ borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}>
-            <ListItemIcon>
-              <ChartBar size={24} color="var(--mui-palette-text-secondary)" />
+          <ListItemButton component={Link} href="#quick-edit" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              <MusicNotesSimple size={24} /> {/* Using MusicNotesSimple for Quick Edit, can be changed if a better icon is available */}
+            </ListItemIcon>
+            <ListItemText primary="Edición Rápida" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton component={Link} href="#estadisticas" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              <ChartBar size={24} />
             </ListItemIcon>
             <ListItemText primary="Estadísticas" />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton component={Link} href="#visibilidad" sx={{ borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}>
-            <ListItemIcon>
-              <Eye size={24} color="var(--mui-palette-text-secondary)" />
+          <ListItemButton component={Link} href="#visibilidad" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              <Eye size={24} />
             </ListItemIcon>
             <ListItemText primary="Visibilidad" />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
-          <ListItemButton component={Link} href="#mi-plan" sx={{ borderRadius: 1, '&:hover': { bgcolor: 'action.hover' } }}>
-            <ListItemIcon>
-              <CreditCard size={24} color="var(--mui-palette-text-secondary)" />
+          <ListItemButton component={Link} href="#mi-plan" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              <CreditCard size={24} />
             </ListItemIcon>
             <ListItemText primary="Mi Plan" />
           </ListItemButton>
@@ -160,9 +169,9 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
                 py: 1,
                 px: 1.5,
                 color: 'text.primary',
-                '&:hover': { bgcolor: 'action.hover' },
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
               }}
-          startIcon={<Headphones size={24} color="var(--mui-palette-text-primary)" />}
+          startIcon={<Headphones size={24} color={theme.palette.text.primary} weight="fill" />}
             >
               Cambiar a Contratante
             </Button>
@@ -176,9 +185,9 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
                 py: 1,
                 px: 1.5,
                 color: 'text.primary',
-                '&:hover': { bgcolor: 'action.hover' },
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
               }}
-          startIcon={<PlusCircle size={24} color="var(--mui-palette-text-primary)" />}
+          startIcon={<PlusCircle size={24} color={theme.palette.text.primary} weight="fill" />}
             >
               Crear perfil Contratante
             </Button>
@@ -195,7 +204,7 @@ export default function Sidebar({ userRole, userId, hasContractorProfile, handle
             py: 1,
             px: 1.5,
           }}
-          startIcon={<SignOut size={24} color="white" />}
+          startIcon={<SignOut size={24} color="white" weight="fill" />}
         >
           Cerrar sesión
         </Button>

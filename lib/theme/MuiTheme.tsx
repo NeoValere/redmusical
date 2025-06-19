@@ -1,104 +1,58 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider, PaletteMode } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 
-type ThemeContextType = {
-  toggleColorMode: () => void;
-  mode: PaletteMode;
-};
-
-const ColorModeContext = createContext<ThemeContextType | undefined>(undefined);
-
 export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [mode, setMode] = useState<PaletteMode>('light');
-
-  useEffect(() => {
-    const storedMode = localStorage.getItem('mui-theme-mode') as PaletteMode;
-    if (storedMode) {
-      setMode(storedMode);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setMode('dark');
-    }
-  }, []);
-
-  const colorMode = useMemo(
-    () => ({
-      toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
-      },
-      mode,
-    }),
-    [mode],
-  );
+  const mode: PaletteMode = 'dark';
 
   const theme = useMemo(
     () =>
       createTheme({
         palette: {
           mode,
-          ...(mode === 'light'
-            ? {
-                // palette for light mode
-                primary: {
-                  main: '#007bff', // Example light primary
-                },
-                secondary: {
-                  main: '#6c757d', // Example light secondary
-                },
-                background: {
-                  default: '#ffffff',
-                  paper: '#f5f5f5',
-                },
-                text: {
-                  primary: '#171717',
-                  secondary: '#424242',
-                },
-              }
-            : {
-                // palette for dark mode
-                primary: {
-                  main: '#66b3ff', // Example dark primary
-                },
-                secondary: {
-                  main: '#a0a0a0', // Example dark secondary
-                },
-                background: {
-                  default: '#0a0a0a',
-                  paper: '#1a1a1a',
-                },
-                text: {
-                  primary: '#ededed',
-                  secondary: '#bdbdbd',
-                },
-              }),
+          primary: {
+            main: '#d6a841', // Título destacado, Botones principales
+          },
+          secondary: {
+            main: '#7f8fa6', // Íconos secundarios
+          },
+          background: {
+            default: '#0e1d2d', // Fondo principal
+            paper: '#1d2c3b', // Paneles secundarios
+          },
+          text: {
+            primary: '#e3e4e7', // Texto principal
+            secondary: '#7f8fa6', // Íconos secundarios (reusing secondary color for consistency)
+          },
+          success: {
+            main: '#3bb273', // Links activos (verde claro)
+          },
+          divider: 'rgba(255,255,255,0.06)', // Bordes/sombras suaves
         },
         typography: {
-          fontFamily: 'Arial, Helvetica, sans-serif',
+          fontFamily: ['Inter', 'Manrope', 'sans-serif'].join(','),
+        },
+        components: {
+          MuiButton: {
+            styleOverrides: {
+              root: {
+                '&:hover': {
+                  backgroundColor: '#b78a34', // Botones principales hover
+                },
+              },
+            },
+          },
         },
       }),
     [mode],
   );
 
-  useEffect(() => {
-    localStorage.setItem('mui-theme-mode', mode);
-  }, [mode]);
-
   return (
-    <ColorModeContext.Provider value={colorMode}>
-      <MuiThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </MuiThemeProvider>
-    </ColorModeContext.Provider>
+    <MuiThemeProvider theme={theme}>
+      <CssBaseline />
+      {children}
+    </MuiThemeProvider>
   );
-};
-
-export const useMuiTheme = () => {
-  const context = useContext(ColorModeContext);
-  if (context === undefined) {
-    throw new Error('useMuiTheme must be used within a MuiAppThemeProvider');
-  }
-  return context;
 };

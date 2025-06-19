@@ -65,7 +65,7 @@ export default function CurrentPlan({ planType = 'Gratuito', premiumEndDate }: C
             sx={{ textTransform: 'none' }}
             startIcon={<Sparkle size={24} color="white" />}
           >
-            Mejorar mi plan →
+            Mejorar mi plan
           </Button>
         )}
       </Box>

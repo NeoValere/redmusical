@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -17,9 +17,10 @@ import {
   Stack,
   Link as MuiLink,
   CircularProgress,
-  Paper, // Ensure Paper is imported
+  Paper,
 } from '@mui/material';
 import { ArrowLeft, PencilSimple, YoutubeLogo, InstagramLogo, MusicNoteSimple } from 'phosphor-react';
+import ProfileImageUploader from './components/ProfileImageUploader';
 
 // Manually define types based on prisma/schema.prisma
 interface MusicianProfile {
@@ -68,7 +69,7 @@ export default function MusicianProfilePage() {
         }
 
         // Check if logged-in user is the owner of this profile
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } = {} } = await supabase.auth.getUser(); // Destructure with default empty object
         if (user && user.id === id) {
           setIsOwner(true);
         } else {
@@ -83,6 +84,7 @@ export default function MusicianProfilePage() {
     };
     fetchProfileAndCheckOwner();
   }, [id, router, supabase]);
+
 
   if (loading) {
     return (
@@ -121,11 +123,23 @@ export default function MusicianProfilePage() {
 
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, textAlign: 'center' }}>
-          <Avatar
-            src={musicianProfile.profileImageUrl || "/images/musicians-bw.jpg"}
-            alt={musicianProfile.fullName || "Musician Profile"}
-            sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
-          />
+          {isOwner ? (
+            <ProfileImageUploader
+              musicianId={id}
+              currentImageUrl={musicianProfile.profileImageUrl}
+              onImageUploadSuccess={(newImageUrl) => {
+                setMusicianProfile(prev => prev ? { ...prev, profileImageUrl: newImageUrl } : null);
+              }}
+            />
+          ) : (
+            <Box sx={{ position: 'relative', width: 120, height: 120, mx: 'auto', mb: 2 }}>
+              <Avatar
+                src={musicianProfile.profileImageUrl || "/images/musicians-bw.jpg"}
+                alt={musicianProfile.fullName || "Musician Profile"}
+                sx={{ width: '100%', height: '100%' }}
+              />
+            </Box>
+          )}
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
             {musicianProfile.fullName}
           </Typography>

@@ -6,7 +6,7 @@ import SwitchRoleButton from './components/SwitchRoleButton';
 
 export const dynamic = 'force-dynamic'; // Ensure dynamic rendering for cookies()
 
-export default async function ContractorDashboardPage() {
+export default async function SearchDashboardPage() {
   const supabase = createRouteHandlerClient({ cookies });
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -24,9 +24,9 @@ export default async function ContractorDashboardPage() {
 
   return (
     <div>
-      <h1>Contractor Dashboard</h1>
-      <p>Welcome to your contractor dashboard!</p>
-      {/* Add contractor-specific content here */}
+      <h1>Búsqueda de músicos</h1>
+      <p>Bienvenido a tu área de búsqueda.</p>
+      {/* Add search-specific content here */}
       <SwitchRoleButton
         userId={userId}
         userEmail={userEmail}

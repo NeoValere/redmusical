@@ -7,34 +7,458 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          query?: string
-          operationName?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
-      [_ in never]: never
+      _prisma_migrations: {
+        Row: {
+          applied_steps_count: number
+          checksum: string
+          finished_at: string | null
+          id: string
+          logs: string | null
+          migration_name: string
+          rolled_back_at: string | null
+          started_at: string
+        }
+        Insert: {
+          applied_steps_count?: number
+          checksum: string
+          finished_at?: string | null
+          id: string
+          logs?: string | null
+          migration_name: string
+          rolled_back_at?: string | null
+          started_at?: string
+        }
+        Update: {
+          applied_steps_count?: number
+          checksum?: string
+          finished_at?: string | null
+          id?: string
+          logs?: string | null
+          migration_name?: string
+          rolled_back_at?: string | null
+          started_at?: string
+        }
+        Relationships: []
+      }
+      Availability: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      Contractor: {
+        Row: {
+          createdAt: string
+          email: string
+          fullName: string
+          id: string
+          isPremium: boolean
+          location: string | null
+          userId: string
+        }
+        Insert: {
+          createdAt?: string
+          email: string
+          fullName: string
+          id: string
+          isPremium?: boolean
+          location?: string | null
+          userId: string
+        }
+        Update: {
+          createdAt?: string
+          email?: string
+          fullName?: string
+          id?: string
+          isPremium?: boolean
+          location?: string | null
+          userId?: string
+        }
+        Relationships: []
+      }
+      Favorite: {
+        Row: {
+          contractorId: string
+          createdAt: string
+          id: string
+          musicianId: string
+        }
+        Insert: {
+          contractorId: string
+          createdAt?: string
+          id: string
+          musicianId: string
+        }
+        Update: {
+          contractorId?: string
+          createdAt?: string
+          id?: string
+          musicianId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Favorite_contractorId_fkey"
+            columns: ["contractorId"]
+            isOneToOne: false
+            referencedRelation: "Contractor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Favorite_musicianId_fkey"
+            columns: ["musicianId"]
+            isOneToOne: false
+            referencedRelation: "Musician"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Genre: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      Instrument: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      Musician: {
+        Row: {
+          accepts_collaborations: boolean | null
+          accepts_gigs: boolean | null
+          artisticName: string | null
+          audioSamples: Json | null
+          bio: string | null
+          createdAt: string
+          email: string
+          experienceLevel: string | null
+          fullName: string
+          gearHighlights: string[] | null
+          hourlyRate: number | null
+          id: string
+          influences: string[] | null
+          instagramUrl: string | null
+          is_public: boolean | null
+          isFeatured: boolean
+          isPremium: boolean
+          location: string | null
+          lookingFor: string[] | null
+          preferredVenueTypes: string[] | null
+          pressKitUrl: string | null
+          profileCompleteness: number
+          profileImageUrl: string | null
+          servicesOffered: string[] | null
+          socialMediaLinks: Json | null
+          soundcloudUrl: string | null
+          userId: string
+          videoSamples: Json | null
+          websiteUrl: string | null
+          youtubeUrl: string | null
+        }
+        Insert: {
+          accepts_collaborations?: boolean | null
+          accepts_gigs?: boolean | null
+          artisticName?: string | null
+          audioSamples?: Json | null
+          bio?: string | null
+          createdAt?: string
+          email: string
+          experienceLevel?: string | null
+          fullName: string
+          gearHighlights?: string[] | null
+          hourlyRate?: number | null
+          id: string
+          influences?: string[] | null
+          instagramUrl?: string | null
+          is_public?: boolean | null
+          isFeatured?: boolean
+          isPremium?: boolean
+          location?: string | null
+          lookingFor?: string[] | null
+          preferredVenueTypes?: string[] | null
+          pressKitUrl?: string | null
+          profileCompleteness?: number
+          profileImageUrl?: string | null
+          servicesOffered?: string[] | null
+          socialMediaLinks?: Json | null
+          soundcloudUrl?: string | null
+          userId: string
+          videoSamples?: Json | null
+          websiteUrl?: string | null
+          youtubeUrl?: string | null
+        }
+        Update: {
+          accepts_collaborations?: boolean | null
+          accepts_gigs?: boolean | null
+          artisticName?: string | null
+          audioSamples?: Json | null
+          bio?: string | null
+          createdAt?: string
+          email?: string
+          experienceLevel?: string | null
+          fullName?: string
+          gearHighlights?: string[] | null
+          hourlyRate?: number | null
+          id?: string
+          influences?: string[] | null
+          instagramUrl?: string | null
+          is_public?: boolean | null
+          isFeatured?: boolean
+          isPremium?: boolean
+          location?: string | null
+          lookingFor?: string[] | null
+          preferredVenueTypes?: string[] | null
+          pressKitUrl?: string | null
+          profileCompleteness?: number
+          profileImageUrl?: string | null
+          servicesOffered?: string[] | null
+          socialMediaLinks?: Json | null
+          soundcloudUrl?: string | null
+          userId?: string
+          videoSamples?: Json | null
+          websiteUrl?: string | null
+          youtubeUrl?: string | null
+        }
+        Relationships: []
+      }
+      MusicianAvailability: {
+        Row: {
+          availabilityId: string
+          musicianId: string
+        }
+        Insert: {
+          availabilityId: string
+          musicianId: string
+        }
+        Update: {
+          availabilityId?: string
+          musicianId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "MusicianAvailability_availabilityId_fkey"
+            columns: ["availabilityId"]
+            isOneToOne: false
+            referencedRelation: "Availability"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "MusicianAvailability_musicianId_fkey"
+            columns: ["musicianId"]
+            isOneToOne: false
+            referencedRelation: "Musician"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      MusicianGenre: {
+        Row: {
+          genreId: string
+          musicianId: string
+        }
+        Insert: {
+          genreId: string
+          musicianId: string
+        }
+        Update: {
+          genreId?: string
+          musicianId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "MusicianGenre_genreId_fkey"
+            columns: ["genreId"]
+            isOneToOne: false
+            referencedRelation: "Genre"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "MusicianGenre_musicianId_fkey"
+            columns: ["musicianId"]
+            isOneToOne: false
+            referencedRelation: "Musician"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      MusicianInstrument: {
+        Row: {
+          instrumentId: string
+          musicianId: string
+        }
+        Insert: {
+          instrumentId: string
+          musicianId: string
+        }
+        Update: {
+          instrumentId?: string
+          musicianId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "MusicianInstrument_instrumentId_fkey"
+            columns: ["instrumentId"]
+            isOneToOne: false
+            referencedRelation: "Instrument"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "MusicianInstrument_musicianId_fkey"
+            columns: ["musicianId"]
+            isOneToOne: false
+            referencedRelation: "Musician"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      MusicianPreference: {
+        Row: {
+          musicianId: string
+          preferenceId: string
+        }
+        Insert: {
+          musicianId: string
+          preferenceId: string
+        }
+        Update: {
+          musicianId?: string
+          preferenceId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "MusicianPreference_musicianId_fkey"
+            columns: ["musicianId"]
+            isOneToOne: false
+            referencedRelation: "Musician"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "MusicianPreference_preferenceId_fkey"
+            columns: ["preferenceId"]
+            isOneToOne: false
+            referencedRelation: "Preference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      MusicianSkill: {
+        Row: {
+          musicianId: string
+          skillId: string
+        }
+        Insert: {
+          musicianId: string
+          skillId: string
+        }
+        Update: {
+          musicianId?: string
+          skillId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "MusicianSkill_musicianId_fkey"
+            columns: ["musicianId"]
+            isOneToOne: false
+            referencedRelation: "Musician"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "MusicianSkill_skillId_fkey"
+            columns: ["skillId"]
+            isOneToOne: false
+            referencedRelation: "Skill"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      Payment: {
+        Row: {
+          amount: number
+          createdAt: string
+          id: string
+          role: string
+          status: string
+          userId: string
+        }
+        Insert: {
+          amount: number
+          createdAt?: string
+          id: string
+          role: string
+          status: string
+          userId: string
+        }
+        Update: {
+          amount?: number
+          createdAt?: string
+          id?: string
+          role?: string
+          status?: string
+          userId?: string
+        }
+        Relationships: []
+      }
+      Preference: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      Skill: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -157,11 +581,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-

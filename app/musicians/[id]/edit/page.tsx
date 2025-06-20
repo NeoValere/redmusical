@@ -1,443 +1,1032 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { PencilSimpleLine, FloppyDisk } from 'phosphor-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Button,
-  TextField,
+  Stepper,
+  Step,
+  StepLabel,
   Typography,
-  Paper,
   CircularProgress,
-  Alert,
-  Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  useTheme,
+  useMediaQuery,
+  Grid,
   Stack,
-  Checkbox,
-  FormControlLabel,
+  Chip,
   Avatar,
+  TextField,
+  Autocomplete,
+  FormControlLabel,
+  Switch,
+  FormGroup,
+  Checkbox,
+  FormControl,
   InputLabel,
+  Select,
+  MenuItem,
+  Slider,
+  Tooltip,
+  LinearProgress,
 } from '@mui/material';
+import {
+  Check as CheckIcon,
+  Close as CloseIcon,
+  ErrorOutline as ErrorOutlineIcon,
+  InfoOutlined as InfoOutlinedIcon,
+  MusicNote as MusicNoteIcon,
+  Person as PersonIcon,
+  LocationOn as LocationOnIcon,
+  Settings as SettingsIcon,
+  Event as EventIcon,
+  MonetizationOn as MonetizationOnIcon,
+  Visibility as VisibilityIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
+  ArrowBack as ArrowBackIcon,
+  Delete as DeleteIcon, // Added for audio tracks
+  Add as AddIcon, // Added for audio tracks
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter, useParams } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import ProfileImageUploader from '../components/ProfileImageUploader';
+import { Database } from '@/lib/database.types';
+import { useSnackbar } from 'notistack';
 
-interface MusicianProfile {
-  id: string;
-  fullName: string;
-  location?: string;
-  instruments: string[];
-  genres: string[];
-  bio?: string;
-  hourlyRate?: number;
-  availability: string[];
-  youtubeUrl?: string;
-  soundcloudUrl?: string;
-  instagramUrl?: string;
-  profileImageUrl?: string;
+type MusicianProfile = Database['public']['Tables']['Musician']['Row'] & {
+  genres: Database['public']['Tables']['Genre']['Row'][];
+  instruments: Database['public']['Tables']['Instrument']['Row'][];
+  skills: Database['public']['Tables']['Skill']['Row'][];
+  availability?: Database['public']['Tables']['Availability']['Row'][]; // Made optional
+  preferences: Database['public']['Tables']['Preference']['Row'][];
+  socialMediaLinks: Record<string, string> | null; // Changed from social_media_links
+  city?: string | null; 
+  province?: string | null;
+  phoneNumber?: string | null; // Added phoneNumber
+  websiteUrl?: string | null; // Changed website to websiteUrl
+  profileImageUrl?: string | null; // Added profileImageUrl
+  isPublic?: boolean | null; // Added isPublic
+  acceptsCollaborations?: boolean | null; // Added acceptsCollaborations
+  acceptsGigs?: boolean | null; // Added acceptsGigs
+  fullName?: string | null; // Added fullName
+  bio?: string | null; // Made optional
+  experienceLevel?: string | null; // Made optional
+  hourlyRate?: number | null; // Made optional
+  audioTracks: { title: string; url: string; }[]; // Changed to non-nullable array
+};
+
+const steps = [
+  'Información Básica',
+  'Detalles Musicales',
+  'Ubicación y Contacto',
+  'Logística y Preferencias',
+  'Visibilidad y Oportunidades',
+];
+
+const CustomStepIconRoot = styled('div')<{ ownerState: { active?: boolean; completed?: boolean; error?: boolean } }>(
+  ({ theme, ownerState }) => ({
+    color: theme.palette.mode === 'dark' ? theme.palette.grey[700] : theme.palette.grey[400],
+    display: 'flex',
+    height: 22,
+    alignItems: 'center',
+    ...(ownerState.active && {
+      color: theme.palette.primary.main,
+    }),
+    '& .CustomStepIcon-completedIcon': {
+      color: theme.palette.success.main,
+      zIndex: 1,
+      fontSize: 18,
+    },
+    '& .CustomStepIcon-errorIcon': {
+      color: theme.palette.error.main,
+      zIndex: 1,
+      fontSize: 18,
+    },
+    '& .CustomStepIcon-circle': {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      backgroundColor: 'currentColor',
+    },
+  }),
+);
+
+import type { StepIconProps } from '@mui/material/StepIcon';
+
+function CustomStepIcon(props: StepIconProps) {
+  const { active, completed, error, icon } = props;
+  const theme = useTheme();
+
+  const icons: { [key: string]: React.ReactElement } = {
+    '1': <PersonIcon />,
+    '2': <MusicNoteIcon />,
+    '3': <LocationOnIcon />,
+    '4': <SettingsIcon />,
+    '5': <VisibilityIcon />,
+  };
+
+  if (error) {
+    return (
+      <CustomStepIconRoot ownerState={{ error: true }}>
+        <ErrorOutlineIcon className="CustomStepIcon-errorIcon" />
+      </CustomStepIconRoot>
+    );
+  }
+
+  return (
+    <CustomStepIconRoot ownerState={{ completed: completed || false, active: active || false }}>
+      {completed ? (
+        <CheckIcon className="CustomStepIcon-completedIcon" />
+      ) : (
+        icons[String(icon)]
+      )}
+    </CustomStepIconRoot>
+  );
 }
 
-const EditMusicianPage = () => {
+const MotionBox = motion(Box);
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: 'easeOut' as const } },
+  exit: { y: -20, opacity: 0, transition: { duration: 0.3, ease: 'easeIn' as const } },
+};
+
+export default function EditMusicianProfile() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
-  const [musicianId, setMusicianId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<MusicianProfile | null>(null);
+  const params = useParams();
+  const musicianId = params.id as string;
+  const supabase = createClientComponentClient<Database>();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [activeStep, setActiveStep] = useState(0);
+  const [profile, setProfile] = useState<Partial<MusicianProfile> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [stepErrors, setStepErrors] = useState<boolean[]>(Array(steps.length).fill(false));
 
-  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const [allGenres, setAllGenres] = useState<{ id: string; name: string }[]>([]);
+  const [allInstruments, setAllInstruments] = useState<{ id: string; name: string }[]>([]);
+  const [allSkills, setAllSkills] = useState<{ id: string; name: string }[]>([]);
+  const [allAvailability, setAllAvailability] = useState<{ id: string; name: string }[]>([]);
+  const [allPreferences, setAllPreferences] = useState<{ id: string; name: string }[]>([]);
 
-  useEffect(() => {
-    const pathSegments = window.location.pathname.split('/');
-    const id = pathSegments[2];
-    if (id) {
-      setMusicianId(id);
-      fetchMusicianProfile(id);
-    } else {
-      setError('Musician ID not found in URL.');
-      setLoading(false);
-    }
+  const [profileCompleteness, setProfileCompleteness] = useState(0);
+
+  // Handlers for audio tracks
+  const handleAudioTrackChange = useCallback((index: number, field: 'title' | 'url', value: string) => {
+    setProfile(prev => {
+      if (!prev || !prev.audioTracks) return prev;
+      const newAudioTracks = [...prev.audioTracks];
+      newAudioTracks[index] = { ...newAudioTracks[index], [field]: value };
+      return { ...prev, audioTracks: newAudioTracks };
+    });
   }, []);
 
-  const fetchMusicianProfile = async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || !session.user) {
-        router.push('/login');
-        return;
-      }
-      const user = session.user;
+  const handleAddAudioTrack = useCallback(() => {
+    setProfile(prev => ({
+      ...prev,
+      audioTracks: [...(prev?.audioTracks || []), { title: '', url: '' }],
+    }));
+  }, []);
 
-      const response = await fetch(`/api/musicians/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  const handleRemoveAudioTrack = useCallback((index: number) => {
+    setProfile(prev => {
+      if (!prev || !prev.audioTracks) return prev;
+      const newAudioTracks = prev.audioTracks.filter((_, i) => i !== index);
+      return { ...prev, audioTracks: newAudioTracks };
+    });
+  }, []);
+
+  const fetchProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/musicians/${musicianId}/get-profile`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch musician profile: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch profile');
       }
       const data = await response.json();
-      setProfile(data);
+      // Map snake_case from API to camelCase for frontend state
+      const mappedData: MusicianProfile = {
+        ...data,
+        audioTracks: data.audioTracks || [], // Ensure audioTracks is always an array
+        // No explicit mapping needed here, as API now returns camelCase
+      };
+      setProfile(mappedData);
+      calculateProfileCompleteness(mappedData);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Error fetching profile from API:', err);
+      setError('No se pudo cargar el perfil: ' + err.message);
+      setShowErrorDialog(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [musicianId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProfile(prev => prev ? { ...prev, [name]: value } : null);
-    setFormErrors(prev => ({ ...prev, [name]: '' }));
-  };
-
-  const handleArrayChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'instruments' | 'genres' | 'availability') => {
-    const { value } = e.target;
-    const newItems = value.split(',').map(item => item.trim()).filter(item => item !== '');
-    setProfile(prev => prev ? { ...prev, [field]: newItems } : null);
-    setFormErrors(prev => ({ ...prev, [field]: '' }));
-  };
-
-  const handleCheckboxChange = (day: string) => {
-    setProfile(prev => {
-      if (!prev) return null;
-      const currentAvailability = prev.availability || [];
-      if (currentAvailability.includes(day)) {
-        return { ...prev, availability: currentAvailability.filter(d => d !== day) };
-      } else {
-        return { ...prev, availability: [...currentAvailability, day] };
-      }
-    });
-    setFormErrors(prev => ({ ...prev, availability: '' }));
-  };
-
-  const validateForm = () => {
-    const errors: Record<string, string> = {};
-    if (!profile?.fullName || profile.fullName.length < 2) {
-      errors.fullName = 'Nombre completo es requerido y debe tener al menos 2 caracteres.';
-    }
-    if (!profile?.location) {
-      errors.location = 'Ubicación es requerida.';
-    }
-    if (!profile?.instruments || profile.instruments.length === 0) {
-      errors.instruments = 'Al menos un instrumento es requerido.';
-    }
-    if (!profile?.genres || profile.genres.length === 0) {
-      errors.genres = 'Al menos un género musical es requerido.';
-    }
-    if (profile?.hourlyRate !== undefined && (isNaN(profile.hourlyRate) || profile.hourlyRate <= 0)) {
-      errors.hourlyRate = 'Honorarios base debe ser un número positivo.';
-    }
-    if (!profile?.availability || profile.availability.length === 0) {
-      errors.availability = 'Al menos un día de disponibilidad es requerido.';
-    }
-
-    const urlRegex = /^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/[a-zA-Z0-9]+\.[^\s]{2,}|[a-zA-Z0-9]+\.[^\s]{2,})$/i;
-    if (profile?.youtubeUrl && !urlRegex.test(profile.youtubeUrl)) {
-      errors.youtubeUrl = 'URL de YouTube inválida.';
-    }
-    if (profile?.soundcloudUrl && !urlRegex.test(profile.soundcloudUrl)) {
-      errors.soundcloudUrl = 'URL de SoundCloud inválida.';
-    }
-    if (profile?.instagramUrl && !urlRegex.test(profile.instagramUrl)) {
-      errors.instagramUrl = 'URL de Instagram inválida.';
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
+  const fetchMetadata = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || !session.user || session.user.id !== musicianId) {
-        setError('Unauthorized access.');
-        setLoading(false);
-        return;
-      }
-      const user = session.user;
+      const [genresRes, instrumentsRes, skillsRes, availabilityRes, preferencesRes] = await Promise.all([
+        fetch('/api/genres'), // Assuming you have these API routes
+        fetch('/api/instruments'),
+        fetch('/api/skills'),
+        fetch('/api/availability'),
+        fetch('/api/preferences'),
+      ]);
 
-      const response = await fetch(`/api/musicians/${musicianId}/update`, {
+      const genresData = genresRes.ok ? await genresRes.json() : [];
+      const instrumentsData = instrumentsRes.ok ? await instrumentsRes.json() : [];
+      const skillsData = skillsRes.ok ? await skillsRes.json() : [];
+      const availabilityData = availabilityRes.ok ? await availabilityRes.json() : [];
+      const preferencesData = preferencesRes.ok ? await preferencesRes.json() : [];
+
+      setAllGenres(genresData);
+      setAllInstruments(instrumentsData);
+      setAllSkills(skillsData);
+      setAllAvailability(availabilityData);
+      setAllPreferences(preferencesData);
+    } catch (err) {
+      console.error('Error fetching metadata:', err);
+      enqueueSnackbar('Error al cargar opciones de selección. Asegúrate de que la base de datos esté sembrada.', { variant: 'error' });
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchMetadata();
+  }, [fetchProfile, fetchMetadata]);
+
+  const handleChange = useCallback((field: keyof MusicianProfile, value: any) => {
+    setProfile((prev: Partial<MusicianProfile> | null) => {
+      const updatedProfile = { ...prev, [field]: value } as Partial<MusicianProfile>;
+      calculateProfileCompleteness(updatedProfile);
+      return updatedProfile;
+    });
+    setFormErrors((prev) => ({ ...prev, [field]: '' }));
+  }, []);
+
+  const handleArrayChange = useCallback(
+    (field: 'genres' | 'instruments' | 'skills' | 'availability' | 'preferences', value: any[]) => {
+      setProfile((prev: Partial<MusicianProfile> | null) => {
+        const updatedProfile = { ...prev, [field]: value } as Partial<MusicianProfile>;
+        calculateProfileCompleteness(updatedProfile);
+        return updatedProfile;
+      });
+      setFormErrors((prev) => ({ ...prev, [field]: '' }));
+    },
+    [],
+  );
+
+  const calculateProfileCompleteness = useCallback((currentProfile: Partial<MusicianProfile>) => {
+    let completedFields = 0;
+    const totalFields = 11; // Adjusted based on the number of fields considered for completeness (removed availability, bio, experienceLevel, hourlyRate)
+
+    if (currentProfile.fullName) completedFields++;
+    if (currentProfile.profileImageUrl) completedFields++; // Changed from profile_image_url
+    if (currentProfile.genres && currentProfile.genres.length > 0) completedFields++;
+    if (currentProfile.instruments && currentProfile.instruments.length > 0) completedFields++;
+    if (currentProfile.skills && currentProfile.skills.length > 0) completedFields++;
+    if (currentProfile.city && currentProfile.city) completedFields++;
+    if (currentProfile.phoneNumber) completedFields++;
+    if (currentProfile.email) completedFields++;
+    if (currentProfile.websiteUrl) completedFields++;
+    if (currentProfile.socialMediaLinks && Object.keys(currentProfile.socialMediaLinks).length > 0) // Changed from social_media_links
+      completedFields++;
+    if (currentProfile.isPublic !== null && currentProfile.isPublic !== undefined) completedFields++; // Changed from is_public
+
+    setProfileCompleteness(Math.min(100, Math.round((completedFields / totalFields) * 100)));
+  }, []);
+
+  const validateStep = useCallback(
+    (step: number) => {
+      let errors: Record<string, string> = {};
+      let hasError = false;
+
+      if (!profile) return true; // Should not happen if profile is loaded
+
+      switch (step) {
+        case 0: // Información Básica
+          if (!profile.fullName || profile.fullName.length < 3) { // Changed from full_name
+            errors.fullName = 'El nombre completo es requerido y debe tener al menos 3 caracteres.'; // Changed from full_name
+            hasError = true;
+          }
+          // Removed bio validation
+          break;
+        case 1: // Detalles Musicales
+          if (!profile.genres || profile.genres.length === 0) {
+            errors.genres = 'Debes seleccionar al menos un género.';
+            hasError = true;
+          }
+          if (!profile.instruments || profile.instruments.length === 0) {
+            errors.instruments = 'Debes seleccionar al menos un instrumento.';
+            hasError = true;
+          }
+          // Removed experienceLevel validation
+          break;
+        case 2: // Ubicación y Contacto
+          if (!profile.city) {
+            errors.city = 'La ciudad es requerida.';
+            hasError = true;
+          }
+          if (!profile.province) { // Changed country to province
+            errors.province = 'La provincia es requerida.'; // Changed error message
+            hasError = true;
+          }
+          if (!profile.phoneNumber) { // Changed phone_number to phoneNumber
+            errors.phoneNumber = 'El número de teléfono es requerido.'; // Changed error message
+            hasError = true;
+          }
+          if (!profile.email || !/\S+@\S+\.\S/.test(profile.email)) {
+            errors.email = 'El email es requerido y debe ser válido.';
+            hasError = true;
+          }
+          break;
+        case 3: // Logística
+          // Removed availability and hourlyRate validation as per user request
+          break;
+        case 4: // Visibilidad y Finalizar
+          // No specific validation for this step, as it's mostly toggles
+          break;
+      }
+
+      setFormErrors((prev) => ({ ...prev, ...errors }));
+      setStepErrors((prev) => {
+        const newStepErrors = [...prev];
+        newStepErrors[step] = hasError;
+        return newStepErrors;
+      });
+      return !hasError;
+    },
+    [profile],
+  );
+
+  const handlePartialSave = async () => {
+    if (!profile) return false;
+    setSubmitting(true); // Use submitting state to disable next/back during save
+    let success = false;
+    try {
+      // Exclude createdAt, updatedAt, and other auto-managed fields by the database
+      // Also exclude availability from the payload as it's no longer a required field
+      const { genres, instruments, skills, availability, preferences, ...restOfProfile } = profile; // Removed createdAt, updatedAt
+
+      // Send payload directly in camelCase as Prisma now expects camelCase
+      const payload = {
+        ...restOfProfile,
+        genres: genres?.map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })) || [],
+        instruments: instruments?.map((i: { id: string; name: string }) => ({ id: i.id, name: i.name })) || [],
+        skills: skills?.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })) || [],
+        // availability is no longer sent as a required field
+        preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
+      };
+
+      const response = await fetch(`/api/musicians/${musicianId}/update-profile`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profile),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al guardar el perfil.');
+        throw new Error(errorData.error || 'Failed to partially save profile');
       }
-
-      alert('Perfil actualizado correctamente');
-      router.push(`/musicians/${musicianId}`);
+      enqueueSnackbar('Progreso guardado', { variant: 'success', autoHideDuration: 2000 });
+      success = true;
     } catch (err: any) {
-      setError(err.message);
+      console.error('Error partially saving profile:', err);
+      enqueueSnackbar('Error al guardar progreso: ' + err.message, { variant: 'error' });
+      success = false;
     } finally {
-      setLoading(false);
+      setSubmitting(false);
+    }
+    return success;
+  };
+
+  const handleNext = async () => {
+    if (validateStep(activeStep)) {
+      if (activeStep < steps.length - 1) {
+        const saved = await handlePartialSave();
+        if (saved) {
+          setActiveStep((prevActiveStep) => prevActiveStep + 1);
+        }
+      } else { // Last step, full submit
+        await handleSubmit();
+      }
+    } else {
+      enqueueSnackbar('Por favor, corrige los errores antes de continuar.', { variant: 'error' });
     }
   };
 
+  const handleBack = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  };
+
+  const handleStepClick = async (stepIndex: number) => {
+    if (submitting || stepIndex === activeStep) {
+      return; // Do nothing if submitting or clicking the current step
+    }
+
+    if (stepIndex < activeStep) {
+      // Moving to a previous step, allow direct navigation
+      // Optionally, you might want to save if there are unsaved changes,
+      // but for now, let's keep it simple like handleBack.
+      setActiveStep(stepIndex);
+    } else {
+      // Moving to a future step (or a step further than the next one)
+      // Validate the current step before proceeding
+      if (validateStep(activeStep)) {
+        const saved = await handlePartialSave(); // Save current step's progress
+        if (saved) {
+          setActiveStep(stepIndex); // Move to the clicked step
+        }
+      } else {
+        enqueueSnackbar('Por favor, corrige los errores del paso actual antes de avanzar.', { variant: 'error' });
+      }
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!profile) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    // Exclude createdAt, updatedAt, and other auto-managed fields by the database
+    const { genres, instruments, skills, availability, preferences, bio, experienceLevel, ...restOfProfile } = profile; // Removed createdAt, updatedAt
+
+    const payload = {
+      ...restOfProfile,
+      bio: bio || null, // Ensure bio is sent as null if empty
+      experienceLevel: experienceLevel || null, // Ensure experienceLevel is sent as null if empty
+      genres: genres?.map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })) || [],
+      instruments: instruments?.map((i: { id: string; name: string }) => ({ id: i.id, name: i.name })) || [],
+      skills: skills?.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })) || [],
+      availability: availability?.map((a: { id: string; name: string }) => ({ id: a.id, name: a.name })) || [],
+      preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
+    };
+
+    try {
+      const response = await fetch(`/api/musicians/${musicianId}/update-profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+
+      enqueueSnackbar('Perfil actualizado exitosamente!', { variant: 'success' });
+      router.push(`/musicians/${musicianId}`); // Redirect to the profile page
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setError('Error al actualizar el perfil: ' + err.message);
+      setShowErrorDialog(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const renderStepContent = useCallback(
+    (step: number) => {
+      if (!profile) return null;
+
+      switch (step) {
+        case 0: // Información Básica
+          return (
+            <Stack spacing={3}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', color: 'text.primary' }}>
+                Paso 1: Información Básica
+              </Typography>
+              <ProfileImageUploader
+                musicianId={musicianId}
+                currentImageUrl={profile.profileImageUrl || null} // Changed from profile_image_url
+                onImageUploadSuccess={(url) => handleChange('profileImageUrl', url)} // Changed from profile_image_url
+              />
+              <TextField
+                label="Nombre Completo"
+                value={profile.fullName || ''} // Changed from full_name
+                onChange={(e) => handleChange('fullName', e.target.value)} // Changed from full_name
+                fullWidth
+                error={!!formErrors.fullName} // Changed from full_name
+                helperText={formErrors.fullName} // Changed from full_name
+              />
+              <TextField
+                label="Biografía (Opcional)"
+                value={profile.bio || ''}
+                onChange={(e) => handleChange('bio', e.target.value)}
+                fullWidth
+                multiline
+                rows={4}
+                // Removed error and helperText for bio as it's now optional
+              />
+            </Stack>
+          );
+        case 1: // Detalles Musicales
+          // Ensure currentAudioTracks is an array, defaulting to empty if profile.audioTracks is undefined.
+          const currentAudioTracks = profile.audioTracks || [];
+          return (
+            <Stack spacing={3}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', color: 'text.primary' }}>
+                Paso 2: Detalles Musicales
+              </Typography>
+              <Autocomplete
+                multiple
+                options={allGenres}
+                getOptionLabel={(option) => option.name}
+                value={profile.genres || []}
+                onChange={(_, newValue) => handleArrayChange('genres', newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Géneros Musicales"
+                    placeholder="Selecciona géneros"
+                    error={!!formErrors.genres}
+                    helperText={formErrors.genres}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
+                  ))
+                }
+              />
+              <Autocomplete
+                multiple
+                options={allInstruments}
+                getOptionLabel={(option) => option.name}
+                value={profile.instruments || []}
+                onChange={(_, newValue) => handleArrayChange('instruments', newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Instrumentos"
+                    placeholder="Selecciona instrumentos"
+                    error={!!formErrors.instruments}
+                    helperText={formErrors.instruments}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
+                  ))
+                }
+              />
+              <Autocomplete
+                multiple
+                options={allSkills}
+                getOptionLabel={(option) => option.name}
+                value={profile.skills || []}
+                onChange={(_, newValue) => handleArrayChange('skills', newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Habilidades Adicionales" placeholder="Selecciona habilidades" />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
+                  ))
+                }
+              />
+              {/* Removed FormControl for Nivel de Experiencia */}
+
+              {/* The Typography with "TESTING AUDIO SECTION VISIBILITY" was here, it's removed as we restore the full section */}
+
+              <Typography variant="subtitle1" sx={{ fontWeight: 'medium', mt: 2, color: 'text.secondary' }}>
+                Pistas de Audio (Opcional)
+              </Typography>
+              {currentAudioTracks.map((track, index) => (
+                <Stack key={index} direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <TextField
+                    label={`Título Pista ${index + 1}`}
+                    value={track.title}
+                    onChange={(e) => handleAudioTrackChange(index, 'title', e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                  <TextField
+                    label={`URL Pista ${index + 1}`}
+                    value={track.url}
+                    onChange={(e) => handleAudioTrackChange(index, 'url', e.target.value)}
+                    fullWidth
+                    size="small"
+                    type="url"
+                    placeholder="https://ejemplo.com/audio.mp3"
+                    helperText="Enlace directo al archivo de audio (ej. MP3, WAV)"
+                  />
+                  <IconButton onClick={() => handleRemoveAudioTrack(index)} color="error" size="small">
+                    <DeleteIcon />
+                  </IconButton>
+                </Stack>
+              ))}
+              <Button
+                onClick={handleAddAudioTrack}
+                startIcon={<AddIcon />}
+                variant="outlined"
+                size="small"
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Añadir Pista
+              </Button>
+            </Stack>
+          );
+        case 2: // Ubicación y Contacto
+          return (
+            <Stack spacing={3}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', color: 'text.primary' }}>
+                Paso 3: Ubicación y Contacto
+              </Typography>
+              <TextField
+                label="Ciudad"
+                value={profile.city || ''}
+                onChange={(e) => handleChange('city', e.target.value)}
+                fullWidth
+                error={!!formErrors.city}
+                helperText={formErrors.city}
+              />
+              <TextField
+                label="Provincia" // Changed label
+                value={profile.province || ''} // Changed value field
+                onChange={(e) => handleChange('province', e.target.value)} // Changed handleChange field
+                fullWidth
+                error={!!formErrors.province} // Changed error field
+                helperText={formErrors.province} // Changed helperText field
+              />
+              <TextField
+                label="Número de Teléfono"
+                value={profile.phoneNumber || ''} // Changed phone_number to phoneNumber
+                onChange={(e) => handleChange('phoneNumber', e.target.value)} // Changed phone_number to phoneNumber
+                fullWidth
+                error={!!formErrors.phoneNumber} // Changed phone_number to phoneNumber
+                helperText={formErrors.phoneNumber} // Changed phone_number to phoneNumber
+              />
+              <TextField
+                label="Email de Contacto"
+                type="email"
+                value={profile.email || ''}
+                onChange={(e) => handleChange('email', e.target.value)}
+                fullWidth
+                error={!!formErrors.email}
+                helperText={formErrors.email}
+              />
+              <TextField
+                label="Sitio Web (Opcional)"
+                value={profile.websiteUrl || ''} // Changed website to websiteUrl
+                onChange={(e) => handleChange('websiteUrl', e.target.value)} // Changed website to websiteUrl
+                fullWidth
+              />
+              <TextField
+                label="Link de Red Social (Ej. Instagram)"
+                value={profile.socialMediaLinks?.instagram || ''} // Changed from social_media_links
+                onChange={(e) =>
+                  handleChange('socialMediaLinks', { // Changed from social_media_links
+                    ...(profile.socialMediaLinks || {}), // Changed from social_media_links
+                    instagram: e.target.value,
+                  })
+                }
+                fullWidth
+              />
+            </Stack>
+          );
+        case 3: // Logística
+          return (
+            <Stack spacing={3}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', color: 'text.primary' }}>
+                Paso 4: Logística y Preferencias
+              </Typography>
+              <Autocomplete
+                multiple
+                options={allAvailability}
+                getOptionLabel={(option) => option.name}
+                value={profile.availability || []}
+                onChange={(_, newValue) => handleArrayChange('availability', newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Disponibilidad"
+                    placeholder="Selecciona tu disponibilidad"
+                    error={!!formErrors.availability}
+                    helperText={formErrors.availability}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
+                  ))
+                }
+              />
+              <TextField
+                label="Tarifa por Hora (USD) (Opcional)"
+                type="number"
+                value={profile.hourlyRate || ''}
+                onChange={(e) => handleChange('hourlyRate', parseFloat(e.target.value))}
+                fullWidth
+                // Removed error and helperText for hourlyRate as it's now optional
+                InputProps={{
+                  startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                }}
+              />
+              <Autocomplete
+                multiple
+                options={allPreferences}
+                getOptionLabel={(option) => option.name}
+                value={profile.preferences || []}
+                onChange={(_, newValue) => handleArrayChange('preferences', newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Preferencias Adicionales" placeholder="Selecciona habilidades" />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
+                  ))
+                }
+              />
+            </Stack>
+          );
+        case 4: // Visibilidad y Finalizar
+          return (
+            <Stack spacing={3}>
+              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', color: 'text.primary' }}>
+                Paso 5: Visibilidad y Finalidades
+              </Typography>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={profile.isPublic || false} // Changed from is_public
+                      onChange={(e) => handleChange('isPublic', e.target.checked)} // Changed from is_public
+                    />
+                  }
+                  label="Hacer perfil público"
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
+                  Si tu perfil es público, otros usuarios podrán encontrarte en las búsquedas.
+                </Typography>
+              </FormGroup>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={profile.acceptsCollaborations || false}
+                      onChange={(e) => handleChange('acceptsCollaborations', e.target.checked)}
+                    />
+                  }
+                  label="Aceptar colaboraciones"
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
+                  Indica si estás abierto a proyectos de colaboración con otros músicos.
+                </Typography>
+              </FormGroup>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={profile.acceptsGigs || false} // Changed from accepts_gigs
+                      onChange={(e) => handleChange('acceptsGigs', e.target.checked)} // Changed from accepts_gigs
+                    />
+                  }
+                  label="Aceptar conciertos/eventos"
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 4 }}>
+                  Indica si estás disponible para ser contratado para conciertos o eventos.
+                </Typography>
+              </FormGroup>
+            </Stack>
+          );
+        default:
+          return null;
+      }
+    },
+    [
+      profile,
+      formErrors,
+      handleChange,
+      handleArrayChange,
+      musicianId,
+      allGenres,
+      allInstruments,
+      allSkills,
+      allAvailability,
+      allPreferences,
+      handleAudioTrackChange,
+      handleAddAudioTrack,
+      handleRemoveAudioTrack,
+    ],
+  );
+
+  const profileCompletenessColor = useMemo(() => {
+    if (profileCompleteness < 40) return theme.palette.error.main;
+    if (profileCompleteness < 70) return theme.palette.warning.main;
+    return theme.palette.success.main;
+  }, [profileCompleteness, theme.palette.error.main, theme.palette.warning.main, theme.palette.success.main]);
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
         <CircularProgress />
-        <Typography variant="h6" sx={{ ml: 2 }}>Cargando perfil...</Typography>
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Alert severity="error">Error: {error}</Alert>
+        <Typography sx={{ ml: 2 }}>Cargando perfil...</Typography>
       </Box>
     );
   }
 
   if (!profile) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Typography variant="h6" color="text.secondary">No se encontró el perfil del músico.</Typography>
+      <Box sx={{ textAlign: 'center', mt: 4 }}>
+        <ErrorOutlineIcon color="error" sx={{ fontSize: 60 }} />
+        <Typography variant="h5" color="error" mt={2}>
+          Error al cargar el perfil
+        </Typography>
+        <Typography variant="body1" color="text.secondary" mt={1}>
+          No se pudo encontrar el perfil del músico o hubo un error inesperado.
+        </Typography>
+        <Button variant="contained" onClick={() => router.push('/dashboard')} sx={{ mt: 3 }}>
+          Ir al Dashboard
+        </Button>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
-      <Container maxWidth="md">
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, color: 'text.primary', display: 'flex', alignItems: 'center' }}>
-            Editar Mi Perfil <PencilSimpleLine size={32} style={{ marginLeft: 8 }} />
+    <Box sx={{ p: isMobile ? 1 : 4, maxWidth: 900, mx: 'auto' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, mt: 2, position: 'relative' }}>
+        <Link href="/dashboard" passHref>
+          <Button variant="outlined" startIcon={<ArrowBackIcon />} sx={{ zIndex : 200, visibility: isMobile ? 'hidden' : 'visible' }}> {/* Hide on mobile if too crowded, or adjust layout */}
+            Dashboard
+          </Button>
+        </Link>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', textAlign: 'center', flexGrow: 1, position: 'absolute', left: 0, right: 0, mx: 'auto' }}>
+          Tu Perfil de <Box component="span" sx={{ color: theme.palette.warning.main }}>Artista</Box>
+        </Typography>
+        {/* Spacer for the right side, matching button width for centering. Adjust width as needed or hide on mobile. */}
+        <Box sx={{ width: isMobile ? 0 : '190px', visibility: isMobile ? 'hidden' : 'visible' }} />
+      </Box>
+      {isMobile && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1, width: '100%'}}>
+          <Link href="/dashboard" passHref>
+            <Button variant="text" startIcon={<ArrowBackIcon />} size="small">
+              Dashboard
+            </Button>
+          </Link>
+        </Box>
+      )}
+
+      <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Stepper
+          activeStep={activeStep}
+          orientation="horizontal"
+          sx={{
+            mb: 0,
+            width: '100%',
+            maxWidth: isMobile ? '100%' : 'md', 
+            '& .MuiStep-root': { // Target individual steps for padding on mobile
+              px: isMobile ? 0.5 : 1, 
+            },
+            '& .MuiStepLabel-label': {
+              whiteSpace: 'normal',
+              textAlign: 'center',
+              fontSize: isMobile ? '0.70rem' : '0.875rem', // Even smaller font on mobile for labels
+              mt: isMobile ? 0.5 : 0, // Add a small top margin for alternative labels on mobile
+            },
+            '& .MuiStepLabel-iconContainer': { // Reduce padding around icons on mobile
+              py: isMobile ? 0.5 : 1,
+            },
+            '& .MuiStepIcon-root': { 
+              fontSize: isMobile ? '1.2rem' : '1.5rem', // Slightly smaller icons on mobile
+            },
+            '& .MuiStepConnector-root': {
+              flex: '1 1 auto',
+              minWidth: isMobile ? '5px' : '30px', 
+              mx: isMobile ? 0.25 : 0.5, 
+            },
+            pb: 1,
+            px: isMobile ? 0 : 1, 
+          }}
+          alternativeLabel={isMobile}
+        >
+          {steps.map((label, index) => {
+            const labelProps: { error?: boolean } = {};
+            if (stepErrors[index]) {
+              labelProps.error = true;
+            }
+            return (
+              <Step key={label}>
+                <StepLabel
+                  onClick={() => handleStepClick(index)}
+                  sx={{ cursor: submitting ? 'default' : 'pointer' }}
+                  StepIconComponent={CustomStepIcon}
+                  {...labelProps}
+                >
+                  {label}
+                </StepLabel>
+              </Step>
+            );
+          })}
+        </Stepper>
+
+        <Box sx={{ my: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 0.5 }}>
+            Completitud del Perfil: {profileCompleteness}%
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-            Completá todos los datos que quieras mostrar públicamente.
+          <Box sx={{ width: '80%', maxWidth: 400 }}>
+            <LinearProgress
+              variant="determinate"
+              value={profileCompleteness}
+              sx={{
+                height: 10,
+                borderRadius: 5,
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: profileCompletenessColor,
+                },
+                backgroundColor: theme.palette.grey[theme.palette.mode === 'light' ? 300 : 700],
+              }}
+            />
+          </Box>
+        </Box>
+
+        <Box
+          sx={{ 
+            p: isMobile ? 2 : 3, 
+            // border: '1px solid', 
+            // borderColor: theme.palette.divider, 
+            borderRadius: 2,
+            boxShadow: theme.shadows[2],
+            bgcolor: 'background.paper',
+            width: '100%',
+            maxWidth: isMobile ? '100%' : 'md', // Full width on mobile
+          }}
+        >
+          <AnimatePresence mode="wait">
+            <MotionBox
+              key={activeStep}
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              sx={{ width: '100%' }}
+            >
+              {renderStepContent(activeStep)}
+            </MotionBox>
+          </AnimatePresence>
+          <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
+            <Button
+              color="inherit"
+              disabled={activeStep === 0 || submitting}
+              onClick={handleBack}
+              sx={{ mr: 1 }}
+            >
+              Atrás
+            </Button>
+            <Box sx={{ flex: '1 1 auto' }} />
+            <Button onClick={handleNext} disabled={submitting}>
+              {activeStep === steps.length - 1 ? (submitting ? <CircularProgress size={24} /> : 'Ver perfil') : 'Siguiente'}
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+
+      <Dialog open={showErrorDialog} onClose={() => setShowErrorDialog(false)}>
+        <DialogTitle sx={{ m: 0, p: 2 }}>
+          Error
+          <IconButton
+            aria-label="close"
+            onClick={() => setShowErrorDialog(false)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography gutterBottom color="error">
+            <ErrorOutlineIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
+            {error || 'Ha ocurrido un error inesperado.'}
           </Typography>
-
-          <form onSubmit={handleSubmit}>
-            {/* 1. Información personal básica */}
-            <Box component="section" sx={{ mb: 4 }}>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2, color: 'text.primary' }}>
-                1. Información personal básica
-              </Typography>
-              <Stack spacing={2}>
-                <TextField
-                  label="Nombre completo"
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={profile.fullName || ''}
-                  onChange={handleChange}
-                  placeholder="Tu nombre artístico o real"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.fullName}
-                  helperText={formErrors.fullName}
-                />
-                <TextField
-                  label="Ubicación (Ciudad / Provincia)"
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={profile.location || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: CABA, Buenos Aires"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.location}
-                  helperText={formErrors.location}
-                />
-              </Stack>
-            </Box>
-
-            {/* 2. Detalles artísticos */}
-            <Box component="section" sx={{ mb: 4 }}>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2, color: 'text.primary' }}>
-                2. Detalles artísticos
-              </Typography>
-              <Stack spacing={2}>
-                <TextField
-                  label="Instrumentos principales"
-                  type="text"
-                  id="instruments"
-                  name="instruments"
-                  value={profile.instruments?.join(', ') || ''}
-                  onChange={(e) => handleArrayChange(e as React.ChangeEvent<HTMLInputElement>, 'instruments')}
-                  placeholder="Ej: guitarra, batería, violín (separados por coma)"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.instruments}
-                  helperText={formErrors.instruments}
-                />
-                <TextField
-                  label="Géneros musicales"
-                  type="text"
-                  id="genres"
-                  name="genres"
-                  value={profile.genres?.join(', ') || ''}
-                  onChange={(e) => handleArrayChange(e as React.ChangeEvent<HTMLInputElement>, 'genres')}
-                  placeholder="Ej: Jazz, Rock, Clásico (separados por coma)"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.genres}
-                  helperText={formErrors.genres}
-                />
-                <TextField
-                  label="Biografía / Descripción"
-                  id="bio"
-                  name="bio"
-                  value={profile.bio || ''}
-                  onChange={handleChange}
-                  placeholder="Contá brevemente tu experiencia musical, estilo, etc."
-                  multiline
-                  rows={4}
-                  inputProps={{ maxLength: 500 }}
-                  fullWidth
-                  variant="outlined"
-                  helperText={`${profile.bio?.length || 0}/500 caracteres.`}
-                />
-              </Stack>
-            </Box>
-
-            {/* 3. Disponibilidad y honorarios */}
-            <Box component="section" sx={{ mb: 4 }}>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2, color: 'text.primary' }}>
-                3. Disponibilidad y honorarios
-              </Typography>
-              <Stack spacing={2}>
-                <TextField
-                  label="Honorarios base (ARS por hora)"
-                  type="number"
-                  id="hourlyRate"
-                  name="hourlyRate"
-                  value={profile.hourlyRate || ''}
-                  onChange={handleChange}
-                  placeholder="Ejemplo: 5000"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.hourlyRate}
-                  helperText={formErrors.hourlyRate}
-                />
-                <Box>
-                  <InputLabel sx={{ mb: 1, fontWeight: 'bold', color: 'text.primary' }}>Disponibilidad semanal</InputLabel>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' }, gap: 1 }}>
-                    {daysOfWeek.map(day => (
-                      <FormControlLabel
-                        key={day}
-                        control={
-                          <Checkbox
-                            checked={profile.availability?.includes(day) || false}
-                            onChange={() => handleCheckboxChange(day)}
-                            name="availability"
-                          />
-                        }
-                        label={day}
-                      />
-                    ))}
-                  </Box>
-                  {formErrors.availability && (
-                    <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                      {formErrors.availability}
-                    </Typography>
-                  )}
-                </Box>
-              </Stack>
-            </Box>
-
-            {/* 4. Multimedia y enlaces externos */}
-            <Box component="section" sx={{ mb: 4 }}>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2, color: 'text.primary' }}>
-                4. Multimedia y enlaces externos
-              </Typography>
-              <Stack spacing={2}>
-                <TextField
-                  label="Link YouTube (opcional)"
-                  type="url"
-                  id="youtubeUrl"
-                  name="youtubeUrl"
-                  value={profile.youtubeUrl || ''}
-                  onChange={handleChange}
-                  placeholder="https://youtube.com/tu-video"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.youtubeUrl}
-                  helperText={formErrors.youtubeUrl}
-                />
-                <TextField
-                  label="Link SoundCloud (opcional)"
-                  type="url"
-                  id="soundcloudUrl"
-                  name="soundcloudUrl"
-                  value={profile.soundcloudUrl || ''}
-                  onChange={handleChange}
-                  placeholder="https://soundcloud.com/tu-perfil"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.soundcloudUrl}
-                  helperText={formErrors.soundcloudUrl}
-                />
-                <TextField
-                  label="Link Instagram (opcional)"
-                  type="url"
-                  id="instagramUrl"
-                  name="instagramUrl"
-                  value={profile.instagramUrl || ''}
-                  onChange={handleChange}
-                  placeholder="https://instagram.com/tu-perfil"
-                  fullWidth
-                  variant="outlined"
-                  error={!!formErrors.instagramUrl}
-                  helperText={formErrors.instagramUrl}
-                />
-              </Stack>
-            </Box>
-
-            {/* 5. Imagen de perfil */}
-            <Box component="section" sx={{ mb: 4 }}>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 'semibold', mb: 2, color: 'text.primary' }}>
-                5. Imagen de perfil
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  La imagen de perfil se edita directamente desde tu perfil público.
-                </Typography>
-                {profile.profileImageUrl && (
-                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography variant="body2" color="text.primary" sx={{ mb: 1 }}>Imagen actual:</Typography>
-                    <Avatar src={profile.profileImageUrl} alt="Profile" sx={{ width: 120, height: 120, objectFit: 'cover' }} />
-                  </Box>
-                )}
-              </Box>
-            </Box>
-
-            {/* Guardar cambios button */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={loading}
-                sx={{ py: 1, px: 3, fontWeight: 'semibold' }}
-              >
-                {loading ? <CircularProgress size={24} color="inherit" /> : <><FloppyDisk size={20} style={{ marginRight: 8 }} /> Guardar cambios</>}
-              </Button>
-            </Box>
-          </form>
-        </Paper>
-      </Container>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Por favor, revisa la información e inténtalo de nuevo. Si el problema persiste, contacta a soporte.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowErrorDialog(false)}>Cerrar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
-};
-
-export default EditMusicianPage;
+}

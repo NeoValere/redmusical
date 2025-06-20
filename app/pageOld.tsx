@@ -36,7 +36,7 @@ export default function Home() {
           if (hasMusicianProfile) {
             router.push(`/musicians/${user.id}`);
           } else if (hasContractorProfile) {
-            router.push('/dashboard');
+            router.push('/dashboard/search');
           } else {
             // If session exists but no profiles, redirect to select-role page
             router.push('/select-role');
@@ -98,7 +98,7 @@ export default function Home() {
             La red profesional de músicos de Argentina
           </Typography>
           <Typography variant="h6" sx={{ mb: 4, maxWidth: 'md' }}>
-            Encontrá músicos reales. Ofrecé tu talento. Filtrá, escuchá y contratá. Todo en un solo lugar.
+            Encontrá músicos reales. Ofrecé tu talento. Filtrá, escuchá y conectá. Todo en un solo lugar.
           </Typography>
           <Box sx={{ mt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, width: '100%', maxWidth: 384 }}>
             <Button
@@ -194,7 +194,7 @@ export default function Home() {
               <CardContent>
                 <Stack direction="row" alignItems="center" spacing={1} mb={2}>
                   <Buildings size={32} color={theme.palette.primary.main} weight="fill" />
-                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>Para contratantes:</Typography>
+                  <Typography variant="h6" component="h3" sx={{ fontWeight: 'bold' }}>¿Buscás músicos o banda?</Typography>
                 </Stack>
                 <Stack spacing={1.5} sx={{ color: 'text.secondary' }}>
                   <Typography>1. Usá filtros para buscar músicos por zona e instrumento</Typography>

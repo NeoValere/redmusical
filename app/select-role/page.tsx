@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { MusicNotes, Headphones, Users } from 'phosphor-react';
+import { MusicNotes, Headphones, Users, MagnifyingGlass } from 'phosphor-react';
 import Image from 'next/image';
 
 export default function SelectRolePage() {
@@ -45,10 +45,10 @@ export default function SelectRolePage() {
 
   const getWelcomeMessage = () => {
     if (hasMusicianProfile && !hasContractorProfile) {
-      return 'Ya tenés un perfil de músico. ¿Querés crear también un perfil de contratante?';
+      return 'Ya tenés un perfil de músico. ¿Querés activar también el modo búsqueda?';
     }
     if (!hasMusicianProfile && hasContractorProfile) {
-      return 'Ya tenés un perfil de contratante. ¿Querés crear también un perfil de músico?';
+      return 'Ya tenés el modo búsqueda activado. ¿Querés crear también un perfil de músico?';
     }
     return 'Para empezar, contanos, ¿qué rol vas a cumplir en redmusical.ar?';
   };
@@ -156,7 +156,7 @@ export default function SelectRolePage() {
               onClick={() => handleRoleSelection('contractor')}
               disabled={isLoading}
             >
-              <Headphones size={20} className="mr-2" /> Soy contratante
+              <MagnifyingGlass size={20} className="mr-2" /> Activar modo búsqueda
             </button>
           )}
           {(!hasMusicianProfile && !hasContractorProfile) && ( // Only show 'both' if neither profile exists

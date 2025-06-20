@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@mui/material';
-import { Headphones, PlusCircle } from 'phosphor-react';
+import { MusicNotesSimple, PlusCircle } from 'phosphor-react';
 
 interface SwitchRoleButtonProps {
   userId: string | null;
@@ -81,9 +81,9 @@ export default function SwitchRoleButton({ userId, userEmail, userFullName, hasM
         color: 'text.primary',
         '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
       }}
-      startIcon={hasMusicianProfile ? <Headphones size={24} /> : <PlusCircle size={24} />}
+      startIcon={hasMusicianProfile ? <MusicNotesSimple size={24} /> : <PlusCircle size={24} />}
     >
-      {hasMusicianProfile ? 'Cambiar a Músico' : 'Crear perfil de Músico'}
+      {hasMusicianProfile ? 'Ir a mi perfil de músico' : 'Crear perfil de músico'}
     </Button>
   );
 }

@@ -168,12 +168,15 @@ export async function POST(request: Request) {
           userId,
           fullName,
           email,
-          location: '',
-          instruments: [],
-          genres: [],
+          // location: '', // 'location' is not a field, city/province are. Set to null or empty.
+          city: null,
+          province: null,
+          instruments: { create: [] }, // Correct way to initialize empty many-to-many
+          genres: { create: [] },      // Correct way to initialize empty many-to-many
           bio: '',
           hourlyRate: 0,
-          availability: [],
+          availability: { create: [] }, // Correct way to initialize empty many-to-many
+          // Ensure all required fields from schema are present or have defaults
         },
       });
       return NextResponse.json({ message: 'Musician profile created', profile: musician, redirectUrl: '/dashboard' }, { status: 201 });
@@ -186,7 +189,7 @@ export async function POST(request: Request) {
           email,
         },
       });
-      return NextResponse.json({ message: 'Contractor profile created', profile: contractor, redirectUrl: '/dashboard/contractor' }, { status: 201 });
+      return NextResponse.json({ message: 'Contractor profile created', profile: contractor, redirectUrl: '/dashboard/search' }, { status: 201 });
     } else if (role === 'both') {
       console.warn('[register-profile POST] Attempted to create both roles simultaneously.');
       return NextResponse.json({ error: 'Creating both roles simultaneously not directly supported via this endpoint yet, please select one role at a time or ensure separate calls.' }, { status: 400 });

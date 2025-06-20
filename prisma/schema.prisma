@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://prisly.cli/accelerate-init
+// Try Prisma Accelerate: https://prisly.d/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -14,33 +14,138 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-
 model Musician {
-  id              String   @id @default(uuid())
-  userId          String   // Supabase Auth ID - Removed @unique
-  fullName        String
-  email           String   @unique // Keep email unique for musicians
-  location        String?
-  instruments     String[]
-  genres          String[]
-  bio             String?
-  hourlyRate      Int?
-  availability    String[]
-  youtubeUrl      String?
-  soundcloudUrl   String?
-  instagramUrl    String?
-  profileImageUrl String?
-  isPremium       Boolean  @default(false)
-  isFeatured      Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  favorites       Favorite[]
+  id                  String                 @id @default(uuid())
+  userId              String                 @unique // Added @unique back to userId
+  fullName            String
+  email               String                 @unique
+  city                String? // Changed from location to city
+  province            String? // Added province
+  bio                 String?
+  phoneNumber         String? // Added phoneNumber
+  hourlyRate          Int?
+  youtubeUrl          String?
+  soundcloudUrl       String?
+  instagramUrl        String?
+  profileImageUrl     String?
+  isPremium           Boolean                @default(false)
+  artisticName        String?
+  experienceLevel     String?
+  servicesOffered     String[]
+  influences          String[]
+  gearHighlights      String[]
+  preferredVenueTypes String[]
+  lookingFor          String[]
+  websiteUrl          String?
+  audioSamples        Json?
+  videoSamples        Json?
+  pressKitUrl         String?
+  profileCompleteness Int                    @default(0)
+  isFeatured          Boolean                @default(false)
+  createdAt           DateTime               @default(now())
+  favorites           Favorite[]
+  socialMediaLinks    Json? // Added socialMediaLinks as Json type
+  audioTracks         Json? // Added for storing audio track information
+
+  // Many-to-many relationships through join tables
+  genres              MusicianGenre[]
+  instruments         MusicianInstrument[]
+  skills              MusicianSkill[]
+  availability        MusicianAvailability[]
+  preferences         MusicianPreference[]
+
+  // New fields for profile completeness tracking (removed @map for camelCase consistency)
+  isPublic            Boolean                @default(true) // Changed to non-optional with default true
+  acceptsCollaborations Boolean?
+  acceptsGigs         Boolean?
+
+  // Custom profile colors
+  profileColorCover           String? // Fondo de la sección de portada (superior) y potencialmente iconos
+  profileColorCardBackground  String? // Fondo de las tarjetas individuales
+  profileColorText            String? // Color de la tipografía principal
+  profileColorSectionBackground String? // Fondo de la sección de contenido (inferior, donde están las tarjetas)
+}
+
+model Genre {
+  id        String          @id @default(uuid())
+  name      String          @unique
+  musicians MusicianGenre[]
+}
+
+model Instrument {
+  id        String             @id @default(uuid())
+  name      String             @unique
+  musicians MusicianInstrument[]
+}
+
+model Skill {
+  id        String          @id @default(uuid())
+  name      String          @unique
+  musicians MusicianSkill[]
+}
+
+model Availability {
+  id        String               @id @default(uuid())
+  name      String               @unique
+  musicians MusicianAvailability[]
+}
+
+model Preference {
+  id        String             @id @default(uuid())
+  name      String             @unique
+  musicians MusicianPreference[]
+}
+
+model MusicianGenre {
+  musicianId String
+  genreId    String
+  musician   Musician @relation(fields: [musicianId], references: [id])
+  genre      Genre    @relation(fields: [genreId], references: [id])
+
+  @@id([musicianId, genreId])
+}
+
+model MusicianInstrument {
+  musicianId String
+  instrumentId String
+  musician   Musician   @relation(fields: [musicianId], references: [id])
+  instrument Instrument @relation(fields: [instrumentId], references: [id])
+
+  @@id([musicianId, instrumentId])
+}
+
+model MusicianSkill {
+  musicianId String
+  skillId    String
+  musician   Musician @relation(fields: [musicianId], references: [id])
+  skill      Skill    @relation(fields: [skillId], references: [id])
+
+  @@id([musicianId, skillId])
+}
+
+model MusicianAvailability {
+  musicianId String
+  availabilityId String
+  musician   Musician     @relation(fields: [musicianId], references: [id])
+  availability Availability @relation(fields: [availabilityId], references: [id])
+
+  @@id([musicianId, availabilityId])
+}
+
+model MusicianPreference {
+  musicianId String
+  preferenceId String
+  musician   Musician   @relation(fields: [musicianId], references: [id])
+  preference Preference @relation(fields: [preferenceId], references: [id])
+
+  @@id([musicianId, preferenceId])
 }
 
 model Contractor {
   id         String   @id @default(uuid())
-  userId     String   // Supabase Auth ID - Removed @unique
+  userId     String
   fullName   String
-  email      String   @unique // Keep email unique for contractors
+  email      String   @unique
   location   String?
   isPremium  Boolean  @default(false)
   createdAt  DateTime @default(now())
@@ -58,9 +163,29 @@ model Favorite {
 
 model Payment {
   id        String   @id @default(uuid())
-  userId    String   // puede ser músico o contratante
-  role      String   // 'musician' o 'contractor'
+  userId    String
+  role      String
   amount    Int
   status    String
   createdAt DateTime @default(now())
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  userId    String   @unique // Links to the auth user ID
+  email     String   @unique // Stores the admin's email for easier identification
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String?  // Optional: links to the auth user ID if submitted by a logged-in user
+  userName  String?  // Optional: name of the person submitting feedback
+  userEmail String?  // Optional: email of the person submitting feedback
+  type      String   // E.g., "bug", "suggestion", "comment", "question"
+  message   String   @db.Text // Using Text for potentially longer messages
+  status    String   @default("new") // E.g., "new", "read", "archived", "review_later"
+  pageUrl   String?  // Optional: URL of the page where feedback was submitted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // To track when the status was last changed
 }

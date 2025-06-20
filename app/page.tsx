@@ -1,8 +1,11 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react'; // Added useRef
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import Slider from 'react-slick'; // Added Slider
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
 import { useRouter } from 'next/navigation';
 import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, User, Buildings, ListChecks, Quotes, Sparkle } from 'phosphor-react'; // Added Sparkle
 import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, IconButton, Paper, Grid, Card, CardContent, alpha } from '@mui/material';
@@ -24,7 +27,7 @@ const staggerContainer = {
   },
 };
 
-export default function Home2() {
+export default function Home() {
   const [userSession, setUserSession] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // Para mostrar carga inicial
   const router = useRouter();
@@ -89,7 +92,7 @@ export default function Home2() {
         }}
       >
         <Toolbar sx={{ maxWidth: '1300px', width: '100%', mx: 'auto', px: { xs: 2, sm: 3 }, justifyContent: 'space-between' }}>
-          <MuiLink component={Link} href="/home2" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
+          <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
             <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} /> {/* Dorado */}
             <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}> {/* Casi blanco */}
               redmusical.ar
@@ -213,9 +216,9 @@ export default function Home2() {
               </Typography>
             </motion.div>
             <motion.div variants={fadeIn}>
-              <Typography variant="h5" component="p" sx={{ mb: 4, color: theme.palette.text.secondary, maxWidth: '700px', mx: 'auto' }}> {/* Gris claro */}
-                Descubrí y ofrecé servicios musicales. La plataforma definitiva para músicos y contratantes.
-              </Typography>
+            <Typography variant="h5" component="p" sx={{ mb: 4, color: theme.palette.text.secondary, maxWidth: '700px', mx: 'auto' }}> {/* Gris claro */}
+              Descubrí y ofrecé servicios musicales. La plataforma definitiva para músicos y para quienes buscan músicos.
+            </Typography>
             </motion.div>
             <motion.div variants={fadeIn}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
@@ -381,8 +384,11 @@ export default function Home2() {
                         <Box sx={{
                           bgcolor: theme.palette.primary.main, // Dorado
                           color: theme.palette.primary.contrastText, // Negro suave
-                          width: 28, height: 28, borderRadius: '50%', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.875rem'
+                          width: '28px', height: '28px', 
+                          minWidth: '28px', minHeight: '28px',
+                          borderRadius: '50%', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.875rem',
+                          flexShrink: 0
                         }}>
                           {item.step}
                         </Box>
@@ -409,9 +415,9 @@ export default function Home2() {
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>
                     <Buildings size={36} color={theme.palette.secondary.main} weight="duotone" /> {/* Gris azulado */}
-                    <Typography variant="h5" component="h3" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-                      Para Contratantes
-                    </Typography>
+                  <Typography variant="h5" component="h3" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
+                    ¿Buscás músicos o banda?
+                  </Typography>
                   </Stack>
                   <Stack spacing={2}>
                     {[
@@ -423,8 +429,11 @@ export default function Home2() {
                         <Box sx={{
                           bgcolor: theme.palette.secondary.main, // Gris azulado
                           color: theme.palette.secondary.contrastText, // Blanco
-                          width: 28, height: 28, borderRadius: '50%', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.875rem'
+                          width: '28px', height: '28px',
+                          minWidth: '28px', minHeight: '28px',
+                          borderRadius: '50%', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.875rem',
+                          flexShrink: 0
                         }}>
                           {item.step}
                         </Box>
@@ -483,7 +492,9 @@ export default function Home2() {
                       'Buscás profesionalizar tu carrera musical.',
                     ].map((text, i) => (
                       <Stack direction="row" spacing={1.5} alignItems="center" key={i}>
-                        <CheckCircle size={20} color={theme.palette.primary.main} weight="fill" /> {/* Dorado */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '20px', minHeight: '20px', flexShrink: 0 }}>
+                          <CheckCircle size={20} color={theme.palette.primary.main} weight="fill" /> {/* Dorado */}
+                        </Box>
                         <Typography variant="body1" color="text.secondary">{text}</Typography>
                       </Stack>
                     ))}
@@ -519,7 +530,9 @@ export default function Home2() {
                       'Buscás simplificar tu proceso de contratación.',
                     ].map((text, i) => (
                       <Stack direction="row" spacing={1.5} alignItems="center" key={i}>
-                        <CheckCircle size={20} color={theme.palette.secondary.main} weight="fill" /> {/* Gris azulado */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '20px', minHeight: '20px', flexShrink: 0 }}>
+                          <CheckCircle size={20} color={theme.palette.secondary.main} weight="fill" /> {/* Gris azulado */}
+                        </Box>
                         <Typography variant="body1" color="text.secondary">{text}</Typography>
                       </Stack>
                     ))}
@@ -531,31 +544,91 @@ export default function Home2() {
         </Container>
       </Box>
 
-      {/* 5. Testimonio */}
-      <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.default }}> {/* Fondo default */}
-        <Container maxWidth="md">
+      {/* 5. Testimonios Carousel */}
+      <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.default, overflow: 'hidden' }}>
+        <Container maxWidth="lg">
+          <Box component={motion.div} variants={fadeIn} sx={{ mb: 5, textAlign: 'center' }}>
+            <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: theme.palette.text.primary }}>
+              Lo que dicen de <span style={{ color: theme.palette.primary.main }}>nosotros</span>
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '750px', mx: 'auto' }}>
+              Músicos y quienes buscan talento comparten su experiencia en redmusical.ar.
+            </Typography>
+          </Box>
+
           <motion.div variants={fadeIn}>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Quotes size={48} color={theme.palette.primary.main} weight="fill" style={{ transform: 'rotate(180deg)' }} /> {/* Dorado */}
-            </Box>
-            <Typography
-              variant="h5"
-              component="p"
-              sx={{
-                fontStyle: 'italic',
-                textAlign: 'center',
-                color: theme.palette.text.secondary, // Gris claro
-                mb: 3,
-                lineHeight: 1.7,
-                '&::before': { content: '"“"', fontSize: '2em', lineHeight: 0, mr: 0.5, color: alpha(theme.palette.primary.main, 0.5) }, // Dorado semitransparente
-                '&::after': { content: '"”"', fontSize: '2em', lineHeight: 0, ml: 0.5, color: alpha(theme.palette.primary.main, 0.5) }, // Dorado semitransparente
+            <Slider
+              {...{
+                dots: false, // Remove dots
+                arrows: false, // Remove arrows
+                infinite: true,
+                speed: 700, 
+                slidesToShow: 1,
+                slidesToScroll: 1,
+                autoplay: true,
+                autoplaySpeed: 6000,
+                fade: true, 
+                cssEase: 'linear', 
+                beforeChange: (current, next) => {
+                  // You can add logic here if needed when slide changes
+                },
               }}
             >
-              Poder buscar músicos por estilo y zona como si fuera un catálogo cambió mi forma de producir. Es una herramienta que necesitábamos hace años.
-            </Typography>
-            <Typography variant="subtitle1" sx={{ textAlign: 'center', fontWeight: 'medium', color: theme.palette.text.primary }}> {/* Casi blanco */}
-              — Joaquín M., Productor Audiovisual
-            </Typography>
+              {[
+                {
+                  quote: "Poder buscar músicos por estilo y zona como si fuera un catálogo cambió mi forma de producir. Es una herramienta que necesitábamos hace años.",
+                  author: "Joaquín M.",
+                  role: "Productor Audiovisual"
+                },
+                {
+                  quote: "¡Encontré al guitarrista perfecto para mi banda en menos de una semana! La plataforma es súper intuitiva y llena de talento.",
+                  author: "Laura S.",
+                  role: "Cantante y Compositora"
+                },
+                {
+                  quote: "Como sonidista, redmusical.ar me abrió puertas a eventos que antes no llegaba. ¡Totalmente recomendable!",
+                  author: "Carlos V.",
+                  role: "Técnico de Sonido"
+                },
+                {
+                  quote: "La facilidad para mostrar mi trabajo y que me contacten directamente es increíble. Ya conseguí varias fechas.",
+                  author: "Martina R.",
+                  role: "DJ y Productora Musical"
+                },
+                {
+                  quote: "Organizar el festival fue mucho más simple gracias a redmusical.ar. Pude contactar y contratar a todas las bandas desde un solo lugar.",
+                  author: "Andrés G.",
+                  role: "Organizador de Eventos"
+                },
+                {
+                  quote: "Excelente iniciativa para conectar a la comunidad musical argentina. ¡Ya creé mi perfil y estoy explorando!",
+                  author: "Sofía L.",
+                  role: "Estudiante de Música"
+                }
+              ].map((testimonial, index) => (
+                <Box key={index} sx={{ textAlign: 'center', px: {xs: 2, sm: 4, md: 6} /* Add some padding */ }}>
+                  <Box sx={{ mb: 3 }}> {/* Reduced margin from 4 to 3 */}
+                    <Quotes size={48} color={theme.palette.primary.main} weight="fill" style={{ transform: 'rotate(180deg)' }} />
+                  </Box>
+                  <Typography
+                    variant="h5" // Reverted to h5
+                    component="p"
+                    sx={{
+                      fontStyle: 'italic',
+                      textAlign: 'center',
+                      color: theme.palette.text.secondary, // Original color
+                      mb: 3,
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {testimonial.quote}
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ textAlign: 'center', fontWeight: 'medium', color: theme.palette.text.primary, mb: 2 }}>
+                    — {testimonial.author}, <Typography component="span" variant="body2" color="text.secondary">{testimonial.role}</Typography>
+                  </Typography>
+                </Box>
+              ))}
+            </Slider>
           </motion.div>
         </Container>
       </Box>

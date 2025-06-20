@@ -1,19 +1,18 @@
-// app/admin/page.tsx
+// app/admin/metrics/page.tsx
 import React from 'react';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 
-export default function AdminDashboardPage() {
+export default function AdminMetricsPage() {
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Admin Dashboard
+        Platform Metrics & Activity
       </Typography>
       <Typography variant="body1">
-        Welcome to the RedMusical Admin Panel. Use the sidebar to navigate through the different sections.
+        This section will display key metrics and activity data for the platform.
       </Typography>
-      {/* Placeholder for future dashboard widgets or summaries */}
+      {/* Placeholder for metrics charts, stats, etc. */}
     </Paper>
   );
 }

@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         update: { userId: userId, fullName: initialFullName }, // Use initialFullName
         create: { userId: userId, email: userEmail, fullName: initialFullName }, // Use initialFullName
       });
-      redirectUrl = '/dashboard/contractor'; // Contractor dashboard
+      redirectUrl = '/dashboard/search'; // Search dashboard
     } else {
       return NextResponse.json({ error: 'Invalid role specified' }, { status: 400 });
     }

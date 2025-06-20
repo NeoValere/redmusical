@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle } from 'phosphor-react';
+import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle, MagnifyingGlass } from 'phosphor-react';
 import Image from 'next/image';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
@@ -14,11 +14,15 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Divider,
+  // Divider, // No longer explicitly used here, Drawer has its own top border
   Button,
   Link as MuiLink,
-  useTheme, // Import useTheme
+  useTheme,
+  Drawer, // Import Drawer
+  Toolbar, // For spacing at the top if needed, or adjust padding
+  IconButton, // For a potential collapse button within the sidebar
 } from '@mui/material';
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material'; // For toggle button
 
 interface SidebarProps {
   userRole: string | null;
@@ -26,189 +30,219 @@ interface SidebarProps {
   hasContractorProfile: boolean;
   handleLogout: () => void;
   supabase: SupabaseClient<Database>;
+  open: boolean;
+  onClose: () => void; // For mobile temporary drawer
+  isMobile: boolean;
+  drawerWidth: number;
+  miniDrawerWidth: number;
+  activeView: string; // New prop
+  setActiveView: (view: string) => void; // New prop
+  handleSwitchRole: () => Promise<void>; // New prop
+  handleCreateContractorProfile: () => Promise<void>; // New prop
 }
 
-export default function Sidebar({ userRole, userId, hasContractorProfile, handleLogout, supabase }: SidebarProps) {
+export default function Sidebar({
+  userRole,
+  userId,
+  hasContractorProfile,
+  handleLogout,
+  supabase,
+  open,
+  onClose,
+  isMobile,
+  drawerWidth,
+  miniDrawerWidth,
+  activeView, // Destructure new prop
+  setActiveView, // Destructure new prop
+  handleSwitchRole, // Destructure new prop
+  handleCreateContractorProfile, // Destructure new prop
+}: SidebarProps) {
   const router = useRouter();
-  const theme = useTheme(); // Use the theme hook
+  const theme = useTheme();
 
-  const handleSwitchRole = async () => {
-    if (!userId) return;
-    try {
-      const response = await fetch('/api/switch-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, newRole: 'contractor' }),
-      });
+  // handleSwitchRole and handleCreateContractorProfile moved to DashboardPage
 
-      if (response.ok) {
-        const { redirectUrl } = await response.json();
-        router.push(redirectUrl);
-        router.refresh();
-      } else {
-        const errorData = await response.json();
-        console.error('Error switching role:', errorData);
-        alert(`Error al cambiar de rol: ${errorData.error || 'Error desconocido'}`);
-      }
-    } catch (error) {
-      console.error('Network or unexpected error during role switch:', error);
-      alert('Ocurrió un error al intentar cambiar de rol.');
-    }
-  };
-
-  const handleCreateContractorProfile = async () => {
-    if (!userId) return;
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !user.email) return;
-
-      const response = await fetch('/api/register-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: userId,
-          fullName: user.user_metadata.full_name || user.email.split('@')[0],
-          email: user.email,
-          role: 'contractor',
-        }),
-      });
-
-      if (response.ok) {
-        const { redirectUrl } = await response.json(); // Get redirectUrl from response
-        router.push(redirectUrl);
-        router.refresh();
-      } else {
-        const errorData = await response.json();
-        console.error('Error creating contractor profile:', errorData);
-        alert(`Error al crear perfil de contratante: ${errorData.error || 'Error desconocido'}`);
-      }
-    } catch (error) {
-      console.error('Network or unexpected error:', error);
-      alert('Ocurrió un error al intentar crear el perfil de contratante.');
-    }
-  };
-
-  return (
-    <Box
-      component="aside"
-      sx={{
-        width: 256, // w-64 is 256px
-        flexShrink: 0,
-        bgcolor: 'background.default', // Use default background for sidebar
-        color: 'text.primary',
-        py: 2,
-        px: 1,
-        minHeight: '100vh',
-        position: 'fixed',
-        display: 'flex',
-        flexDirection: 'column',
-        // Removed boxShadow as per image
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4 }}>
-        <MuiLink component={Link} href="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-          <MusicNotesSimple size={24} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 8 }} />
-          <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
-            redmusical.ar
-          </Typography>
+  const drawerContent = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: open ? 'space-between' : 'center', px: open ? 2 : 1, mb: 2 }}>
+        <MuiLink
+          component={Link}
+          href="/"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            textDecoration: 'none',
+            color: 'inherit',
+            opacity: open ? 1 : 0, // Hide text when closed, icon remains
+            transition: theme.transitions.create('opacity', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <MusicNotesSimple size={28} color={theme.palette.primary.main} weight="fill" style={{ marginRight: open ? 3 : 0 }} />
+          {open && (
+            <Typography variant="h6" component="span" sx={{ fontWeight: 'bold' }}>
+              redmusical.ar
+            </Typography>
+          )}
         </MuiLink>
-      </Box>
+        {/* Toggle button removed from here, will be in Header */}
+      </Toolbar>
+      {/* Centered logo when sidebar is collapsed */}
+      {!open && !isMobile && (
+         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', my: 2 }}>
+             <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" />
+         </Box>
+      )}
 
-      <List component="nav" sx={{ flexGrow: 1 }}>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} href="#mi-perfil" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
-            <ListItemIcon sx={{ color: 'inherit' }}>
-              <User size={24} />
-            </ListItemIcon>
-            <ListItemText primary="Mi perfil" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} href="#quick-edit" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
-            <ListItemIcon sx={{ color: 'inherit' }}>
-              <MusicNotesSimple size={24} /> {/* Using MusicNotesSimple for Quick Edit, can be changed if a better icon is available */}
-            </ListItemIcon>
-            <ListItemText primary="Edición Rápida" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} href="#estadisticas" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
-            <ListItemIcon sx={{ color: 'inherit' }}>
-              <ChartBar size={24} />
-            </ListItemIcon>
-            <ListItemText primary="Estadísticas" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} href="#visibilidad" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
-            <ListItemIcon sx={{ color: 'inherit' }}>
-              <Eye size={24} />
-            </ListItemIcon>
-            <ListItemText primary="Visibilidad" />
-          </ListItemButton>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton component={Link} href="#mi-plan" scroll={true} sx={{ borderRadius: 1, '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' } }}>
-            <ListItemIcon sx={{ color: 'inherit' }}>
-              <CreditCard size={24} />
-            </ListItemIcon>
-            <ListItemText primary="Mi Plan" />
-          </ListItemButton>
-        </ListItem>
+
+      <List component="nav" sx={{ flexGrow: 1, px: open ? 1 : 0.5 }}>
+        {[
+          { id: 'mi-perfil', text: 'Mi perfil', icon: <User size={24} /> },
+          { id: 'edicion-perfil', text: 'Edición de perfil', icon: <MusicNotesSimple size={24} /> },
+          { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} /> },
+          { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} /> },
+          { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} /> },
+        ].map((item) => (
+          <ListItem key={item.id} disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              // component={Link} // No longer a Link
+              // href={item.href} // No longer using href for scrolling
+              // scroll={true} // Not needed
+              onClick={() => {
+                if (item.id === 'edicion-perfil') {
+                  if (userId) {
+                    router.push(`/musicians/${userId}/edit`);
+                  } else {
+                    console.warn('Sidebar: userId no disponible para navegar a edición de perfil.');
+                    // Opcionalmente, manejar este caso, ej. redirigir a login o mostrar error
+                  }
+                } else {
+                  setActiveView(item.id);
+                }
+                if (isMobile) { // Close mobile drawer on selection
+                  onClose();
+                }
+              }}
+              selected={activeView === item.id} // Nota: para 'edicion-perfil', esto no lo marcará como activo basado en la URL. Se podría mejorar con usePathname si es necesario.
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? 'initial' : 'center',
+                px: 2.5,
+                borderRadius: 1,
+                mb: 0.5,
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : 'auto',
+                  justifyContent: 'center',
+                  color: 'inherit',
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+          <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0, color: 'text.primary' }} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+
+        {/* Divider or spacing before switch/create role button */}
+        { (userRole === 'musician' || userRole === 'both') && (
+          <ListItem disablePadding sx={{ display: 'block', mt: 1 }}>
+            <ListItemButton
+              onClick={() => {
+                if (hasContractorProfile) {
+                  handleSwitchRole();
+                } else {
+                  handleCreateContractorProfile();
+                }
+                if (isMobile) {
+                  onClose();
+                }
+              }}
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? 'initial' : 'center',
+                px: 2.5,
+                borderRadius: 1,
+                mb: 0.5,
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : 'auto',
+                  justifyContent: 'center',
+                  color: 'inherit',
+                }}
+              >
+                <MagnifyingGlass size={24} />
+              </ListItemIcon>
+              <ListItemText 
+                primary={hasContractorProfile ? "Ir a la búsqueda" : "Activar modo búsqueda"} 
+                sx={{ opacity: open ? 1 : 0, color: 'text.primary' }} 
+              />
+            </ListItemButton>
+          </ListItem>
+        )}
       </List>
 
-      <Box sx={{ mt: 'auto', pt: 2, borderTop: 1, borderColor: 'divider' }}>
-        {userRole === 'musician' || userRole === 'both' ? (
-          hasContractorProfile ? (
-            <Button
-              onClick={handleSwitchRole}
-              fullWidth
-              sx={{
-                justifyContent: 'flex-start',
-                mb: 1,
-                py: 1,
-                px: 1.5,
-                color: 'text.primary',
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
-              }}
-          startIcon={<Headphones size={24} color={theme.palette.text.primary} weight="fill" />}
-            >
-              Cambiar a Contratante
-            </Button>
-          ) : (
-            <Button
-              onClick={handleCreateContractorProfile}
-              fullWidth
-              sx={{
-                justifyContent: 'flex-start',
-                mb: 1,
-                py: 1,
-                px: 1.5,
-                color: 'text.primary',
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
-              }}
-          startIcon={<PlusCircle size={24} color={theme.palette.text.primary} weight="fill" />}
-            >
-              Crear perfil Contratante
-            </Button>
-          )
-        ) : null}
+      <Box sx={{ mt: 'auto', p: open ? 2 : 1  }}>
+        {/* Buttons for switch role and create profile are now handled in Header for mobile menu */}
         <Button
           onClick={handleLogout}
           fullWidth
+          variant={open ? "contained" : "outlined"}
+          //color="error"
           sx={{
-            justifyContent: 'flex-start',
-            bgcolor: 'error.main',
-            color: 'white',
-            '&:hover': { bgcolor: 'error.dark' },
+            justifyContent: open ? 'center' : 'center',
             py: 1,
-            px: 1.5,
+            px: open ? 1.5 : 0.5,
+            minWidth: 'auto',
+             color: 'white', bgcolor: '#a04040',/*  */// Handled by variant="contained" color="error"
+             '&:hover': { bgcolor: '#6d2b2b' }, // Handled by theme
           }}
-          startIcon={<SignOut size={24} color="white" weight="fill" />}
+          startIcon={open ? <SignOut size={24} weight="fill" /> : null}
         >
-          Cerrar sesión
+          {open ? 'Cerrar sesión' : <SignOut size={24} weight="fill" />}
         </Button>
       </Box>
     </Box>
+  );
+
+  return (
+    <Drawer
+      variant={isMobile ? 'temporary' : 'permanent'}
+      open={open}
+      onClose={onClose} // For temporary drawer
+      ModalProps={{
+        keepMounted: true, // Better open performance on mobile.
+      }}
+      sx={{
+        width: open ? drawerWidth : miniDrawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: open ? drawerWidth : miniDrawerWidth,
+          boxSizing: 'border-box',
+          bgcolor: 'background.default', // Use theme background
+          color: 'text.primary',
+          borderRight: isMobile ? 'none' : `1px solid ${theme.palette.divider}`, // Keep border for desktop
+          transition: theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: open ? theme.transitions.duration.enteringScreen : theme.transitions.duration.leavingScreen,
+          }),
+          overflowX: 'hidden', // Prevent horizontal scrollbar during transition
+        },
+      }}
+    >
+      {drawerContent}
+    </Drawer>
   );
 }

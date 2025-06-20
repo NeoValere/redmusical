@@ -6,7 +6,7 @@ import { MuiAppThemeProvider } from '../lib/theme/MuiTheme';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Red Musical",
+  title: "Redmusical",
   description: "Plataforma para músicos",
 };
 

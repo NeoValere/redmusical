@@ -101,7 +101,11 @@ const ProfileImageUploader: React.FC<ProfileImageUploaderProps> = ({
             bgcolor: 'primary.dark',
           },
         }}>
-          <Camera size={24} color="white" />
+          {loading ? (
+            <CircularProgress size={24} sx={{ color: 'white' }} /> // Explicitly set color to white
+          ) : (
+            <Camera size={24} color="white" />
+          )}
           <input
             type="file"
             id="profile-image-upload"
@@ -114,12 +118,6 @@ const ProfileImageUploader: React.FC<ProfileImageUploaderProps> = ({
         </InputLabel>
       </Box>
 
-      {loading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-          <CircularProgress size={20} sx={{ mr: 1 }} />
-          <Typography variant="body2" color="text.secondary">Actualizando imagen...</Typography>
-        </Box>
-      )}
       {error && (
         <Alert severity="error" sx={{ mt: 2, width: '100%' }}>Error: {error}</Alert>
       )}

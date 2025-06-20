@@ -1,6 +1,7 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+// Removed prisma import: import prisma from '@/lib/prisma';
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
@@ -10,49 +11,112 @@ export async function middleware(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Define paths that require authentication
+  const { pathname } = req.nextUrl;
+
+  // Handle /admin routes specifically
+  if (pathname.startsWith('/admin')) {
+    if (!session) {
+      // Not logged in, redirect to login
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = '/login';
+      redirectUrl.searchParams.set(`redirectedFrom`, pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Logged in, call the API route to check if user is an admin
+    try {
+      // Construct the absolute URL for the API route
+      const checkAdminUrl = new URL('/api/auth/check-admin-status', req.url);
+      
+      // Pass along the cookies from the original request to the API route
+      // This is crucial for the API route to authenticate the user with Supabase
+      const apiRes = await fetch(checkAdminUrl.toString(), {
+        headers: {
+          cookie: req.headers.get('cookie') || '', // Pass existing cookies
+        },
+      });
+
+      if (!apiRes.ok) {
+        console.error("Admin check API call failed:", apiRes.status, await apiRes.text());
+        // Not an admin or error, redirect to homepage
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+
+      const { isAdmin, error: apiError } = await apiRes.json();
+
+      if (apiError) {
+        console.error("Error from admin check API:", apiError);
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+
+      if (!isAdmin) {
+        // Not an admin, redirect to homepage
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+      // User is an admin, allow access
+      return res;
+    } catch (error) {
+      console.error("Error calling admin check API in middleware:", error);
+      // On error, redirect to a generic error page or homepage
+      return NextResponse.redirect(new URL('/error', req.url));
+    }
+  }
+
+  // Define paths that require authentication (excluding /admin as it's handled above)
   const protectedPaths = [
     '/dashboard',
     '/musicians/[id]/edit',
     '/musicians/[id]/upload-image', // Add upload-image page to protected paths
-    '/api/musicians', // All musician API routes
+    // '/api/musicians', // All musician API routes - this will be handled more granularly
+    '/api/musicians/[id]/update', // Specific API routes that need protection
+    '/api/musicians/[id]/update-profile',
+    '/api/musicians/[id]/upload-image',
+    // Note: /api/musicians/[id]/get-profile should remain public
     '/api/switch-role',
     '/api/create-preference',
     '/api/webhook',
     '/favorites',
-    '/admin',
+    // '/admin', // Removed as it's handled separately above
   ];
 
   // Special handling for public musician profiles: they should not be protected
   // This checks if the path starts with /musicians/ and does NOT contain /edit or /upload-image
-  const isPublicMusicianProfile = req.nextUrl.pathname.startsWith('/musicians/') &&
-                                 !req.nextUrl.pathname.includes('/edit') &&
-                                 !req.nextUrl.pathname.includes('/upload-image');
+  const isPublicMusicianProfilePage = pathname.startsWith('/musicians/') &&
+                                 !pathname.includes('/edit') &&
+                                 !pathname.includes('/upload-image');
 
-  if (isPublicMusicianProfile) {
-    return res; // Allow access to public musician profiles without authentication
+  // Allow public access to the get-profile API endpoint
+  const isPublicGetProfileAPI = pathname.match(/^\/api\/musicians\/[^/]+\/get-profile$/);
+
+  if (isPublicMusicianProfilePage || isPublicGetProfileAPI) {
+    return res; // Allow access without authentication
   }
 
   // Check if the current path is protected
   const isProtected = protectedPaths.some(path => {
     // For dynamic routes like /musicians/[id]/edit, we check if the path starts with the base
+    // and is not the specific get-profile route (already handled)
     if (path.includes('[id]')) {
       const base = path.split('[id]')[0];
-      return req.nextUrl.pathname.startsWith(base.replace(/\/$/, ''));
+      // Ensure we are not re-protecting the get-profile API if it matches a broader pattern
+      if (pathname.startsWith(base.replace(/\/$/, '')) && !isPublicGetProfileAPI) {
+        return true;
+      }
+      return false;
     }
-    return req.nextUrl.pathname.startsWith(path);
+    return pathname.startsWith(path);
   });
 
   // If the path is protected and there's no session, redirect to login
   if (isProtected && !session) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
-    redirectUrl.searchParams.set(`redirectedFrom`, req.nextUrl.pathname);
+    redirectUrl.searchParams.set(`redirectedFrom`, pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   // If the path is /login or /register and there's a session, redirect to dashboard
-  if ((req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/register') && session) {
+  if ((pathname === '/login' || pathname === '/register') && session) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 

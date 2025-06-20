@@ -1,19 +1,18 @@
-// app/admin/page.tsx
+// app/admin/users/page.tsx
 import React from 'react';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 
-export default function AdminDashboardPage() {
+export default function AdminUsersPage() {
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Admin Dashboard
+        User Management
       </Typography>
       <Typography variant="body1">
-        Welcome to the RedMusical Admin Panel. Use the sidebar to navigate through the different sections.
+        This section will display a list of all users (Musicians and Contractors) with filtering and management options.
       </Typography>
-      {/* Placeholder for future dashboard widgets or summaries */}
+      {/* Placeholder for user list, filters, etc. */}
     </Paper>
   );
 }

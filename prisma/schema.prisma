@@ -64,6 +64,8 @@ model Musician {
   profileColorCardBackground  String? // Fondo de las tarjetas individuales
   profileColorText            String? // Color de la tipografía principal
   profileColorSectionBackground String? // Fondo de la sección de contenido (inferior, donde están las tarjetas)
+  musicianOrBand      String? // To differentiate between solo musician or band
+
 }
 
 model Genre {

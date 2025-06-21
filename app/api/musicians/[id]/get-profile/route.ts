@@ -14,13 +14,16 @@ export async function GET(
   // See: https://nextjs.org/docs/messages/sync-dynamic-apis
 
   const resolvedParams = await params; // Await params directly
-  const { id: userId } = resolvedParams; // Access id from resolved params
-  console.log({ userId })
+  const { id: musicianId } = resolvedParams; // Access id from resolved params, rename to musicianId for clarity
+  console.log({ musicianIdFromParams: musicianId })
   try {
-    // const cookieStore = await cookies(); // No longer needed to call await here
-    const supabase = createRouteHandlerClient({ cookies }); // Pass the cookies function directly
+    const cookieStore = cookies(); // Await cookies directly
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore }); // Pass the cookies function directly
     const { data: { user } } = await supabase.auth.getUser();
-    const isOwner = user && user.id === userId;
+    // isOwner check might need adjustment if we are fetching by musicianId and not userId directly
+    // For now, let's assume musicianId is the primary key of the Musician table.
+    // If user.id is needed for ownership check, it should be compared against musicianData.userId later.
+    
 
     // Define the type for the included relations, explicitly listing fields as they come from Prisma (now camelCase)
     type MusicianWithRelations = {
@@ -45,6 +48,7 @@ export async function GET(
       profileColorCardBackground: string | null;
       profileColorText: string | null;
       profileColorSectionBackground: string | null;
+      musicianOrBand: string | null; // Added to differentiate between solo musician or band
       createdAt: Date; // Expecting Date object from Prisma
       updatedAt: Date | null; // Expecting Date object from Prisma, can be null
       genres: { genre: { id: string; name: string; }; }[];
@@ -54,9 +58,9 @@ export async function GET(
       preferences: { preference: { id: string; name: string; }; }[];
     };
 
-    // Fetch Musician data using Prisma, querying by userId
+    // Fetch Musician data using Prisma, querying by musicianId (primary key)
     const musicianData = await prisma.musician.findUnique({
-      where: { userId: userId }, // Corrected to query by userId, which is now unique
+      where: { userId: musicianId }, // Query by musicianId (primary key)
       include: {
         genres: {
           select: {
@@ -114,6 +118,9 @@ export async function GET(
     if (!musicianData) {
       return NextResponse.json({ error: 'Este perfil ya no existe' }, { status: 404 });
     }
+    
+    // Now that we have musicianData, we can check ownership using musicianData.userId
+    const isOwner = user && user.id === musicianData.userId;
 
     // Check if the profile is private AND the requesting user is NOT the owner
     if (musicianData.isPublic === false && !isOwner) {

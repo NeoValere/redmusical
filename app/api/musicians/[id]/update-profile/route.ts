@@ -2,6 +2,39 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // Assuming you have a Prisma client instance exported from here
 import { Prisma } from '@prisma/client';
 
+// Define the type for the included relations for the final fetch, explicitly listing fields as they come from Prisma (now camelCase)
+type MusicianWithRelations = {
+  id: string;
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  bio: string | null;
+  profileImageUrl: string | null;
+  city: string | null;
+  province: string | null;
+  phoneNumber: string | null;
+  websiteUrl: string | null;
+  experienceLevel: string | null;
+  hourlyRate: number | null;
+  isPublic: boolean | null;
+  acceptsCollaborations: boolean | null;
+  acceptsGigs: boolean | null;
+  socialMediaLinks: Prisma.JsonValue | null;
+  audioTracks: Prisma.JsonValue | null; // Added audioTracks
+  musicianOrBand: string | null; // Added musicianOrBand
+  profileColorCover: string | null;
+  profileColorCardBackground: string | null;
+  profileColorText: string | null;
+  profileColorSectionBackground: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  genres: { genre: { id: string; name: string; }; }[];
+  instruments: { instrument: { id: string; name: string; }; }[];
+  skills: { skill: { id: string; name: string; }; }[];
+  availability: { availability: { id: string; name: string; }; }[];
+  preferences: { preference: { id: string; name: string; }; }[];
+};
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
@@ -21,6 +54,8 @@ export async function PUT(
       profileColorText,
       profileColorSectionBackground,
       isPublic, // Explicitly destructure isPublic
+      musicianOrBand, // Added musicianOrBand
+      socialMediaLinks, // Destructure socialMediaLinks
       ...otherData // All other fields not explicitly destructured
     } = await request.json();
 
@@ -62,6 +97,36 @@ export async function PUT(
         } else {
           // If audioTracks is not null, it should be a valid JSON structure.
           musicianUpdateData.audioTracks = audioTracks as Prisma.InputJsonValue;
+        }
+      }
+
+      if (musicianOrBand !== undefined) {
+        musicianUpdateData.musicianOrBand = musicianOrBand;
+      }
+
+      if (socialMediaLinks !== undefined) {
+        if (socialMediaLinks === null) {
+          musicianUpdateData.socialMediaLinks = Prisma.JsonNull;
+        } else {
+          musicianUpdateData.socialMediaLinks = socialMediaLinks as Prisma.InputJsonValue;
+        }
+      }
+
+      // Check if the email is being updated and if it already exists for another user
+      if (musicianUpdateData.email) {
+        const existingMusicianWithEmail = await tx.musician.findUnique({
+          where: { email: musicianUpdateData.email as string },
+        });
+
+        // If an existing musician is found AND their userId is different from the current one,
+        // then it's a conflict.
+        if (existingMusicianWithEmail && existingMusicianWithEmail.userId !== userId) {
+          // Instead of throwing, return a specific response to be caught by the outer try-catch
+          return {
+            error: 'El email ya está en uso por otra cuenta. Por favor, use un email diferente o contacte a soporte@redmusical.ar si considera que hubo un error.',
+            field: 'email',
+            status: 409,
+          };
         }
       }
 
@@ -113,38 +178,6 @@ export async function PUT(
         }
       }
 
-      // Define the type for the included relations for the final fetch, explicitly listing fields as they come from Prisma (now camelCase)
-      type MusicianWithRelations = {
-        id: string;
-        userId: string;
-        fullName: string | null;
-        email: string | null;
-        bio: string | null;
-        profileImageUrl: string | null;
-        city: string | null;
-        province: string | null;
-        phoneNumber: string | null;
-        websiteUrl: string | null;
-        experienceLevel: string | null;
-        hourlyRate: number | null;
-        isPublic: boolean | null;
-        acceptsCollaborations: boolean | null;
-        acceptsGigs: boolean | null;
-        socialMediaLinks: Prisma.JsonValue | null;
-        audioTracks: Prisma.JsonValue | null; // Added audioTracks
-        profileColorCover: string | null;
-        profileColorCardBackground: string | null;
-        profileColorText: string | null;
-        profileColorSectionBackground: string | null;
-        createdAt: Date;
-        updatedAt: Date | null;
-        genres: { genre: { id: string; name: string; }; }[];
-        instruments: { instrument: { id: string; name: string; }; }[];
-        skills: { skill: { id: string; name: string; }; }[];
-        availability: { availability: { id: string; name: string; }; }[];
-        preferences: { preference: { id: string; name: string; }; }[];
-      };
-
       // Fetch the updated profile with all relations to return
       const finalProfile = await tx.musician.findUnique({
         where: { userId: userId }, // Fetch by userId for consistency
@@ -160,26 +193,37 @@ export async function PUT(
       return finalProfile;
     });
 
+    // Check if the transaction returned an error object (email conflict)
+    if (result && 'status' in result && result.status === 409) {
+      return NextResponse.json(
+        { error: result.error, field: result.field },
+        { status: result.status }
+      );
+    }
+
     if (!result) {
       return NextResponse.json({ error: 'Updated musician profile not found' }, { status: 404 });
     }
 
     // Reconstruct the profile object to match the frontend's expected camelCase type
+    // Assert result as MusicianWithRelations since the error case is handled above
+    const finalResult = result as MusicianWithRelations;
     const profile = {
-      ...result,
-      profileColorCover: result.profileColorCover,
-      profileColorCardBackground: result.profileColorCardBackground,
-      profileColorText: result.profileColorText,
-      profileColorSectionBackground: result.profileColorSectionBackground,
-      socialMediaLinks: result.socialMediaLinks as Record<string, string> | null, // Cast JsonValue
-      audioTracks: result.audioTracks as { title: string; url: string; }[] | null, // Cast JsonValue for audioTracks
-      createdAt: result.createdAt ? result.createdAt.toISOString() : null, // Convert Date to string, add null check
-      updatedAt: result.updatedAt ? result.updatedAt.toISOString() : null, // Convert Date to string
-      genres: result.genres.map((mg) => mg.genre),
-      instruments: result.instruments.map((mi) => mi.instrument),
-      skills: result.skills.map((ms) => ms.skill),
-      availability: result.availability.map((ma) => ma.availability),
-      preferences: result.preferences.map((mp) => mp.preference),
+      ...finalResult,
+      profileColorCover: finalResult.profileColorCover,
+      profileColorCardBackground: finalResult.profileColorCardBackground,
+      profileColorText: finalResult.profileColorText,
+      profileColorSectionBackground: finalResult.profileColorSectionBackground,
+      musicianOrBand: finalResult.musicianOrBand, // Added musicianOrBand
+      socialMediaLinks: finalResult.socialMediaLinks as Record<string, string> | null, // Cast JsonValue
+      audioTracks: finalResult.audioTracks as { title: string; url: string; }[] | null, // Cast JsonValue for audioTracks
+      createdAt: finalResult.createdAt ? finalResult.createdAt.toISOString() : null, // Convert Date to string, add null check
+      updatedAt: finalResult.updatedAt ? finalResult.updatedAt.toISOString() : null, // Convert Date to string
+      genres: finalResult.genres.map((mg: { genre: { id: string; name: string; }; }) => mg.genre),
+      instruments: finalResult.instruments.map((mi: { instrument: { id: string; name: string; }; }) => mi.instrument),
+      skills: finalResult.skills.map((ms: { skill: { id: string; name: string; }; }) => ms.skill),
+      availability: finalResult.availability.map((ma: { availability: { id: string; name: string; }; }) => ma.availability),
+      preferences: finalResult.preferences.map((mp: { preference: { id: string; name: string; }; }) => mp.preference),
     };
 
     return NextResponse.json(profile);

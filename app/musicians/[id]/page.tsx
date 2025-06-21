@@ -39,13 +39,6 @@ import {
   EnvelopeSimple,
   Globe,
   Phone,
-  InstagramLogo,
-  YoutubeLogo,
-  SpotifyLogo, // Assuming you might add Spotify
-  // SoundcloudLogo, // Not available, will use MusicNotes or similar
-  TwitterLogo, // Assuming you might add Twitter
-  FacebookLogo, // Assuming you might add Facebook
-  Link as LinkIconMui,
   Briefcase,
   Users,
   Handshake,
@@ -54,9 +47,7 @@ import {
   MusicNotes,
   Atom, // Changed from Helix to Atom for ADN Musical
   SpeakerSimpleHigh, // Added for Instruments
-  // Guitar, // Not available, will use MusicNotes or similar
   MusicNotesSimple, // Added for logo
-  SpeakerSimpleX, // Alternative for instrument/soundcloud
   Sparkle, // Example for skill
   CalendarCheck, // Example for availability
   Eye,
@@ -66,7 +57,21 @@ import {
   ShareNetwork,
   Play, // Added for Audio Player
   Palette, // Added for color customization
-} from 'phosphor-react';
+} from 'phosphor-react'; // Keep Phosphor icons that are not in MUI
+
+import {
+  Instagram as InstagramIconMui, // Renamed to avoid conflict with react-icons
+  Facebook as FacebookIconMui, // Renamed
+  YouTube as YouTubeIconMui, // Renamed
+  Twitter as TwitterIconMui, // Renamed
+  Public as PublicIconMui, // Renamed
+  Link as LinkIconMui, // Generic link icon from MUI
+  MusicNote as MusicNoteIconMui, // For Spotify/Soundcloud if no specific icon
+} from '@mui/icons-material';
+
+// Import react-icons
+import { FaXTwitter, FaTwitch, FaTiktok, FaSquareFacebook, FaYoutube, FaInstagram, FaSpotify, FaSoundcloud } from 'react-icons/fa6';
+import { FaLink } from 'react-icons/fa'; // Generic link icon
 
 // Using the more comprehensive type from the edit page as a base
 import { Database } from '@/lib/database.types';
@@ -106,6 +111,7 @@ interface BaseMusicianRow {
   profileColorCardBackground?: string | null;
   profileColorText?: string | null;
   profileColorSectionBackground?: string | null;
+  musicianOrBand?: string | null; // Added to differentiate between solo musician or band
 }
 
 type MusicianProfileData = BaseMusicianRow & {
@@ -141,15 +147,66 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, icon, children, cardBa
   </Card>
 );
 
-const SocialIconMapping: Record<string, React.ElementType> = {
-  instagram: InstagramLogo,
-  youtube: YoutubeLogo,
-  spotify: SpotifyLogo,
-  soundcloud: SpeakerSimpleX, // Changed from SoundcloudLogo
-  twitter: TwitterLogo,
-  facebook: FacebookLogo,
-  website: Globe, // For generic website if not websiteUrl
-  other: ShareNetwork,
+// Define social media platforms and their regex patterns/icons (React Icons)
+const SOCIAL_MEDIA_PLATFORMS = [
+  {
+    key: 'instagram',
+    name: 'Instagram',
+    regex: /(?:instagram\.com)\/(?:[a-zA-Z0-9_.]+)/,
+    icon: FaInstagram,
+  },
+  {
+    key: 'x',
+    name: 'X (Twitter)',
+    regex: /(?:twitter\.com|x\.com)\/(?:[a-zA-Z0-9_]+)/,
+    icon: FaXTwitter,
+  },
+  {
+    key: 'facebook',
+    name: 'Facebook',
+    regex: /(?:facebook\.com)\/(?:[a-zA-Z0-9_.]+)/,
+    icon: FaSquareFacebook,
+  },
+  {
+    key: 'youtube',
+    name: 'YouTube',
+    regex: /(?:youtube\.com|youtu\.be)\/(?:channel\/|user\/|c\/|@)?(?:[a-zA-Z0-9_-]+)/,
+    icon: FaYoutube,
+  },
+  {
+    key: 'twitch',
+    name: 'Twitch',
+    regex: /(?:twitch\.tv)\/(?:[a-zA-Z0-9_]+)/,
+    icon: FaTwitch,
+  },
+  {
+    key: 'tiktok',
+    name: 'TikTok',
+    regex: /(?:tiktok\.com)\/(?:@)?(?:[a-zA-Z0-9_.]+)/,
+    icon: FaTiktok,
+  },
+  {
+    key: 'spotify',
+    name: 'Spotify',
+    regex: /(?:spotify\.com)\/(?:artist|user|track|album)\/(?:[a-zA-Z0-9]+)/,
+    icon: FaSpotify,
+  },
+  {
+    key: 'soundcloud',
+    name: 'SoundCloud',
+    regex: /(?:soundcloud\.com)\/(?:[a-zA-Z0-9_-]+)\/(?:[a-zA-Z0-9_-]+)/,
+    icon: FaSoundcloud,
+  },
+];
+
+// Function to detect social media platform from URL and return its icon
+const getSocialMediaIcon = (url: string): React.ElementType => {
+  for (const platform of SOCIAL_MEDIA_PLATFORMS) {
+    if (platform.regex.test(url)) {
+      return platform.icon;
+    }
+  }
+  return FaLink; // Default for unknown links
 };
 
 // Helper function to extract YouTube Video ID from various URL formats
@@ -377,9 +434,11 @@ function MusicianProfilePage() {
     acceptsGigs, // Changed from accepts_gigs
     isPublic, // Changed from is_public
     audioTracks, // Added for audio tracks
+    musicianOrBand, // Added to differentiate between solo musician or band
   } = musicianProfile;
 
   const location = [city, province].filter(Boolean).join(', ');
+  const translatedMusicianOrBand = musicianOrBand === 'musician' ? 'Solista' : musicianOrBand === 'band' ? 'Banda' : null;
 
   const handleOpenColorPicker = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorElColorPicker(event.currentTarget);
@@ -479,9 +538,18 @@ function MusicianProfilePage() {
       >
         <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}> {/* Added flex properties for vertical centering */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isMobile ? 2 : 3 }}>
-            <IconButton edge="start" aria-label="back" onClick={() => router.push('/dashboard')} sx={{color: currentColorText /* Color 2 para icono de volver, igual que texto */}}>
-              <ArrowBackIosNewIcon sx={{ fontSize: 28 }} />
-            </IconButton>
+            {typeof window !== 'undefined' && document.referrer !== '' && new URL(document.referrer).origin === window.location.origin ? (
+              <IconButton edge="start" aria-label="back" onClick={() => router.back()} sx={{color: currentColorText /* Color 2 para icono de volver, igual que texto */}}>
+                <ArrowBackIosNewIcon sx={{ fontSize: 28 }} />
+              </IconButton>
+            ) : (
+              <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
+                <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} />
+                <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
+                  redmusical.ar
+                </Typography>
+              </MuiLink>
+            )}
             {isOwner && (
               <Tooltip title="Personalizar Colores del Perfil">
                 <IconButton onClick={handleOpenColorPicker} sx={{color: theme.palette.common.white /* Color fijo para el ícono de paleta */}}>
@@ -564,6 +632,23 @@ function MusicianProfilePage() {
                   <Typography variant={isMobile ? "body1" : "h6"} component="p">
                     {location}
                   </Typography>
+                </Stack>
+              )}
+              {translatedMusicianOrBand && (
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ opacity: 0.95, mt: 0.5 }}> {/* Added mt: 0.5 for top margin */}
+                  <Chip
+                    label={translatedMusicianOrBand}
+                    size="small"
+                    sx={{
+                      backgroundColor: currentColorCardBg,
+                      color: currentColorCover, // Changed text color to currentColorCover
+                      fontWeight: 'normal',
+                      fontStyle: 'normal',
+                      px: 1, // Horizontal padding
+                      py: 0.5, // Vertical padding
+                      borderRadius: '16px', // Capsule shape
+                    }}
+                  />
                 </Stack>
               )}
             </Box>
@@ -730,7 +815,7 @@ function MusicianProfilePage() {
               {socialLinks.length > 0 && (
                 <Stack direction="row" spacing={1.5} sx={{mt: 2}} flexWrap="wrap">
                   {socialLinks.map(({ platform, url }) => { 
-                    const IconComponent = SocialIconMapping[platform.toLowerCase()] || LinkIconMui;
+                    const IconComponent = getSocialMediaIcon(url); // Use the helper function
                     const finalUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
                     return (
                       <Tooltip title={platform.charAt(0).toUpperCase() + platform.slice(1)} key={platform}>

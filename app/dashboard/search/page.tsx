@@ -26,7 +26,19 @@ export default async function SearchDashboardPage() {
     <div>
       <h1>Búsqueda de músicos</h1>
       <p>Bienvenido a tu área de búsqueda.</p>
-      {/* Add search-specific content here */}
+      {/* Placeholder for search filters */}
+      <div>
+        <h2>Filtros</h2>
+        <div>
+          <label htmlFor="musicianOrBand">Músico/Banda:</label>
+          <select id="musicianOrBand" name="musicianOrBand">
+            <option value="">Todos</option>
+            <option value="musician">Músico Solista</option>
+            <option value="band">Banda</option>
+          </select>
+        </div>
+        {/* Zona and Instrumento filters removed */}
+      </div>
       <SwitchRoleButton
         userId={userId}
         userEmail={userEmail}

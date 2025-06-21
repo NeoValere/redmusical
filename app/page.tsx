@@ -7,9 +7,10 @@ import Slider from 'react-slick'; // Added Slider
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
 import { useRouter } from 'next/navigation';
-import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, User, Buildings, ListChecks, Quotes, Sparkle } from 'phosphor-react'; // Added Sparkle
-import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, IconButton, Paper, Grid, Card, CardContent, alpha } from '@mui/material';
+import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, User, Buildings, ListChecks, Quotes, Sparkle, MagnifyingGlass } from 'phosphor-react'; // Added Sparkle, MagnifyingGlass
+import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, IconButton, Paper, Grid, Card, CardContent, alpha, TextField, InputAdornment } from '@mui/material'; // Added TextField, InputAdornment
 import { motion } from 'framer-motion';
+import DynamicHeroButton from '@/app/components/DynamicHeroButton'; // Import the new component
 
 // Animaciones
 const fadeIn = {
@@ -28,57 +29,61 @@ const staggerContainer = {
 };
 
 export default function Home() {
-  const [userSession, setUserSession] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Para mostrar carga inicial
+  const [currentUser, setCurrentUser] = useState<any>(null); // Stores Supabase user object
+  const [userRoles, setUserRoles] = useState<{ isMusician: boolean; isContractor: boolean; userId: string | null }>({ isMusician: false, isContractor: false, userId: null });
   const router = useRouter();
   const supabase = createClientComponentClient();
   const theme = useTheme();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  const searchPlaceholders = [
+    "guitarristas en Córdoba",
+    "bandas de jazz para eventos",
+    "percusionistas en Rosario",
+    "cantantes pop",
+    "violinistas para casamientos",
+    "bandas tributo a Soda",
+  ];
 
   useEffect(() => {
-    const checkSession = async () => {
-      setIsLoading(true);
+    const intervalId = setInterval(() => {
+      setPlaceholderIndex((prevIndex) => (prevIndex + 1) % searchPlaceholders.length);
+    }, 3000); // Change placeholder every 3 seconds
+    return () => clearInterval(intervalId);
+  }, [searchPlaceholders.length]);
+
+  useEffect(() => {
+    const checkUserAndRoles = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUserSession(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const [musicianProfileRes, contractorProfileRes] = await Promise.all([
-            fetch(`/api/register-profile?userId=${user.id}&role=musician`),
-            fetch(`/api/register-profile?userId=${user.id}&role=contractor`)
-          ]);
 
-          const musicianData = await musicianProfileRes.json();
-          const contractorData = await contractorProfileRes.json();
-
-          const hasMusicianProfile = musicianData.exists;
-          const hasContractorProfile = contractorData.exists;
-
-          if (hasMusicianProfile) {
-            router.push(`/musicians/${user.id}`);
-          } else if (hasContractorProfile) {
-            router.push('/dashboard');
+      if (session && session.user) {
+        setCurrentUser(session.user);
+        try {
+          const response = await fetch('/api/user/profile-details');
+          if (response.ok) {
+            const rolesData = await response.json();
+            setUserRoles({
+              isMusician: rolesData.isMusician,
+              isContractor: rolesData.isContractor,
+              userId: rolesData.userId,
+            });
           } else {
-            router.push('/select-role');
+            console.error('Failed to fetch user roles:', response.status);
+            setUserRoles({ isMusician: false, isContractor: false, userId: session.user.id }); // Fallback
           }
-        } else {
-          setUserSession(false);
-          setIsLoading(false);
+        } catch (error) {
+          console.error('Error fetching user roles:', error);
+          setUserRoles({ isMusician: false, isContractor: false, userId: session.user.id }); // Fallback
         }
       } else {
-        setUserSession(false);
-        setIsLoading(false);
+        setCurrentUser(null);
+        setUserRoles({ isMusician: false, isContractor: false, userId: null });
       }
     };
-    checkSession();
-  }, [router, supabase]);
 
-  if (isLoading || userSession) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
-        <Typography variant="h5" color="text.secondary">Cargando...</Typography>
-      </Box>
-    );
-  }
+    checkUserAndRoles();
+  }, [supabase]); // Removed router from dependencies as it's not directly used for redirection here anymore
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', overflowX: 'hidden' }}>
@@ -98,45 +103,59 @@ export default function Home() {
               redmusical.ar
             </Typography>
           </MuiLink>
-          <Stack direction="row" spacing={1}>
-            <Button
-              component={Link}
-              href="/login"
-              variant="outlined"
-              startIcon={<SignIn size={20} />}
-              sx={{
-                color: theme.palette.text.primary, // Casi blanco para mejor contraste
-                borderColor: theme.palette.primary.main, // Borde dorado
-                '&:hover': {
-                  borderColor: theme.palette.primary.light || '#edd8a7', // Dorado más claro para hover de borde
-                  color: theme.palette.primary.light || '#edd8a7', // Dorado más claro para hover de texto
-                  bgcolor: 'rgba(214, 168, 65, 0.08)', // Fondo sutil dorado hover
-                },
-              }}
-            >
-              Ingresar
-            </Button>
+          {!currentUser && ( // Only show Ingresar/Registrarse if no user is logged in
+            <Stack direction="row" spacing={1}>
+              <Button
+                component={Link}
+                href="/login"
+                variant="outlined"
+                startIcon={<SignIn size={20} />}
+                sx={{
+                  color: theme.palette.text.primary, 
+                  borderColor: theme.palette.primary.main, 
+                  '&:hover': {
+                    borderColor: theme.palette.primary.light || '#edd8a7', 
+                    color: theme.palette.primary.light || '#edd8a7', 
+                    bgcolor: 'rgba(214, 168, 65, 0.08)', 
+                  },
+                }}
+              >
+                Ingresar
+              </Button>
             <Button
               component={Link}
               href="/register"
-              variant="contained" // Este será el botón primario (dorado)
-              color="primary"    // Usar color="primary" para que tome el estilo del tema
+              variant="contained" 
+              color="primary"    
               startIcon={<UserPlus size={20} />}
               disableElevation
-              // sx ya no es tan necesario aquí si el MuiButton override funciona bien
-              // sx={{
-              //   // bgcolor: theme.palette.primary.main, // Dorado
-              //   // color: theme.palette.primary.contrastText, // Negro suave
-              //   // '&:hover': { bgcolor: theme.palette.primary.dark }, // Dorado oscuro (ya en theme)
-              // }}
             >
               Registrarse
             </Button>
           </Stack>
+          )}
+          {currentUser && ( // Example: Show a different button or user info if logged in
+             <Button 
+                component={Link} 
+                href="/dashboard" 
+                variant="outlined"
+                sx={{
+                  color: theme.palette.text.primary, 
+                  borderColor: theme.palette.primary.main,
+                  '&:hover': {
+                    borderColor: theme.palette.primary.light || '#edd8a7', 
+                    color: theme.palette.primary.light || '#edd8a7', 
+                    bgcolor: 'rgba(214, 168, 65, 0.08)', 
+                  },
+                }}
+              >
+                Mi Panel
+              </Button>
+          )}
         </Toolbar>
       </AppBar>
 
-      {/* 1. Hero Section */}
+      {/* 1. Hero Section - Redesigned */}
       <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
         <Box
           component={motion.section}
@@ -183,90 +202,114 @@ export default function Home() {
             }}
           />
 
-          <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1, py: { xs: 6, md: 12 } }}>
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1, py: { xs: 6, md: 12 } }}> {/* Changed to lg for more space */}
             <motion.div variants={fadeIn}>
               <Typography
-                variant="h1"
+                variant="h1" // Adjusted for new copy
                 component="h1"
                 sx={{
                   fontWeight: 700,
-                  fontSize: { xs: '3rem', sm: '4rem', md: '5.5rem' },
-                  lineHeight: 1.1,
-                  mb: 2,
-                  color: theme.palette.primary.main, // Dorado para el titular
-                  // textShadow: '0px 2px 8px rgba(0,0,0,0.5)', // Sombra para legibilidad
+                  fontSize: { xs: '2.8rem', sm: '3.5rem', md: '4.5rem' }, // Slightly smaller for new copy
+                  lineHeight: 1.2,
+                  mb: 1, // Reduced margin
+                  color: theme.palette.text.primary, // Main text color
                 }}
               >
-                Conectando Talento Musical en{' '}
-                <Box
-                  component="span"
-                  sx={{
-                    backgroundImage: 'linear-gradient(to right, #75AADB, #FFFFFF, #75AADB)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    textFillColor: 'transparent',
-                    WebkitTextFillColor: 'transparent',
-                    // Ensure the gradient is visible if the parent has a color
-                    color: 'transparent', // Fallback for browsers that don't support textFillColor
-                  }}
-                >
-                  Argentina
-                </Box>
-                .
+                Encontrá músicos para cualquier ocasión.
               </Typography>
             </motion.div>
             <motion.div variants={fadeIn}>
-            <Typography variant="h5" component="p" sx={{ mb: 4, color: theme.palette.text.secondary, maxWidth: '700px', mx: 'auto' }}> {/* Gris claro */}
-              Descubrí y ofrecé servicios musicales. La plataforma definitiva para músicos y para quienes buscan músicos.
-            </Typography>
+              <Typography variant="h5" component="p" sx={{ mb: 4, color: theme.palette.text.secondary, maxWidth: '800px', mx: 'auto' }}>
+                Desde bandas completas hasta instrumentistas solistas.
+              </Typography>
             </motion.div>
-            <motion.div variants={fadeIn}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-                <Button
-                  component={Link}
-                  href="/register?role=musician"
-                  variant="contained"
-                  color="primary" // Usar color="primary"
-                  size="large"
-                  sx={{
-                    // bgcolor y color ya vienen de color="primary" y contrastText
-                    fontWeight: 'bold',
-                    py: 1.5,
-                    px: 4,
-                    fontSize: '1.1rem',
-                    // Hover ya manejado por el MuiButton override
-                    boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.3)}` // Sombra dorada más sutil
-                  }}
-                >
-                  Soy Músico
-                </Button>
-                <Button
-                  component={Link}
-                  href="/register?role=contractor"
+            
+            <motion.div variants={fadeIn} style={{ width: '100%', maxWidth: '700px', margin: '0 auto' }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center" sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
                   variant="outlined"
-                  size="large"
+                  placeholder={searchPlaceholders[placeholderIndex]}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   sx={{
-                    color: theme.palette.primary.main, // Dorado
-                    borderColor: theme.palette.primary.main, // Dorado
-                    fontWeight: 'bold',
-                    py: 1.5,
-                    px: 4,
-                    fontSize: '1.1rem',
-                    '&:hover': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.1), // Fondo dorado muy sutil
-                      borderColor: theme.palette.primary.light || '#edd8a7', // Dorado más claro
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '8px', // Softer corners
+                      backgroundColor: alpha(theme.palette.background.paper, 0.9), // Slightly transparent paper
+                      '& fieldset': {
+                        borderColor: theme.palette.divider,
+                      },
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.primary.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.primary.main,
+                        borderWidth: '2px',
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      padding: '14px 16px', // Adjust padding for comfort
+                      fontSize: '1.1rem',
                     },
                   }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <MagnifyingGlass size={24} color={theme.palette.text.secondary} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  onKeyPress={(ev) => {
+                    if (ev.key === 'Enter') {
+                      router.push(`/musicos?q=${encodeURIComponent(searchTerm)}`);
+                      ev.preventDefault();
+                    }
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  onClick={() => router.push(`/musicos?q=${encodeURIComponent(searchTerm)}`)}
+                  sx={{ 
+                    py: '14px', // Match TextField height
+                    px: 4, 
+                    fontSize: '1.1rem',
+                    whiteSpace: 'nowrap', // Prevent text wrapping
+                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`
+                  }}
                 >
-                  Busco Músicos
+                  Buscar
                 </Button>
               </Stack>
             </motion.div>
+
+            <Box component={motion.div} variants={fadeIn} sx={{ mb: 6 }}>
+              <DynamicHeroButton currentUser={currentUser} userRoles={userRoles} />
+            </Box>
+
+            <motion.div variants={fadeIn}>
+              <Stack 
+                direction={{ xs: 'column', md: 'row' }} 
+                spacing={2} 
+                justifyContent="center" 
+                alignItems="center"
+                sx={{ mt: 4, mb: 2 }}
+              >
+                <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
+                  ¿Sos músico o banda? <MuiLink component={Link} href={currentUser ? (userRoles.isMusician ? `/musicians/${userRoles.userId}` : "/select-role?role=musician") : "/register?role=musician"} fontWeight="bold" color="primary">Creá tu perfil gratis y mostrate.</MuiLink>
+                </Typography>
+                <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
+                  ¿Buscás músicos? <MuiLink component={Link} href="/musicos" fontWeight="bold" color="primary">Explorá nuestra red.</MuiLink>
+                </Typography>
+              </Stack>
+            </motion.div>
+
           </Container>
         </Box>
       </motion.div>
 
-      {/* 2. Qué es redmusical.ar */}
+      {/* 2. Qué es redmusical.ar - This section can be kept or modified as per overall design strategy */}
       <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.paper }}> {/* Fondo papel */}
         <Container maxWidth="lg">
           <motion.div variants={fadeIn}>

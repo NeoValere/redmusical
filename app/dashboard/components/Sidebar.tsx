@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // Added usePathname
 import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle, MagnifyingGlass } from 'phosphor-react';
 import Image from 'next/image';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -101,33 +101,24 @@ export default function Sidebar({
 
       <List component="nav" sx={{ flexGrow: 1, px: open ? 1 : 0.5 }}>
         {[
-          { id: 'mi-perfil', text: 'Mi perfil', icon: <User size={24} /> },
-          { id: 'edicion-perfil', text: 'Edición de perfil', icon: <MusicNotesSimple size={24} /> },
-          { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} /> },
-          { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} /> },
-          { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} /> },
+          { id: 'mi-perfil', text: 'Mi perfil', icon: <User size={24} />, href: '/dashboard' },
+          { id: 'edicion-perfil', text: 'Edición de perfil', icon: <MusicNotesSimple size={24} />, href: `/musicians/${userId}/edit` },
+          { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} />, href: '/dashboard?view=estadisticas' },
+          { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} />, href: '/dashboard?view=visibilidad' },
+          { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} />, href: '/dashboard?view=mi-plan' },
+          { id: 'explorar-musicos', text: 'Explorar Músicos', icon: <MagnifyingGlass size={24} />, href: '/musicos' }, // New link
         ].map((item) => (
           <ListItem key={item.id} disablePadding sx={{ display: 'block' }}>
             <ListItemButton
-              // component={Link} // No longer a Link
-              // href={item.href} // No longer using href for scrolling
-              // scroll={true} // Not needed
+              component={Link} // Use Link component
+              href={item.href} // Use href directly
               onClick={() => {
-                if (item.id === 'edicion-perfil') {
-                  if (userId) {
-                    router.push(`/musicians/${userId}/edit`);
-                  } else {
-                    console.warn('Sidebar: userId no disponible para navegar a edición de perfil.');
-                    // Opcionalmente, manejar este caso, ej. redirigir a login o mostrar error
-                  }
-                } else {
-                  setActiveView(item.id);
-                }
+                setActiveView(item.id); // Set active view for internal dashboard navigation
                 if (isMobile) { // Close mobile drawer on selection
                   onClose();
                 }
               }}
-              selected={activeView === item.id} // Nota: para 'edicion-perfil', esto no lo marcará como activo basado en la URL. Se podría mejorar con usePathname si es necesario.
+              selected={activeView === item.id || usePathname() === item.href} // Select based on activeView or current path
               sx={{
                 minHeight: 48,
                 justifyContent: open ? 'initial' : 'center',
@@ -183,10 +174,10 @@ export default function Sidebar({
                   color: 'inherit',
                 }}
               >
-                <MagnifyingGlass size={24} />
+                <Headphones size={24} />
               </ListItemIcon>
               <ListItemText 
-                primary={hasContractorProfile ? "Ir a la búsqueda" : "Activar modo búsqueda"} 
+                primary={hasContractorProfile ? "Panel de búsqueda" : "Activar modo búsqueda"} 
                 sx={{ opacity: open ? 1 : 0, color: 'text.primary' }} 
               />
             </ListItemButton>

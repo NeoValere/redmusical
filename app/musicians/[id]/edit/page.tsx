@@ -33,6 +33,7 @@ import {
   Slider,
   Tooltip,
   LinearProgress,
+  InputAdornment, // Added for social media icons
 } from '@mui/material';
 import {
   Check as CheckIcon,
@@ -60,6 +61,80 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import ProfileImageUploader from '../components/ProfileImageUploader';
 import { Database } from '@/lib/database.types';
 import { useSnackbar } from 'notistack';
+import { v4 as uuidv4 } from 'uuid'; // For unique IDs for social media inputs
+
+// Import react-icons
+import { FaXTwitter, FaTwitch, FaTiktok, FaSquareFacebook, FaYoutube, FaInstagram, FaSpotify, FaSoundcloud } from 'react-icons/fa6';
+import { FaLink } from 'react-icons/fa'; // Generic link icon
+
+// Define social media platforms and their regex patterns/icons (React Icons)
+const SOCIAL_MEDIA_PLATFORMS = [
+  {
+    key: 'instagram',
+    name: 'Instagram',
+    regex: /(?:instagram\.com)\/(?:[a-zA-Z0-9_.]+)/,
+    icon: FaInstagram,
+  },
+  {
+    key: 'x',
+    name: 'X (Twitter)',
+    regex: /(?:twitter\.com|x\.com)\/(?:[a-zA-Z0-9_]+)/,
+    icon: FaXTwitter,
+  },
+  {
+    key: 'facebook',
+    name: 'Facebook',
+    regex: /(?:facebook\.com)\/(?:[a-zA-Z0-9_.]+)/,
+    icon: FaSquareFacebook,
+  },
+  {
+    key: 'youtube',
+    name: 'YouTube',
+    regex: /(?:youtube\.com|youtu\.be)\/(?:channel\/|user\/|c\/|@)?(?:[a-zA-Z0-9_-]+)/,
+    icon: FaYoutube,
+  },
+  {
+    key: 'twitch',
+    name: 'Twitch',
+    regex: /(?:twitch\.tv)\/(?:[a-zA-Z0-9_]+)/,
+    icon: FaTwitch,
+  },
+  {
+    key: 'tiktok',
+    name: 'TikTok',
+    regex: /(?:tiktok\.com)\/(?:@)?(?:[a-zA-Z0-9_.]+)/,
+    icon: FaTiktok,
+  },
+  {
+    key: 'spotify',
+    name: 'Spotify',
+    regex: /(?:spotify\.com)\/(?:artist|user|track|album)\/(?:[a-zA-Z0-9]+)/,
+    icon: FaSpotify,
+  },
+  {
+    key: 'soundcloud',
+    name: 'SoundCloud',
+    regex: /(?:soundcloud\.com)\/(?:[a-zA-Z0-9_-]+)\/(?:[a-zA-Z0-9_-]+)/,
+    icon: FaSoundcloud,
+  },
+];
+
+// Function to detect social media platform from URL
+const detectSocialMediaPlatform = (url: string) => {
+  for (const platform of SOCIAL_MEDIA_PLATFORMS) {
+    if (platform.regex.test(url)) {
+      return { platformKey: platform.key, IconComponent: platform.icon };
+    }
+  }
+  return { platformKey: 'unknown', IconComponent: FaLink }; // Default for unknown links
+};
+
+type SocialMediaInput = {
+  id: string;
+  url: string;
+  platform: string; // e.g., 'instagram', 'facebook', 'unknown'
+  Icon: React.ElementType;
+};
 
 type MusicianProfile = Database['public']['Tables']['Musician']['Row'] & {
   genres: Database['public']['Tables']['Genre']['Row'][];
@@ -81,6 +156,8 @@ type MusicianProfile = Database['public']['Tables']['Musician']['Row'] & {
   experienceLevel?: string | null; // Made optional
   hourlyRate?: number | null; // Made optional
   audioTracks: { title: string; url: string; }[]; // Changed to non-nullable array
+  musicianOrBand?: string | null; // Added musicianOrBand
+  socialMediaInputs?: SocialMediaInput[]; // New field for UI management
 };
 
 const steps = [
@@ -177,6 +254,7 @@ export default function EditMusicianProfile() {
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [stepErrors, setStepErrors] = useState<boolean[]>(Array(steps.length).fill(false));
+  const [socialMediaInputs, setSocialMediaInputs] = useState<SocialMediaInput[]>([]); // New state for social media links
 
   const [allGenres, setAllGenres] = useState<{ id: string; name: string }[]>([]);
   const [allInstruments, setAllInstruments] = useState<{ id: string; name: string }[]>([]);
@@ -211,6 +289,37 @@ export default function EditMusicianProfile() {
     });
   }, []);
 
+  const handleRemoveSocialMediaLink = useCallback((id: string) => {
+    setSocialMediaInputs(prev => prev.filter((link: SocialMediaInput) => link.id !== id));
+  }, []);
+
+  // Handlers for social media links
+  const handleSocialMediaLinkChange = useCallback((index: number, value: string) => {
+    setSocialMediaInputs(prev => {
+      const newSocialMediaInputs = [...prev];
+      const { platformKey, IconComponent } = detectSocialMediaPlatform(value);
+      newSocialMediaInputs[index] = {
+        ...newSocialMediaInputs[index],
+        url: value,
+        platform: platformKey,
+        Icon: IconComponent,
+      };
+      return newSocialMediaInputs;
+    });
+  }, []);
+
+  const handleAddSocialMediaLink = useCallback(() => {
+    setSocialMediaInputs(prev => {
+      const newLink: SocialMediaInput = {
+        id: uuidv4(),
+        url: '',
+        platform: 'unknown',
+        Icon: FaLink,
+      };
+      return [...prev, newLink];
+    });
+  }, []);
+
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
@@ -226,6 +335,23 @@ export default function EditMusicianProfile() {
         audioTracks: data.audioTracks || [], // Ensure audioTracks is always an array
         // No explicit mapping needed here, as API now returns camelCase
       };
+
+      // Initialize socialMediaInputs from profile.socialMediaLinks
+      const initialSocialMediaInputs: SocialMediaInput[] = [];
+      if (mappedData.socialMediaLinks) {
+        for (const platformKey in mappedData.socialMediaLinks) {
+          const url = mappedData.socialMediaLinks[platformKey];
+          const { platformKey: detectedPlatform, IconComponent } = detectSocialMediaPlatform(url);
+          initialSocialMediaInputs.push({
+            id: uuidv4(),
+            url,
+            platform: detectedPlatform,
+            Icon: IconComponent,
+          });
+        }
+      }
+      setSocialMediaInputs(initialSocialMediaInputs);
+
       setProfile(mappedData);
       calculateProfileCompleteness(mappedData);
     } catch (err: any) {
@@ -292,7 +418,7 @@ export default function EditMusicianProfile() {
 
   const calculateProfileCompleteness = useCallback((currentProfile: Partial<MusicianProfile>) => {
     let completedFields = 0;
-    const totalFields = 11; // Adjusted based on the number of fields considered for completeness (removed availability, bio, experienceLevel, hourlyRate)
+    const totalFields = 12; // Adjusted for musicianOrBand
 
     if (currentProfile.fullName) completedFields++;
     if (currentProfile.profileImageUrl) completedFields++; // Changed from profile_image_url
@@ -303,12 +429,13 @@ export default function EditMusicianProfile() {
     if (currentProfile.phoneNumber) completedFields++;
     if (currentProfile.email) completedFields++;
     if (currentProfile.websiteUrl) completedFields++;
-    if (currentProfile.socialMediaLinks && Object.keys(currentProfile.socialMediaLinks).length > 0) // Changed from social_media_links
+    if (socialMediaInputs && socialMediaInputs.length > 0 && socialMediaInputs.some(link => link.url.trim() !== '')) // Check if there's at least one non-empty social media link
       completedFields++;
     if (currentProfile.isPublic !== null && currentProfile.isPublic !== undefined) completedFields++; // Changed from is_public
+    if (currentProfile.musicianOrBand) completedFields++; // Added musicianOrBand
 
     setProfileCompleteness(Math.min(100, Math.round((completedFields / totalFields) * 100)));
-  }, []);
+  }, [socialMediaInputs]);
 
   const validateStep = useCallback(
     (step: number) => {
@@ -380,7 +507,15 @@ export default function EditMusicianProfile() {
     try {
       // Exclude createdAt, updatedAt, and other auto-managed fields by the database
       // Also exclude availability from the payload as it's no longer a required field
-      const { genres, instruments, skills, availability, preferences, ...restOfProfile } = profile; // Removed createdAt, updatedAt
+      const { genres, instruments, skills, availability, preferences, socialMediaLinks, ...restOfProfile } = profile; // Removed createdAt, updatedAt, and socialMediaLinks
+
+      // Transform socialMediaInputs array to socialMediaLinks object
+      const transformedSocialMediaLinks: Record<string, string> = {};
+      socialMediaInputs.forEach(link => {
+        if (link.url.trim() !== '' && link.platform !== 'unknown') {
+          transformedSocialMediaLinks[link.platform] = link.url;
+        }
+      });
 
       // Send payload directly in camelCase as Prisma now expects camelCase
       const payload = {
@@ -390,7 +525,10 @@ export default function EditMusicianProfile() {
         skills: skills?.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })) || [],
         // availability is no longer sent as a required field
         preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
+        socialMediaLinks: Object.keys(transformedSocialMediaLinks).length > 0 ? transformedSocialMediaLinks : null,
       };
+
+      console.log('Payload being sent for partial save:', payload); // Debug log
 
       const response = await fetch(`/api/musicians/${musicianId}/update-profile`, {
         method: 'PUT',
@@ -400,8 +538,20 @@ export default function EditMusicianProfile() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 409 && errorData.field === 'email') {
+          setFormErrors((prev) => ({ ...prev, email: errorData.error }));
+          enqueueSnackbar(errorData.error, { variant: 'error' });
+          return false; // Indicate that save failed due to email conflict
+        }
         throw new Error(errorData.error || 'Failed to partially save profile');
       }
+
+      // Update the profile state with the new socialMediaLinks after successful save
+      setProfile(prev => {
+        if (!prev) return prev;
+        return { ...prev, socialMediaLinks: transformedSocialMediaLinks };
+      });
+
       enqueueSnackbar('Progreso guardado', { variant: 'success', autoHideDuration: 2000 });
       success = true;
     } catch (err: any) {
@@ -438,22 +588,21 @@ export default function EditMusicianProfile() {
       return; // Do nothing if submitting or clicking the current step
     }
 
-    if (stepIndex < activeStep) {
-      // Moving to a previous step, allow direct navigation
-      // Optionally, you might want to save if there are unsaved changes,
-      // but for now, let's keep it simple like handleBack.
-      setActiveStep(stepIndex);
-    } else {
-      // Moving to a future step (or a step further than the next one)
-      // Validate the current step before proceeding
-      if (validateStep(activeStep)) {
-        const saved = await handlePartialSave(); // Save current step's progress
-        if (saved) {
-          setActiveStep(stepIndex); // Move to the clicked step
-        }
+    if (stepIndex === activeStep) {
+      return; // Do nothing if clicking the current step
+    }
+
+    // Always validate and save the current step's data before navigating
+    if (validateStep(activeStep)) {
+      const saved = await handlePartialSave(); // Save current step's progress
+      if (saved) {
+        setActiveStep(stepIndex); // Move to the clicked step
       } else {
-        enqueueSnackbar('Por favor, corrige los errores del paso actual antes de avanzar.', { variant: 'error' });
+        // If save failed, prevent navigation
+        enqueueSnackbar('Error al guardar el progreso del paso actual. Por favor, revisa los errores.', { variant: 'error' });
       }
+    } else {
+      enqueueSnackbar('Por favor, corrige los errores del paso actual antes de avanzar.', { variant: 'error' });
     }
   };
 
@@ -464,7 +613,15 @@ export default function EditMusicianProfile() {
     setError(null);
 
     // Exclude createdAt, updatedAt, and other auto-managed fields by the database
-    const { genres, instruments, skills, availability, preferences, bio, experienceLevel, ...restOfProfile } = profile; // Removed createdAt, updatedAt
+    const { genres, instruments, skills, availability, preferences, bio, experienceLevel, socialMediaLinks, ...restOfProfile } = profile; // Removed createdAt, updatedAt, and socialMediaLinks
+
+    // Transform socialMediaInputs array to socialMediaLinks object
+    const transformedSocialMediaLinks: Record<string, string> = {};
+    socialMediaInputs.forEach(link => {
+      if (link.url.trim() !== '' && link.platform !== 'unknown') {
+        transformedSocialMediaLinks[link.platform] = link.url;
+      }
+    });
 
     const payload = {
       ...restOfProfile,
@@ -475,7 +632,10 @@ export default function EditMusicianProfile() {
       skills: skills?.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })) || [],
       availability: availability?.map((a: { id: string; name: string }) => ({ id: a.id, name: a.name })) || [],
       preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
+      socialMediaLinks: Object.keys(transformedSocialMediaLinks).length > 0 ? transformedSocialMediaLinks : null,
     };
+
+    console.log('Payload being sent for full submit:', payload); // Debug log
 
     try {
       const response = await fetch(`/api/musicians/${musicianId}/update-profile`, {
@@ -488,8 +648,19 @@ export default function EditMusicianProfile() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 409 && errorData.field === 'email') {
+          setFormErrors((prev) => ({ ...prev, email: errorData.error }));
+          enqueueSnackbar(errorData.error, { variant: 'error' });
+          return; // Stop submission if email conflict
+        }
         throw new Error(errorData.error || 'Failed to update profile');
       }
+
+      // Update the profile state with the new socialMediaLinks after successful submit
+      setProfile(prev => {
+        if (!prev) return prev;
+        return { ...prev, socialMediaLinks: transformedSocialMediaLinks };
+      });
 
       enqueueSnackbar('Perfil actualizado exitosamente!', { variant: 'success' });
       router.push(`/musicians/${musicianId}`); // Redirect to the profile page
@@ -526,6 +697,23 @@ export default function EditMusicianProfile() {
                 error={!!formErrors.fullName} // Changed from full_name
                 helperText={formErrors.fullName} // Changed from full_name
               />
+              <FormControl fullWidth error={!!formErrors.musicianOrBand}>
+                <InputLabel id="musicianOrBand-label">Tipo (Músico Solista / Banda)</InputLabel>
+                <Select
+                  labelId="musicianOrBand-label"
+                  id="musicianOrBand"
+                  value={profile.musicianOrBand || ''}
+                  label="Tipo (Músico Solista / Banda)"
+                  onChange={(e) => handleChange('musicianOrBand', e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>Seleccionar...</em>
+                  </MenuItem>
+                  <MenuItem value="musician">Músico Solista</MenuItem>
+                  <MenuItem value="band">Banda</MenuItem>
+                </Select>
+                {formErrors.musicianOrBand && <Typography color="error" variant="caption">{formErrors.musicianOrBand}</Typography>}
+              </FormControl>
               <TextField
                 label="Biografía (Opcional)"
                 value={profile.bio || ''}
@@ -689,17 +877,41 @@ export default function EditMusicianProfile() {
                 onChange={(e) => handleChange('websiteUrl', e.target.value)} // Changed website to websiteUrl
                 fullWidth
               />
-              <TextField
-                label="Link de Red Social (Ej. Instagram)"
-                value={profile.socialMediaLinks?.instagram || ''} // Changed from social_media_links
-                onChange={(e) =>
-                  handleChange('socialMediaLinks', { // Changed from social_media_links
-                    ...(profile.socialMediaLinks || {}), // Changed from social_media_links
-                    instagram: e.target.value,
-                  })
-                }
-                fullWidth
-              />
+              <Typography variant="subtitle1" sx={{ fontWeight: 'medium', mt: 2, color: 'text.secondary' }}>
+                Enlaces de Redes Sociales (Opcional)
+              </Typography>
+              {socialMediaInputs.map((link, index) => (
+                <Stack key={link.id} direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                  <TextField
+                    label={`URL de Red Social ${index + 1}`}
+                    value={link.url}
+                    onChange={(e) => handleSocialMediaLinkChange(index, e.target.value)}
+                    fullWidth
+                    size="small"
+                    type="url"
+                    placeholder="https://www.instagram.com/tuperfil"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <link.Icon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <IconButton onClick={() => handleRemoveSocialMediaLink(link.id)} color="error" size="small">
+                    <DeleteIcon />
+                  </IconButton>
+                </Stack>
+              ))}
+              <Button
+                onClick={handleAddSocialMediaLink}
+                startIcon={<AddIcon />}
+                variant="outlined"
+                size="small"
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Añadir Enlace
+              </Button>
             </Stack>
           );
         case 3: // Logística
@@ -825,6 +1037,10 @@ export default function EditMusicianProfile() {
       handleAudioTrackChange,
       handleAddAudioTrack,
       handleRemoveAudioTrack,
+      socialMediaInputs, // Added
+      handleSocialMediaLinkChange, // Added
+      handleAddSocialMediaLink, // Added
+      handleRemoveSocialMediaLink, // Added
     ],
   );
 
@@ -926,7 +1142,7 @@ export default function EditMusicianProfile() {
               <Step key={label}>
                 <StepLabel
                   onClick={() => handleStepClick(index)}
-                  sx={{ cursor: submitting ? 'default' : 'pointer' }}
+                  sx={{ cursor: submitting ? 'default' : 'pointer', '&:hover': { cursor: 'pointer' } }}
                   StepIconComponent={CustomStepIcon}
                   {...labelProps}
                 >

@@ -1,15 +1,35 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-// Removed prisma import: import prisma from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
-export async function middleware(req: NextRequest) {
+// Define a type for the session payload for clarity
+interface SessionPayload {
+  userId: string;
+  // Add other session-related properties here
+}
+
+export function middleware(req: NextRequest) {
   const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+  let session: SessionPayload | null = null;
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // 1. Extract token from cookies
+  const token = req.cookies.get('auth-token')?.value;
+
+  if (token) {
+    try {
+      // 2. Verify the token
+      const decoded = jwt.verify(
+        token,
+        process.env.SUPABASE_JWT_SECRET || ''
+      ) as SessionPayload;
+      session = decoded;
+    } catch (error) {
+      // Token is invalid or expired
+      console.error('JWT verification error:', error);
+      // Invalidate the session
+      session = null;
+    }
+  }
 
   const { pathname } = req.nextUrl;
 

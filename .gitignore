@@ -34,3 +34,7 @@ yarn-error.log*
 
 # prisma
 /prisma/migrations
+package-lock.json
+
+# cline
+.clinerules/

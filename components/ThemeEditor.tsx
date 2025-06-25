@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Box, TextField, Select, MenuItem, InputLabel, FormControl, SelectChangeEvent } from '@mui/material';
-import { useThemeContext, Preset } from '../lib/theme/MuiTheme';
+import { useMuiTheme, Preset } from '../lib/theme/MuiTheme';
 import { PaletteOptions } from '@mui/material';
 
 const ThemeEditor: React.FC = () => {
-  const { theme, presets, setTheme, savePreset, deletePreset, revertToOriginal, setDefaultPreset, defaultPreset } = useThemeContext();
+const { theme, presets, setTheme, savePreset, deletePreset, revertToOriginal, setDefaultPreset, defaultPreset } = useMuiTheme();
   const [presetName, setPresetName] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string>('');
   const [currentPalette, setCurrentPalette] = useState<PaletteOptions>(theme.palette);

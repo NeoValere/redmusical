@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       await prisma.musician.upsert({
         where: { email: userEmail }, // Use email as unique identifier
         update: { userId: userId, fullName: initialFullName }, // Use initialFullName
-        create: { userId: userId, email: userEmail, fullName: initialFullName }, // Use initialFullName
+        create: { userId: userId, email: userEmail, fullName: initialFullName, artisticName: initialFullName }, // Use initialFullName
       });
       redirectUrl = '/dashboard'; // Musician dashboard
     } else if (newRole === 'contractor') {

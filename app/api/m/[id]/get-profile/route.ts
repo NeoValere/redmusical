@@ -8,13 +8,12 @@ import { Prisma } from '@prisma/client'; // Import Prisma types
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // As per Next.js 15 guidelines, dynamic APIs like params and cookies are asynchronous.
   // See: https://nextjs.org/docs/messages/sync-dynamic-apis
 
-  const { params } = context;
-  const { id: musicianId } = params; // Access id from resolved params, rename to musicianId for clarity
+  const { id: musicianId } = await params; // Await params resolution
   console.log({ musicianIdFromParams: musicianId })
   try {
     const cookieStore = cookies(); // Await cookies directly

@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { createClient } from '@supabase/supabase-js'; // Import createClient for service role
 import { cookies } from 'next/headers';
@@ -8,10 +8,10 @@ import prisma from '../../../../../lib/prisma'; // Corrected Prisma client impor
 export const dynamic = 'force-dynamic';
 
 export async function POST(
-  request: NextRequest,
-  context: { params: { id: string } }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await params;
   const cookieStore = cookies(); // Call cookies() once at the top
 
   // Create a Supabase client configured to use cookies (for user session)

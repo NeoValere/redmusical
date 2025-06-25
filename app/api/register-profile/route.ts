@@ -168,6 +168,7 @@ export async function POST(request: Request) {
           userId,
           fullName,
           email,
+          artisticName: fullName,
           // location: '', // 'location' is not a field, city/province are. Set to null or empty.
           city: null,
           province: null,

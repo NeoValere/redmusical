@@ -3,10 +3,10 @@ import prisma from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   // Await the params
-  const { userId } = await Promise.resolve(params);
+  const { userId } = await params;
 
   if (!userId) {
     return NextResponse.json({ error: 'User ID is required' }, { status: 400 });

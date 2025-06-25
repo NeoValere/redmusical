@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,58 +30,12 @@ import {
 import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass, MapPin, MusicNote, Star } from 'phosphor-react';
 import MusicianCard, { Musician } from '@/app/components/MusicianCard';
 
-const PublicPageHeader = () => {
-  const theme = useTheme();
-  const supabase = createClientComponentClient();
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    };
-    getUser();
-  }, [supabase]);
+interface MusicianListProps {
+  sessionChecked: boolean;
+  currentUser: any;
+}
 
-  return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      sx={{ 
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        backgroundColor: theme.palette.background.paper, 
-      }}
-    >
-      <Toolbar sx={{ 
-        maxWidth: '1300px', 
-        width: '100%', 
-        mx: 'auto', 
-        px: { xs: 2, sm: 3 }, 
-        justifyContent: 'space-between',
-        backgroundColor: theme.palette.background.paper,
-      }}>
-        <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
-          <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} />
-          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-            redmusical.ar
-          </Typography>
-        </MuiLink>
-        <Stack direction="row" spacing={1}>
-          {!currentUser ? (
-            <>
-              <Button component={Link} href="/login" variant="outlined" startIcon={<SignIn />}>Ingresar</Button>
-              <Button component={Link} href="/register" variant="contained" color="primary" startIcon={<UserPlus />}>Registrarse</Button>
-            </>
-          ) : (
-            <Button component={Link} href="/dashboard" variant="outlined">Mi Panel</Button>
-          )}
-        </Stack>
-      </Toolbar>
-    </AppBar>
-  );
-};
-
-function MusicosPageContent() {
+const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,9 +44,6 @@ function MusicosPageContent() {
   const [musicians, setMusicians] = useState<Musician[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Initialize state from URL search parameters
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
@@ -116,16 +67,6 @@ function MusicosPageContent() {
       router.replace(`/musicos?${params.toString()}`, { scroll: false });
     }
   }, [searchTerm, tipoFilter, page, router, searchParams]);
-
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setCurrentUser(session?.user || null);
-      setSessionChecked(true);
-    };
-    checkSession();
-  }, [supabase]);
 
   useEffect(() => {
     const fetchMusicians = async () => {
@@ -167,9 +108,9 @@ function MusicosPageContent() {
     window.scrollTo(0, 0);
   };
 
-  if (!sessionChecked) {
+  if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 200px)' }}>
         <CircularProgress />
       </Box>
     );
@@ -177,7 +118,6 @@ function MusicosPageContent() {
 
   return (
     <Box sx={{ bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
-      <PublicPageHeader />
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Typography variant="h3" component="h1" gutterBottom fontWeight="bold" color="text.primary" sx={{ textAlign: 'center', mb:1}}>
           Explorá Músicos en Argentina
@@ -231,11 +171,6 @@ function MusicosPageContent() {
           </Grid>
         </Paper>
 
-        {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
-            <CircularProgress />
-          </Box>
-        )}
         {error && (
           <Typography color="error" textAlign="center" sx={{ my: 5 }}>
             {error}
@@ -289,14 +224,4 @@ function MusicosPageContent() {
   );
 }
 
-export default function MusicosPage() {
-  return (
-    <Suspense fallback={
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    }>
-      <MusicosPageContent />
-    </Suspense>
-  );
-}
+export default MusiciansList;

@@ -80,7 +80,7 @@ const ThemeContext = createContext({
   setDefaultPreset: (presetName: string) => {},
 });
 
-export const useThemeContext = () => useContext(ThemeContext);
+export const useMuiTheme = () => useContext(ThemeContext);
 
 export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
   const [originalTheme] = useState<Theme>(initialTheme);

@@ -76,7 +76,7 @@ import { FaLink } from 'react-icons/fa'; // Generic link icon
 
 // Using the more comprehensive type from the edit page as a base
 import { Database } from '@/lib/database.types';
-import { initialTheme, useThemeContext } from '@/lib/theme/MuiTheme';
+import { initialTheme, useMuiTheme } from '@/lib/theme/MuiTheme';
 import { useSnackbar } from 'notistack';
 
 // Define interfaces for related data to avoid deep lookups that might be causing TS issues
@@ -278,7 +278,7 @@ function MusicianProfilePage() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [profileThemeSettings, setProfileThemeSettings] = useState<ThemeSettings | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false); // State for contact modal
-  const { theme } = useThemeContext();
+  const { theme } = useMuiTheme();
   const { enqueueSnackbar } = useSnackbar();
 
   const handleClaimProfile = async () => {

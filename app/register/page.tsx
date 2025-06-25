@@ -1,10 +1,14 @@
 'use client';
 
-import RegisterCard from './components/RegisterCard';
-import { Box, useTheme, alpha } from '@mui/material';
+import React, { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Register from './components/Register';
+import { Box, useTheme, alpha, CircularProgress, Typography } from '@mui/material';
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const theme = useTheme();
+  const searchParams = useSearchParams();
+  const initialRole = searchParams.get('role') || 'musician';
 
   return (
     <Box
@@ -13,12 +17,12 @@ export default function RegisterPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        py: { xs: 3, md: 6 }, // Added some padding for smaller screens
+        py: { xs: 3, md: 6 },
         px: { xs: 2, sm: 3, lg: 4 },
-        bgcolor: theme.palette.background.default, // Very dark blue
-        position: 'relative', // For the ::before pseudo-element
-        overflow: 'hidden', // Ensure pseudo-element doesn't cause overflow
-        '&::before': { // Background image with overlay
+        bgcolor: theme.palette.background.default,
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
           content: '""',
           position: 'absolute',
           top: 0,
@@ -30,21 +34,34 @@ export default function RegisterPage() {
           backgroundPosition: 'center',
           zIndex: 0,
         },
-        '&::after': { // Semi-transparent gold overlay
+        '&::after': {
           content: '""',
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          bgcolor: alpha(theme.palette.primary.main, 0.7), // Gold overlay, adjust opacity as needed
+          bgcolor: alpha(theme.palette.primary.main, 0.7),
           zIndex: 1,
         }
       }}
     >
-      <Box sx={{ position: 'relative', zIndex: 2 }}> {/* Ensure RegisterCard is above overlays */}
-        <RegisterCard />
+      <Box sx={{ position: 'relative', zIndex: 2 }}>
+        <Register initialRole={initialRole} />
       </Box>
     </Box>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>Cargando...</Typography>
+      </Box>
+    }>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

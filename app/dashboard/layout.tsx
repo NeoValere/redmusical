@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, ReactNode } from 'react';
+import { Suspense, useEffect, useState, ReactNode } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
@@ -18,7 +18,7 @@ interface MusicianProfile {
   isPublic: boolean;
 }
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+function DashboardClientLayout({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
@@ -283,5 +283,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <MobileNavigationBar activeView={activeView} setActiveView={setActiveView} activeRole={activeRole} musicianProfile={musicianProfile} />
       )}
     </Box>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>Cargando...</Typography>
+      </Box>
+    }>
+      <DashboardClientLayout>{children}</DashboardClientLayout>
+    </Suspense>
   );
 }

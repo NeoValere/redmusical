@@ -44,7 +44,7 @@ export async function POST(request: Request) {
           data: {
             userId: userId,
             role: role,
-            amount: payment.transaction_amount,
+            amount: payment.transaction_amount ?? 0,
             status: payment.status,
           },
         });

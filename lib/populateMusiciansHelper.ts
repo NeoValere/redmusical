@@ -213,7 +213,7 @@ export async function populateFakeMusicians(count: number): Promise<{ success: b
             throw new Error('OpenAI did not return content.');
         }
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const generatedData = JSON.parse(aiResponse.choices[0].message.content);
 
         // 5. Assemble and Create Musician Record in Prisma

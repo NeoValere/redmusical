@@ -5,8 +5,11 @@ export async function GET() {
   try {
     const preferences = await prisma.preference.findMany();
     return NextResponse.json(preferences);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected error in preferences API (Prisma):', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

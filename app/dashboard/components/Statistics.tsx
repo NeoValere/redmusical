@@ -1,7 +1,7 @@
 'use client';
 
-import { Eye, Users, Target, TrendUp } from 'phosphor-react'; // Example icons
-import { Box, Typography, Paper, Stack, useTheme, alpha } from '@mui/material';
+import { Eye, Users, Target } from 'phosphor-react'; // Removed TrendUp
+import { Box, Typography, Paper, Stack, useTheme, alpha } from '@mui/material'; // Re-added useTheme
 
 interface StatCardProps {
   title: string;
@@ -48,7 +48,6 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, description }) 
 };
 
 export default function Statistics() {
-  const theme = useTheme();
   const statsData: StatCardProps[] = [
     {
       title: 'Visitas al Perfil (Últimos 30 días)',

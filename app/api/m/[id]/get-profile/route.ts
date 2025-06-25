@@ -56,7 +56,6 @@ export async function GET(
       preferences: { preference: { id: string; name: string; }; }[];
     };
 
-    type PublicMusicianProfile = Omit<MusicianWithRelations, 'email' | 'phoneNumber'>;
 
     // Fetch Musician data using Prisma, querying by musicianId (primary key)
     const musicianData = await prisma.musician.findUnique({
@@ -147,11 +146,14 @@ export async function GET(
       skills: musicianData.skills.map((ms) => ms.skill) ,
       availability: musicianData.availability.map((ma) => ma.availability) ,
       preferences: musicianData.preferences.map((mp) => mp.preference) ,
-    } as any;
+    };
 
     return NextResponse.json(profile);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected error in get-profile API (Prisma):', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
-import { User, MusicNotesSimple, ChartBar, Eye, CreditCard } from 'phosphor-react';
+import { User, ChartBar, Eye, CreditCard } from 'phosphor-react'; // Removed MusicNotesSimple
 import { useTheme } from '@mui/material/styles';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
@@ -25,7 +25,7 @@ export default function BottomNavigationBar({ activeView, setActiveView, musicia
 
   const backgroundColor = useMemo(() => {
     return navItems.some(item => item.id === activeView) ? theme.palette.primary.main : theme.palette.background.paper;
-  }, [activeView, theme.palette.primary.main, theme.palette.background.paper, navItems]);
+  }, [activeView, theme.palette.primary.main, theme.palette.background.paper]); // Removed navItems from dependency array
 
   const paperSx = useMemo(() => ({
     position: 'fixed',

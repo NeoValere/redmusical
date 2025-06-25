@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 // import Image from 'next/image'; // No longer using Next Image for logo here
-import { MusicNotes, Headphones, Warning, MusicNotesSimple, MagnifyingGlass } from 'phosphor-react'; // Added MusicNotesSimple and MagnifyingGlass
+import { MusicNotes, MusicNotesSimple, MagnifyingGlass } from 'phosphor-react'; // Added MusicNotesSimple and MagnifyingGlass
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { FcGoogle } from 'react-icons/fc';
@@ -175,7 +175,7 @@ const Register = ({ initialRole }: RegisterProps) => {
         alert('Por favor, revisa tu email para confirmar tu cuenta.');
         router.push('/login');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration Error:', error);
       let errorMessage = 'Ocurrió un error inesperado durante el registro.';
       if (error instanceof Error) {

@@ -1,11 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation'; // Added usePathname
 import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle, MagnifyingGlass, Chat } from 'phosphor-react';
-import Image from 'next/image';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/lib/database.types';
 import {
   Box,
   List,
@@ -20,16 +16,13 @@ import {
   Drawer,
   Toolbar,
 } from '@mui/material';
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 import { useEffect } from 'react';
 
 interface SidebarProps {
   userRole: string | null;
   activeRole: string | null;
-  userId: string | null;
   hasContractorProfile: boolean;
   handleLogout: () => void;
-  supabase: SupabaseClient<Database>;
   open: boolean;
   onClose: () => void;
   isMobile: boolean;
@@ -44,10 +37,8 @@ interface SidebarProps {
 export default function Sidebar({
   userRole,
   activeRole,
-  userId,
   hasContractorProfile,
   handleLogout,
-  supabase,
   open,
   onClose,
   isMobile,
@@ -58,9 +49,7 @@ export default function Sidebar({
   handleSwitchRole,
   handleCreateContractorProfile,
 }: SidebarProps) {
-  const router = useRouter();
   const theme = useTheme();
-  const pathname = usePathname();
 
   useEffect(() => {
     localStorage.setItem('activeView', activeView);

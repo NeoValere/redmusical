@@ -35,7 +35,7 @@ export async function POST(
     const fileName = `${uuidv4()}.${fileExt}`;
     const filePath = `${fileName}`; // Remove the 'profile_images/' prefix
 
-    const { data, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('profile-images')
       .upload(filePath, file, {
         cacheControl: '3600',

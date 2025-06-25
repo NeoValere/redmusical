@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { MusicNotes, Headphones, Users, MagnifyingGlass } from 'phosphor-react';
+import { MusicNotes, Users, MagnifyingGlass } from 'phosphor-react';
 import Image from 'next/image';
 
 export default function SelectRolePage() {
@@ -108,9 +108,9 @@ export default function SelectRolePage() {
         router.push(redirectUrl || '/dashboard'); // Use redirectUrl from API, fallback to /dashboard
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Unexpected error during role selection:', err);
-      setError(err.message || 'Ocurrió un error inesperado.');
+      setError( 'Ocurrió un error inesperado.');
     } finally {
       setIsLoading(false);
     }

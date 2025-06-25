@@ -22,12 +22,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { debounce } from "lodash";
 import MusicianCard, { Musician } from "@/app/components/MusicianCard";
-import {
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
-} from "@mui/icons-material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";

@@ -22,7 +22,7 @@ export default function CurrentPlan({ planType = 'Gratuito', premiumEndDate }: C
         month: 'long',
         day: 'numeric',
       });
-    } catch (e) {
+    } catch {
       // Keep default if date is invalid
     }
   }

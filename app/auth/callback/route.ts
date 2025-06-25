@@ -5,9 +5,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const roleFromUrl = requestUrl.searchParams.get('role'); // Get role from search params
-
-  const supabase = createRouteHandlerClient({ cookies: () => cookies() }); 
+  const supabase = createRouteHandlerClient({ cookies: () => cookies() });
 
   if (code) {
     await supabase.auth.exchangeCodeForSession(code);
@@ -23,10 +21,6 @@ export async function GET(request: Request) {
     }
 
     // Always check for existing profiles in our database as the source of truth
-    const headers = {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json'
-    };
 
     const [musicianProfileRes, contractorProfileRes] = await Promise.all([
       fetch(`${requestUrl.origin}/api/register-profile?userId=${user.id}&role=musician&email=${user.email || ''}`),

@@ -5,27 +5,18 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import BottomNavigationBar from './components/BottomNavigationBar';
 import { Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { darkenColor } from '../../utils';
-import BottomSearchNavigationBar from './search/components/BottomSearchNavigationBar';
 import MobileNavigationBar from './components/MobileNavigationBar';
 import { DashboardContext } from './context/DashboardContext';
-
-interface MusicianProfile {
-  id: string;
-  userId: string;
-  isPublic: boolean;
-}
+import { Musician } from '@prisma/client'; // Import Musician type
 
 function DashboardClientLayout({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeRole, setActiveRole] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [hasMusicianProfile, setHasMusicianProfile] = useState(false);
   const [hasContractorProfile, setHasContractorProfile] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);
+  const [musicianProfile, setMusicianProfile] = useState<Musician | null>(null); // Use Musician type
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -76,8 +67,6 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
       }
 
       setUserId(user.id);
-      let currentUserName = user.user_metadata.full_name || user.email?.split('@')[0] || 'Usuario';
-
       let musicianExists = false;
       let contractorExists = false;
 
@@ -86,8 +75,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
         const musicianData = await musicianProfileRes.json();
         musicianExists = musicianData.exists;
         if (musicianData.exists) {
-          setMusicianProfile(musicianData.profile as MusicianProfile);
-          currentUserName = musicianData.profile.fullName || currentUserName;
+          setMusicianProfile(musicianData.profile as Musician); // Cast to Musician
         } else {
           setMusicianProfile(null);
         }
@@ -103,9 +91,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
         console.error('Error checking contractor profile:', error);
       }
 
-      setHasMusicianProfile(musicianExists);
       setHasContractorProfile(contractorExists);
-      setUserName(currentUserName);
 
       let determinedRole: string | null = null;
       if (musicianExists && contractorExists) {
@@ -233,10 +219,8 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
         <Sidebar
           userRole={userRole}
           activeRole={activeRole}
-          userId={userId}
           hasContractorProfile={hasContractorProfile}
           handleLogout={handleLogout}
-          supabase={supabase}
           open={isSidebarOpen}
           onClose={handleDrawerToggle}
           isMobile={false}
@@ -264,14 +248,11 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
       >
         <DashboardContext.Provider value={{ activeView, setActiveView, pageTitle, setPageTitle }}>
           <Header
-            userName={userName || 'Usuario'}
             handleDrawerToggle={handleDrawerToggle}
             isMobile={isMobile}
             isSidebarOpen={isSidebarOpen}
             handleLogout={handleLogout}
             userRole={userRole}
-            activeRole={activeRole}
-            userId={userId}
             hasContractorProfile={hasContractorProfile}
             handleSwitchRole={handleSwitchRole}
             handleCreateContractorProfile={handleCreateContractorProfile}

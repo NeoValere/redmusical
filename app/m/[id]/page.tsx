@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'; // Import User type
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import ProfileImageUploader from './components/ProfileImageUploader'; // Import ProfileImageUploader
 import ContactFormModal from '@/components/ContactFormModal';
-// No need for next/image if we replicate the homepage logo structure
 import {
   Box,
   Typography,
@@ -19,64 +18,45 @@ import {
   Link as MuiLink,
   CircularProgress,
   Paper,
-  Grid,
-  Divider,
   Card,
   CardContent,
   useMediaQuery,
   Tooltip,
-  Popover, // Added Popover
-  TextField, // For color input labels if needed, or just Typography
-  FormControl,
-  InputLabel,
+  Popover,
   Input,
-  Skeleton, // Added Skeleton for loading state
+  Skeleton,
 } from '@mui/material';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'; // Import the new icon
+import Grid from '@mui/material/Grid'; // Changed Grid import
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import {
-  ArrowLeft, // Restored for fallback UIs
-  PencilSimple,
+  ArrowLeft,
   MapPin,
-  EnvelopeSimple,
-  Globe,
-  Phone,
   Briefcase,
-  Users,
   Handshake,
-  CurrencyDollar,
   ListChecks,
-  MusicNotes,
-  Atom, // Changed from Helix to Atom for ADN Musical
-  SpeakerSimpleHigh, // Added for Instruments
-  MusicNotesSimple, // Added for logo
-  Sparkle, // Example for skill
-  CalendarCheck, // Example for availability
+  Atom,
+  SpeakerSimpleHigh,
+  Sparkle,
+  CalendarCheck,
   Eye,
   EyeSlash,
   Person,
   Info,
   ShareNetwork,
-  Play, // Added for Audio Player
-  Palette, // Added for color customization
-} from 'phosphor-react'; // Keep Phosphor icons that are not in MUI
+  Play,
+  Palette,
+  Globe, // Explicitly import Globe from phosphor-react
+  MusicNotesSimple, // Keep MusicNotesSimple as it's used in the logo
+} from 'phosphor-react';
 
-import {
-  Instagram as InstagramIconMui, // Renamed to avoid conflict with react-icons
-  Facebook as FacebookIconMui, // Renamed
-  YouTube as YouTubeIconMui, // Renamed
-  Twitter as TwitterIconMui, // Renamed
-  Public as PublicIconMui, // Renamed
-  Link as LinkIconMui, // Generic link icon from MUI
-  MusicNote as MusicNoteIconMui, // For Spotify/Soundcloud if no specific icon
-} from '@mui/icons-material';
+import { SxProps, Theme } from '@mui/material/styles'; // Import SxProps and Theme
 
 // Import react-icons
 import { FaXTwitter, FaTwitch, FaTiktok, FaSquareFacebook, FaYoutube, FaInstagram, FaSpotify, FaSoundcloud } from 'react-icons/fa6';
-import { FaLink } from 'react-icons/fa'; // Generic link icon
+import { FaLink } from 'react-icons/fa';
 
-// Using the more comprehensive type from the edit page as a base
 import { Database } from '@/lib/database.types';
-import { initialTheme, useMuiTheme } from '@/lib/theme/MuiTheme';
+import { initialTheme } from '@/lib/theme/MuiTheme';
 import { useSnackbar } from 'notistack';
 
 // Define interfaces for related data to avoid deep lookups that might be causing TS issues
@@ -85,20 +65,34 @@ interface Instrument { id: string; name: string; }
 interface Skill { id: string; name: string; }
 interface Availability { id: string; name: string; }
 interface Preference { id: string; name: string; }
-interface AudioTrack { title: string; url: string; } // Added for audio tracks
+interface AudioTrack { title: string; url: string; }
+
+interface ThemePreset {
+  name: string;
+  palette: {
+    primary: { main: string; dark: string; contrastText: string; };
+    secondary: { main: string; dark: string; contrastText: string; };
+    background: { default: string; paper: string; };
+    text: { primary: string; secondary: string; };
+    divider: string;
+    error: { main: string; light: string; };
+    warning: { main: string; };
+    success: { main: string; };
+  };
+}
 
 interface ThemeSettings {
-  presets: any[] | null;
+  presets: ThemePreset[] | null;
   defaultPreset: string | null;
 }
 
 // Explicitly define base musician properties to avoid issues with deep lookups in Database type
 interface BaseMusicianRow {
   id: string;
-  userId: string; // Typically from Supabase auth, API might use `userId` from params for query
+  userId: string;
   fullName: string | null;
-  artisticName: string | null; // Added for artistic name
-  email: string | null; // Contact email
+  artisticName: string | null;
+  email: string | null;
   bio: string | null;
   profileImageUrl: string | null;
   city: string | null;
@@ -107,19 +101,18 @@ interface BaseMusicianRow {
   websiteUrl: string | null;
   experienceLevel: string | null;
   hourlyRate: number | null;
-  isPublic: boolean | null; // Changed from is_public
+  isPublic: boolean | null;
   acceptsCollaborations: boolean | null;
-  acceptsGigs: boolean | null; // Changed from accepts_gigs
-  socialMediaLinks: Record<string, string> | null; // Changed from social_media_links
-  createdAt: string; // Changed from created_at
-  updatedAt: string | null; // Changed from updated_at
-  // Ensure all fields from the 'musicians' table as returned by API are here with correct casing
-  audioTracks?: AudioTrack[] | null; // Added for audio tracks
+  acceptsGigs: boolean | null;
+  socialMediaLinks: Record<string, string> | null;
+  createdAt: string;
+  updatedAt: string | null;
+  audioTracks?: AudioTrack[] | null;
   profileColorCover?: string | null;
   profileColorCardBackground?: string | null;
   profileColorText?: string | null;
   profileColorSectionBackground?: string | null;
-  musicianOrBand?: string | null; // Added to differentiate between solo musician or band
+  musicianOrBand?: string | null;
 }
 
 type MusicianProfileData = BaseMusicianRow & {
@@ -129,9 +122,6 @@ type MusicianProfileData = BaseMusicianRow & {
   availability: Availability[];
   preferences: Preference[];
   isAutogenerated: boolean | null;
-  // audioTracks is already in BaseMusicianRow
-  // Redundant optional fields removed as BaseMusicianRow now uses camelCase
-  // and should reflect the actual API response structure.
 };
 
 interface SectionCardProps {
@@ -139,11 +129,11 @@ interface SectionCardProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   cardBackgroundColor?: string;
-  titleColor?: string; // Added for explicit title color
+  titleColor?: string;
 }
 
 const SectionCard: React.FC<SectionCardProps> = ({ title, icon, children, cardBackgroundColor, titleColor }) => (
-  <Card elevation={2} sx={{ mb: 3, backgroundColor: cardBackgroundColor /* Apply custom background if provided */ }}>
+  <Card elevation={2} sx={{ mb: 3, backgroundColor: cardBackgroundColor }}>
     <CardContent>
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
         {icon}
@@ -156,7 +146,6 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, icon, children, cardBa
   </Card>
 );
 
-// Define social media platforms and their regex patterns/icons (React Icons)
 const SOCIAL_MEDIA_PLATFORMS = [
   {
     key: 'instagram',
@@ -208,17 +197,15 @@ const SOCIAL_MEDIA_PLATFORMS = [
   },
 ];
 
-// Function to detect social media platform from URL and return its icon
 const getSocialMediaIcon = (url: string): React.ElementType => {
   for (const platform of SOCIAL_MEDIA_PLATFORMS) {
     if (platform.regex.test(url)) {
       return platform.icon;
     }
   }
-  return FaLink; // Default for unknown links
+  return FaLink;
 };
 
-// Helper function to extract YouTube Video ID from various URL formats
 const getYoutubeVideoId = (url: string): string | null => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -229,13 +216,11 @@ const getYoutubeVideoId = (url: string): string | null => {
   return null;
 };
 
-// Helper function to create a Spotify embed URL
 const getSpotifyEmbedUrl = (url: string): string | null => {
   if (!url) return null;
   try {
     const urlObject = new URL(url);
     if (urlObject.hostname === 'open.spotify.com') {
-      // Replace the path segment to create the embed URL
       urlObject.pathname = `/embed${urlObject.pathname}`;
       return urlObject.toString();
     }
@@ -246,14 +231,13 @@ const getSpotifyEmbedUrl = (url: string): string | null => {
   return null;
 };
 
-// Helper function to convert RGB to Hex
 const rgbToHex = (rgb: string): string => {
   if (!rgb || !rgb.startsWith('rgb')) {
-    return rgb; // Return as is if not an rgb string (e.g., already hex or invalid)
+    return rgb;
   }
   const parts = rgb.match(/\d+/g);
   if (!parts || parts.length < 3) {
-    return rgb; // Invalid rgb string
+    return rgb;
   }
   const r = parseInt(parts[0], 10);
   const g = parseInt(parts[1], 10);
@@ -274,11 +258,10 @@ function MusicianProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isPrivateProfileError, setIsPrivateProfileError] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [profileThemeSettings, setProfileThemeSettings] = useState<ThemeSettings | null>(null);
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false); // State for contact modal
-  const { theme } = useMuiTheme();
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const theme = initialTheme;
   const { enqueueSnackbar } = useSnackbar();
 
   const handleClaimProfile = async () => {
@@ -298,30 +281,27 @@ function MusicianProfilePage() {
       }
 
       enqueueSnackbar('Perfil reclamado exitosamente!', { variant: 'success' });
-      fetchProfileAndCheckOwner(); // Refresh profile data
-    } catch (err: any) {
+      fetchProfileAndCheckOwner();
+    } catch (err: unknown) {
       console.error('Error claiming profile:', err);
-      setError(err.message || 'Could not claim profile.');
+      setError((err instanceof Error ? err.message : 'Unknown error') || 'Could not claim profile.');
     } finally {
       setClaimingProfile(false);
     }
   };
 
-  // State for custom colors
-  const [currentColorCover, setCurrentColorCover] = useState<string>(theme.palette.primary.main); // Default to theme
+  const [currentColorCover, setCurrentColorCover] = useState<string>(theme.palette.primary.main);
   const [currentColorCardBg, setCurrentColorCardBg] = useState<string>(theme.palette.background.paper);
   const [currentColorText, setCurrentColorText] = useState<string>(theme.palette.text.primary);
   const [currentColorSectionBg, setCurrentColorSectionBg] = useState<string>(theme.palette.background.default);
 
-  // State for color picker popover
   const [anchorElColorPicker, setAnchorElColorPicker] = useState<HTMLButtonElement | null>(null);
   const [isSavingColors, setIsSavingColors] = useState(false);
 
   const router = useRouter();
   const params = useParams();
   const supabase = createClientComponentClient<Database>();
-  const userIdFromParams = params.id as string; // This is the userId
-  // theme is already defined above
+  const userIdFromParams = params.id as string;
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
@@ -340,7 +320,7 @@ function MusicianProfilePage() {
       return theme.palette;
     };
 
-    let fallbackPalette = getFallbackPalette();
+    const fallbackPalette = getFallbackPalette();
 
     if (musicianProfile) {
       setCurrentColorCover(rgbToHex(musicianProfile.profileColorCover || fallbackPalette.primary.dark));
@@ -366,14 +346,11 @@ function MusicianProfilePage() {
     setError(null);
 
     try {
-      // 1. Check auth status first to determine ownership
       const { data: { user } } = await supabase.auth.getUser();
       const owner = user ? user.id === userIdFromParams : false;
-      setIsLoggedIn(!!user);
       setCurrentUser(user);
       setIsOwner(owner);
 
-      // 2. Fetch profile data
       const profileResponse = await fetch(`/api/m/${userIdFromParams}/get-profile`);
       if (!profileResponse.ok) {
         const errorData = await profileResponse.json();
@@ -388,7 +365,6 @@ function MusicianProfilePage() {
       const profileData = await profileResponse.json();
       const fetchedProfile = profileData as MusicianProfileData;
 
-      // 3. Fetch theme settings ONLY if the viewer is NOT the owner
       if (!owner) {
         try {
           const themeResponse = await fetch(`/api/theme/${fetchedProfile.userId}`);
@@ -399,34 +375,33 @@ function MusicianProfilePage() {
             console.warn('Could not fetch profile theme settings.');
             setProfileThemeSettings(null);
           }
-        } catch (themeError) {
+        } catch (themeError: unknown) {
           console.error('Error fetching profile theme settings:', themeError);
           setProfileThemeSettings(null);
         }
       }
 
-      // 4. Set the profile data, allowing the color useEffect to run with all necessary info
       setMusicianProfile(fetchedProfile);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error accediendo al músico:', err);
-      setError(err.message || 'Ha ocurrido un error inesperado.');
+      setError((err instanceof Error ? err.message : 'Unknown error') || 'Ha ocurrido un error inesperado.');
     } finally {
       setLoading(false);
     }
   }, [userIdFromParams, supabase]);
 
   useEffect(() => {
-    console.log('MusicianProfilePage useEffect triggered.'); // Added for more specific logging
+    console.log('MusicianProfilePage useEffect triggered.');
     fetchProfileAndCheckOwner();
   }, [fetchProfileAndCheckOwner]);
 
   const socialLinks = useMemo(() => {
-    if (!musicianProfile?.socialMediaLinks) return []; // Changed to socialMediaLinks
-    return Object.entries(musicianProfile.socialMediaLinks) // Changed to socialMediaLinks
+    if (!musicianProfile?.socialMediaLinks) return [];
+    return Object.entries(musicianProfile.socialMediaLinks)
       .filter(([, url]) => url && typeof url === 'string' && url.trim() !== '')
-      .map(([platform, url]) => ({ platform, url: url as string })); // Assert url is string after filter
-  }, [musicianProfile?.socialMediaLinks]); // Changed to socialMediaLinks
+      .map(([platform, url]) => ({ platform, url: url as string }));
+  }, [musicianProfile?.socialMediaLinks]);
 
   const spotifyLink = useMemo(() => socialLinks.find(link => link.platform === 'spotify'), [socialLinks]);
 
@@ -434,14 +409,13 @@ function MusicianProfilePage() {
     return (
       <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', p: 2 }}>
         <Container maxWidth="lg" sx={{ py: isMobile ? 3 : 4 }}>
-          {/* Skeleton for Header/Cover Section */}
           <Paper 
             elevation={0} 
             square 
             sx={{ 
-              pt: isMobile ? 2 : 4, pb: isMobile ? 2 : 4, /* Increased vertical padding */
-          px: isMobile ? 2 : 3,
-              background: theme.palette.primary.dark, // Use a default dark color for skeleton cover
+              pt: isMobile ? 2 : 4, pb: isMobile ? 2 : 4,
+              px: isMobile ? 2 : 3,
+              background: theme.palette.primary.dark,
               transition: 'background-color 0.3s',
             }}
           >
@@ -461,10 +435,8 @@ function MusicianProfilePage() {
             </Container>
           </Paper>
 
-          {/* Skeleton for Main Content and Sidebar */}
           <Grid container spacing={isMobile ? 3 : 4} sx={{ mt: isMobile ? 3 : 4 }}>
-            {/* Left Column Skeleton */}
-          <Grid size={{ xs: 12, md: 8 }}>
+          <Grid size={isMobile ? 12 : 8}>
               {/* Bio Section Skeleton */}
               <Card elevation={2} sx={{ mb: 3, backgroundColor: theme.palette.background.paper }}>
                 <CardContent>
@@ -501,8 +473,7 @@ function MusicianProfilePage() {
               </Card>
             </Grid>
 
-            {/* Right Column / Sidebar Skeleton */}
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid size={isMobile ? 12 : 4}>
               {/* Logistics Section Skeleton */}
               <Card elevation={2} sx={{ mb: 3, backgroundColor: theme.palette.background.paper }}>
                 <CardContent>
@@ -551,7 +522,7 @@ function MusicianProfilePage() {
           Perfil Privado
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-          {error} {/* This will display the message from the API */}
+          {error}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 3, maxWidth: '600px', lineHeight: 1.6 }}>
           <strong>redmusical.ar</strong> es la plataforma que conecta a la vibrante comunidad musical de Argentina. 
@@ -599,26 +570,23 @@ function MusicianProfilePage() {
   }
 
   const {
-    fullName, // Changed from full_name
+    fullName,
     bio,
-    profileImageUrl, // Changed from profile_image_url
+    profileImageUrl,
     city,
     province,
     instruments,
     genres,
     skills,
-    experienceLevel,
     availability,
     hourlyRate,
     preferences,
-    email,
-    phoneNumber,
     websiteUrl,
     acceptsCollaborations,
-    acceptsGigs, // Changed from accepts_gigs
-    isPublic, // Changed from is_public
-    audioTracks, // Added for audio tracks
-    musicianOrBand, // Added to differentiate between solo musician or band
+    acceptsGigs,
+    isPublic,
+    audioTracks,
+    musicianOrBand,
   } = musicianProfile;
 
   const location = [city, province].filter(Boolean).join(', ');
@@ -662,10 +630,6 @@ function MusicianProfilePage() {
       const updatedProfileResponse = await response.json();
       let profileDataToSetStateWith = updatedProfileResponse;
 
-      // If this save operation was initiated by a reset (i.e., colorsToSave was passed with all nulls)
-      // ensure the profile data used to update the local state also has nulls for these color fields.
-      // This overrides any potentially stale non-null values from the API response for these specific fields
-      // immediately after a reset operation.
       if (colorsToSave &&
           colorsToSave.profileColorCover === null &&
           colorsToSave.profileColorCardBackground === null &&
@@ -680,23 +644,21 @@ function MusicianProfilePage() {
         };
       }
 
-      setMusicianProfile(prevProfile => ({ ...prevProfile, ...profileDataToSetStateWith })); // Merge updated data with existing profile
+      setMusicianProfile(prevProfile => ({ ...prevProfile, ...profileDataToSetStateWith }));
       handleCloseColorPicker();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving colors:', err);
-      setError(err.message || 'Could not save color preferences.');
+      setError((err instanceof Error ? err.message : 'Unknown error') || 'Could not save color preferences.');
     } finally {
       setIsSavingColors(false);
     }
   };
 
   const handleResetColors = () => {
-    // Set states to theme defaults visually first for immediate feedback
     setCurrentColorCover(theme.palette.primary.dark);
     setCurrentColorCardBg(theme.palette.background.paper);
     setCurrentColorText(theme.palette.text.primary);
     setCurrentColorSectionBg(theme.palette.background.default);
-    // Then call save with nulls to clear them in DB
     handleSaveColors({
       profileColorCover: null,
       profileColorCardBackground: null,
@@ -714,16 +676,16 @@ function MusicianProfilePage() {
         elevation={0} 
         square 
         sx={{ 
-          pt: isMobile ? 2 : 4, pb: isMobile ? 2 : 4, /* Increased vertical padding */
+          pt: isMobile ? 2 : 4, pb: isMobile ? 2 : 4,
           px: isMobile ? 2 : 3,
-          background: currentColorCover, // Use dynamic cover color
+          background: currentColorCover,
           transition: 'background-color 0.3s',
         }}
       >
-        <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}> {/* Added flex properties for vertical centering */}
+        <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isMobile ? 2 : 3 }}>
             {typeof window !== 'undefined' && document.referrer !== '' ? (
-              <IconButton edge="start" aria-label="back" onClick={() => router.back()} sx={{color: currentColorText /* Color 2 para icono de volver, igual que texto */}}>
+              <IconButton edge="start" aria-label="back" onClick={() => router.back()} sx={{color: currentColorText}}>
                 <ArrowBackIosNewIcon sx={{ fontSize: 28 }} />
               </IconButton>
             ) : (
@@ -736,7 +698,7 @@ function MusicianProfilePage() {
             )}
             {isOwner && (
               <Tooltip title="Personalizar Colores del Perfil">
-                <IconButton onClick={handleOpenColorPicker} sx={{color: theme.palette.common.white /* Color fijo para el ícono de paleta */}}>
+                <IconButton onClick={handleOpenColorPicker} sx={{color: theme.palette.common.white}}>
                   <Palette size={28} />
                 </IconButton>
               </Tooltip>
@@ -795,42 +757,42 @@ function MusicianProfilePage() {
               />
             ) : (
               <Avatar
-                src={profileImageUrl || "/images/musicians-bw.png"} // Default placeholder
+                src={profileImageUrl || "/images/musicians-bw.png"}
                 alt={fullName || "Musician"}
                 sx={{ 
-                  width: isMobile ? 120 : 180, // Adjusted mobile size
-                  height: isMobile ? 120 : 180, // Adjusted mobile size
-                  mb: 0, // Ensure no extra margin-bottom
-                  border: `6px solid ${currentColorSectionBg}`, // Color 3 para borde de avatar
+                  width: isMobile ? 120 : 180,
+                  height: isMobile ? 120 : 180,
+                  mb: 0,
+                  border: `6px solid ${currentColorSectionBg}`,
                   boxShadow: theme.shadows[5] 
                 }}
               />
             )}
-            <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}> {/* Box for name and location */}
-              <Typography variant={isMobile ? "h4" : "h3"} component="h1" sx={{ fontWeight: 'bold', color: currentColorText /* Color 2 para tipografía */, textShadow: '1px 1px 3px rgba(0,0,0,0.3)', mb: 0 }}> {/* Ensure no bottom margin */}
+            <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
+              <Typography variant={isMobile ? "h4" : "h3"} component="h1" sx={{ fontWeight: 'bold', color: currentColorText, textShadow: '1px 1px 3px rgba(0,0,0,0.3)', mb: 0 }}>
                 {musicianProfile.artisticName || fullName}
               </Typography>
               {location && (
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: currentColorText /* Color 2 para tipografía */, opacity: 0.95 }}>
-                  <MapPin size={isMobile ? 18 : 20} color={currentColorText /* Color 2 para icono de ubicación, igual que texto */} />
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: currentColorText, opacity: 0.95 }}>
+                  <MapPin size={isMobile ? 18 : 20} color={currentColorText} />
                   <Typography variant={isMobile ? "body1" : "h6"} component="p">
                     {location}
                   </Typography>
                 </Stack>
               )}
               {translatedMusicianOrBand && (
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ opacity: 0.95, mt: 0.5 }}> {/* Added mt: 0.5 for top margin */}
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ opacity: 0.95, mt: 0.5 }}>
                   <Chip
                     label={translatedMusicianOrBand}
                     size="small"
                     sx={{
                       backgroundColor: currentColorCardBg,
-                      color: currentColorCover, // Changed text color to currentColorCover
+                      color: currentColorCover,
                       fontWeight: 'normal',
                       fontStyle: 'normal',
-                      px: 1, // Horizontal padding
-                      py: 0.5, // Vertical padding
-                      borderRadius: '16px', // Capsule shape
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: '16px',
                     }}
                   />
                 </Stack>
@@ -842,11 +804,10 @@ function MusicianProfilePage() {
 
       <Container maxWidth="lg" sx={{ py: isMobile ? 3 : 4 }}>
         <Grid container spacing={isMobile ? 3 : 4}>
-          {/* Left Column / Main Content */}
-          <Grid size={{ xs : 12 , md : 8 }}>
+          <Grid size={isMobile ? 12 : 8}>
             {bio && (
-              <SectionCard title="Bio" icon={<Info size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: currentColorText /* Color 2 para tipografía */ }}>{bio}</Typography>
+              <SectionCard title="Bio" icon={<Info size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: currentColorText }}>{bio}</Typography>
               </SectionCard>
             )}
 
@@ -855,7 +816,7 @@ function MusicianProfilePage() {
                     <iframe
                         src={`${getSpotifyEmbedUrl(spotifyLink.url) || ''}${getSpotifyEmbedUrl(spotifyLink.url)?.includes('?') ? '&' : '?'}background=${encodeURIComponent(currentColorCardBg)}`}
                         width="100%"
-                        height="380" // Standard height for Spotify embed
+                        height="380"
                         frameBorder="0"
                         allow="encrypted-media"
                         style={{ borderRadius: '12px' }}
@@ -864,24 +825,24 @@ function MusicianProfilePage() {
             )}
 
             {audioTracks && audioTracks.length > 0 && (
-              <SectionCard title="Música" icon={<Play size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
+              <SectionCard title="Música" icon={<Play size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
                 <Stack spacing={2}>
                   {audioTracks.map((track, index) => {
                     const videoId = getYoutubeVideoId(track.url);
                     return (
-                      <Paper key={index} variant="outlined" sx={{ p: 2, backgroundColor: currentColorCardBg /* Color 4 para fondo de paper */ }}>
-                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>
+                      <Paper key={index} variant="outlined" sx={{ p: 2, backgroundColor: currentColorCardBg }}>
+                        <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>
                           {track.title || `Track ${index + 1}`}
                         </Typography>
                         {videoId ? (
                           <Box
                             sx={{
                               position: 'relative',
-                              paddingBottom: '56.25%', // 16:9 aspect ratio
+                              paddingBottom: '56.25%',
                               height: 0,
                               overflow: 'hidden',
                               maxWidth: '100%',
-                              background: '#000', // Optional: background for when video is loading
+                              background: '#000',
                             }}
                           >
                             <iframe
@@ -912,33 +873,33 @@ function MusicianProfilePage() {
             )}
 
             {(genres && genres.length > 0) || (instruments && instruments.length > 0) || (skills && skills.length > 0) ? (
-              <SectionCard title="ADN Musical" icon={<Atom size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
+              <SectionCard title="ADN Musical" icon={<Atom size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
                 {genres && genres.length > 0 && (
                   <Box sx={{ mb: 2.5 }}>
-                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>Géneros</Typography>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Géneros</Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                       {genres.map((genre: Genre) => (
-                        <Chip key={genre.id} label={genre.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText /* Color 2 para texto, Color 1 para borde de chip si se quiere */}} />
+                        <Chip key={genre.id} label={genre.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
                 )}
                 {instruments && instruments.length > 0 && (
                   <Box sx={{ mb: 2.5 }}>
-                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>Instrumentos</Typography>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Instrumentos</Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                       {instruments.map((instrument: Instrument) => (
-                        <Chip key={instrument.id} icon={<SpeakerSimpleHigh size={16} color={currentColorCover /* Color 1 para iconos */} />} label={instrument.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} /> 
+                        <Chip key={instrument.id} icon={<SpeakerSimpleHigh size={16} color={currentColorCover} />} label={instrument.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} /> 
                       ))}
                     </Stack>
                   </Box>
                 )}
                 {skills && skills.length > 0 && (
                   <Box>
-                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>Habilidades Adicionales</Typography>
+                    <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Habilidades Adicionales</Typography>
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                       {skills.map((skill: Skill) => (
-                        <Chip key={skill.id} icon={<Sparkle size={16} color={currentColorCover /* Color 1 para iconos */} />} label={skill.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={skill.id} icon={<Sparkle size={16} color={currentColorCover} />} label={skill.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
@@ -947,42 +908,41 @@ function MusicianProfilePage() {
             ) : null}
             
             {(acceptsGigs || acceptsCollaborations) && (
-              <SectionCard title="Oportunidades" icon={<Handshake size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
+              <SectionCard title="Oportunidades" icon={<Handshake size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
                 <Stack spacing={1}>
-                  {acceptsGigs && <Typography variant="body2" sx={{color: currentColorText /* Color 2 para tipografía */}}><CheckCircleIcon sx={{color: currentColorCover /* Color 1 para iconos */, mr:1, verticalAlign: 'bottom'}}/>Disponible para conciertos/eventos</Typography>}
-                  {acceptsCollaborations && <Typography variant="body2" sx={{color: currentColorText /* Color 2 para tipografía */}}><CheckCircleIcon sx={{color: currentColorCover /* Color 1 para iconos */, mr:1, verticalAlign: 'bottom'}}/>Abierto/a a colaboraciones</Typography>}
+                  {acceptsGigs && <Typography variant="body2" sx={{color: currentColorText}}><CheckCircleIcon sx={{color: currentColorCover, mr:1, verticalAlign: 'bottom'}}/>Disponible para conciertos/eventos</Typography>}
+                  {acceptsCollaborations && <Typography variant="body2" sx={{color: currentColorText}}><CheckCircleIcon sx={{color: currentColorCover, mr:1, verticalAlign: 'bottom'}}/>Abierto/a a colaboraciones</Typography>}
                 </Stack>
               </SectionCard>
             )}
 
           </Grid>
 
-          {/* Right Column / Sidebar */}
-          <Grid size={{ xs : 12 , md : 4 }}>
+          <Grid size={isMobile ? 12 : 4}>
             {(availability && availability.length > 0) || (hourlyRate !== null && hourlyRate !== undefined) || (preferences && preferences.length > 0) ? (
-              <SectionCard title="Logística" icon={<Briefcase size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
+              <SectionCard title="Logística" icon={<Briefcase size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
                 {availability && availability.length > 0 && (
-                  <Box sx={{ mb: 2.5 }}> {/* Increased margin-bottom for better separation */}
-                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>Disponibilidad</Typography>
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap"> {/* Added useFlexGap for consistent spacing */}
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Disponibilidad</Typography>
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {availability.map((avail: Availability) => (
-                        <Chip key={avail.id} icon={<CalendarCheck size={16} color={currentColorCover /* Color 1 para iconos */} />} label={avail.name} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={avail.id} icon={<CalendarCheck size={16} color={currentColorCover} />} label={avail.name} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
                 )}
                 {hourlyRate !== null && hourlyRate !== undefined && (
-                  <Box sx={{ mb: 2.5 }}> {/* Increased margin-bottom for better separation */}
-                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>Tarifa por Hora</Typography>
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Tarifa por Hora</Typography>
                     <Chip label={`$${hourlyRate} USD`} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
                   </Box>
                 )}
                 {preferences && preferences.length > 0 && (
                   <Box>
-                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText /* Color 2 para tipografía */ }}>Preferencias</Typography>
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap"> {/* Added useFlexGap for consistent spacing */}
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Preferencias</Typography>
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {preferences.map((pref: Preference) => (
-                        <Chip key={pref.id} icon={<ListChecks size={16} color={currentColorCover /* Color 1 para iconos */} />} label={pref.name} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={pref.id} icon={<ListChecks size={16} color={currentColorCover} />} label={pref.name} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
@@ -990,25 +950,25 @@ function MusicianProfilePage() {
               </SectionCard>
             ) : null}
 
-            <SectionCard title="Contacto" icon={<ShareNetwork size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
+            <SectionCard title="Contacto" icon={<ShareNetwork size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
                <Button style={{ marginBottom: "15px" }}  variant="contained" color="primary" onClick={() => setIsContactModalOpen(true)}>
               Contactar
             </Button>
 
               {websiteUrl && (
-                <MuiLink href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: currentColorText /* Color 2 para tipografía */, mb: 1.5, '&:hover': {color: currentColorCover} }}>
-                  <Globe size={20} style={{ marginRight: theme.spacing(1) }} color={currentColorCover /* Color 1 para iconos */} />
+                <MuiLink href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: currentColorText, mb: 1.5, '&:hover': {color: currentColorCover} }}>
+                  <Globe size={20} style={{ marginRight: theme.spacing(1) }} color={currentColorCover} />
                   <Typography variant="body2">{websiteUrl}</Typography>
                 </MuiLink>
               )}
               {socialLinks.length > 0 && (
                 <Stack direction="row" spacing={1.5} sx={{mt: 2}} flexWrap="wrap">
                   {socialLinks.map(({ platform, url }) => { 
-                    const IconComponent = getSocialMediaIcon(url); // Use the helper function
+                    const IconComponent = getSocialMediaIcon(url);
                     const finalUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
                     return (
                       <Tooltip title={platform.charAt(0).toUpperCase() + platform.slice(1)} key={platform}>
-                        <IconButton component="a" href={finalUrl} target="_blank" rel="noopener noreferrer" sx={{color: currentColorCover /* Color 1 para iconos */, '&:hover': {color: currentColorCover}}}>
+                        <IconButton component="a" href={finalUrl} target="_blank" rel="noopener noreferrer" sx={{color: currentColorCover, '&:hover': {color: currentColorCover}}}>
                           <IconComponent size={28} />
                         </IconButton>
                       </Tooltip>
@@ -1018,8 +978,6 @@ function MusicianProfilePage() {
               )}
             </SectionCard>
 
-          
-            {/* Contact Form Modal */}
             <ContactFormModal
               open={isContactModalOpen}
               onClose={() => setIsContactModalOpen(false)}
@@ -1028,25 +986,25 @@ function MusicianProfilePage() {
             />
 
             {musicianProfile.isAutogenerated && (
-              <SectionCard title="Perfil Autogenerado" icon={<Info size={24} color={currentColorCover /* Color 1 para iconos */} />} cardBackgroundColor={currentColorCardBg /* Color 4 para fondo de tarjeta */} titleColor={currentColorText}>
-                <Typography variant="body2" sx={{ color: currentColorText /* Color 2 para tipografía */, mb: 2 }}>
+              <SectionCard title="Perfil Autogenerado" icon={<Info size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+                <Typography variant="body2" sx={{ color: currentColorText, mb: 2 }}>
                   Este perfil fue generado automáticamente. Si sos el músico o representás a la banda, podés reclamarlo para tener control total sobre la información mostrada.
                 </Typography>
-                <Button variant="contained" color="primary">
-                  Reclamar Perfil
+                <Button variant="contained" color="primary" onClick={handleClaimProfile} disabled={claimingProfile}>
+                  {claimingProfile ? <CircularProgress size={24} color="inherit" /> : 'Reclamar Perfil'}
                 </Button>
               </SectionCard>
             )}
             
             {!isPublic && (
-              <Paper elevation={1} sx={{p:2, mt:2, backgroundColor: currentColorCardBg /* Color 4 para fondo de paper */ }}>
+              <Paper elevation={1} sx={{p:2, mt:2, backgroundColor: currentColorCardBg}}>
                   <Stack direction="row" alignItems="center" spacing={1}>
-                      {isPublic ? <Eye size={20} color={currentColorCover /* Color 1 para iconos */} /> : <EyeSlash size={20} color={currentColorCover /* Color 1 para iconos */} />}
-                      <Typography variant="body2" sx={{fontWeight:'medium', color: currentColorText /* Color 2 para tipografía */}}>
+                      {isPublic ? <Eye size={20} color={currentColorCover} /> : <EyeSlash size={20} color={currentColorCover} />}
+                      <Typography variant="body2" sx={{fontWeight:'medium', color: currentColorText}}>
                           Perfil {isPublic ? 'Público' : 'Privado'}
                       </Typography>
                   </Stack>
-                  <Typography variant="caption" sx={{color: currentColorText /* Color 2 para tipografía */}}>
+                  <Typography variant="caption" sx={{color: currentColorText}}>
                       {isPublic ? 'Este perfil es visible para otros usuarios.' : 'Este perfil solo es visible para ti.'}
                   </Typography>
               </Paper>
@@ -1059,8 +1017,7 @@ function MusicianProfilePage() {
   );
 }
 
-// Helper Icon for Checkmarks (MUI doesn't have one in Phosphor set directly)
-const CheckCircleIcon = (props: {sx?: any}) => (
+const CheckCircleIcon = (props: {sx?: SxProps<Theme>}) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" fill="currentColor" viewBox="0 0 16 16">
     <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75 0 0 0-1.06 1.06L6.97 11.03a.75 0 0 0 1.079-.02l3.992-4.99a.75 0 0 0-.01-1.05z"/>
   </svg>

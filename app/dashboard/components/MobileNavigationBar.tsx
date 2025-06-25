@@ -3,11 +3,13 @@
 import BottomNavigationBar from './BottomNavigationBar';
 import BottomSearchNavigationBar from '../search/components/BottomSearchNavigationBar';
 
+import { Musician } from '@prisma/client'; // Import Musician type
+
 interface MobileNavigationBarProps {
   activeView: string;
   setActiveView: (view: string) => void;
   activeRole: string | null;
-  musicianProfile: any; // Replace with actual type
+  musicianProfile: Musician | null; // Replaced any with Musician | null
 }
 
 export default function MobileNavigationBar({ activeView, setActiveView, activeRole, musicianProfile }: MobileNavigationBarProps) {

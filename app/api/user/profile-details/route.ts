@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET(request: Request) {
+export async function GET() {
   const cookieStore = cookies();
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
@@ -37,9 +37,9 @@ export async function GET(request: Request) {
       isContractor: !!contractorProfile,
     });
 
-  } catch (error: any) {
-    console.error('Error fetching user profile details:', error.message);
-    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Error fetching user profile details:', error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   } finally {
     if (prisma) {
       await prisma.$disconnect();

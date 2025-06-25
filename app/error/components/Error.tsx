@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link'; // Import Link
 
 export default function Error() {
   const searchParams = useSearchParams();
@@ -19,7 +20,7 @@ export default function Error() {
       <h1>Error</h1>
       <p>{errorMessage}</p>
       <p>Probá de nuevo o contactá a soporte si el error persiste.</p>
-      <a href="/">Ir al home</a>
+      <Link href="/">Ir al home</Link>
     </div>
   );
 }

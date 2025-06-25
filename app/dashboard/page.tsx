@@ -17,11 +17,7 @@ interface MusicianProfile {
   isPublic: boolean;
 }
 
-interface DashboardPageProps {
-  // No longer needed, will be consumed from context
-}
-
-export default function DashboardPage({}: DashboardPageProps) {
+export default function DashboardPage() {
   const { activeView, setPageTitle } = useDashboard();
   const [userId, setUserId] = useState<string | null>(null);
   const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);

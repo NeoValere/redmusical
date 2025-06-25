@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
-  Button,
   Stepper,
   Step,
   StepLabel,
@@ -16,39 +15,30 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Grid,
   Stack,
   Chip,
-  Avatar,
   TextField,
   Autocomplete,
   FormControlLabel,
   Switch,
   FormGroup,
-  Checkbox,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Slider,
-  Tooltip,
   LinearProgress,
   InputAdornment, // Added for social media icons
+  Button, // Re-added Button as it's used
 } from '@mui/material';
 import {
   Check as CheckIcon,
   Close as CloseIcon,
   ErrorOutline as ErrorOutlineIcon,
-  InfoOutlined as InfoOutlinedIcon,
   MusicNote as MusicNoteIcon,
   Person as PersonIcon,
   LocationOn as LocationOnIcon,
   Settings as SettingsIcon,
-  Event as EventIcon,
-  MonetizationOn as MonetizationOnIcon,
   Visibility as VisibilityIcon,
-  Star as StarIcon,
-  StarBorder as StarBorderIcon,
   ArrowBack as ArrowBackIcon,
   Delete as DeleteIcon, // Added for audio tracks
   Add as AddIcon, // Added for audio tracks
@@ -57,7 +47,6 @@ import { styled } from '@mui/material/styles';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import ProfileImageUploader from '../components/ProfileImageUploader';
 import { Database } from '@/lib/database.types';
 import { useSnackbar } from 'notistack';
@@ -155,7 +144,7 @@ type MusicianProfile = Database['public']['Tables']['Musician']['Row'] & {
   bio?: string | null; // Made optional
   experienceLevel?: string | null; // Made optional
   hourlyRate?: number | null; // Made optional
-  audioTracks: { title: string; url: string; }[]; // Changed to non-nullable array
+  audioTracks: { id: string; title: string; url: string; }[]; // Changed to non-nullable array
   musicianOrBand?: string | null; // Added musicianOrBand
   socialMediaInputs?: SocialMediaInput[]; // New field for UI management
 };
@@ -200,7 +189,6 @@ import type { StepIconProps } from '@mui/material/StepIcon';
 
 function CustomStepIcon(props: StepIconProps) {
   const { active, completed, error, icon } = props;
-  const theme = useTheme();
 
   const icons: { [key: string]: React.ReactElement } = {
     '1': <PersonIcon />,
@@ -241,7 +229,6 @@ export default function EditMusicianProfile() {
   const router = useRouter();
   const params = useParams();
   const musicianId = params.id as string;
-  const supabase = createClientComponentClient<Database>();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { enqueueSnackbar } = useSnackbar();
@@ -264,6 +251,27 @@ export default function EditMusicianProfile() {
 
   const [profileCompleteness, setProfileCompleteness] = useState(0);
 
+  const calculateProfileCompleteness = useCallback((currentProfile: Partial<MusicianProfile>) => {
+    let completedFields = 0;
+    const totalFields = 12; // Adjusted for musicianOrBand
+
+    if (currentProfile.fullName) completedFields++;
+    if (currentProfile.profileImageUrl) completedFields++; // Changed from profile_image_url
+    if (currentProfile.genres && currentProfile.genres.length > 0) completedFields++;
+    if (currentProfile.instruments && currentProfile.instruments.length > 0) completedFields++;
+    if (currentProfile.skills && currentProfile.skills.length > 0) completedFields++;
+    if (currentProfile.city && currentProfile.city) completedFields++;
+    if (currentProfile.phoneNumber) completedFields++;
+    if (currentProfile.email) completedFields++;
+    if (currentProfile.websiteUrl) completedFields++;
+    if (socialMediaInputs && socialMediaInputs.length > 0 && socialMediaInputs.some(link => link.url.trim() !== '')) // Check if there's at least one non-empty social media link
+      completedFields++;
+    if (currentProfile.isPublic !== null && currentProfile.isPublic !== undefined) completedFields++; // Changed from is_public
+    if (currentProfile.musicianOrBand) completedFields++; // Added musicianOrBand
+
+    setProfileCompleteness(Math.min(100, Math.round((completedFields / totalFields) * 100)));
+  }, [socialMediaInputs]);
+
   // Handlers for audio tracks
   const handleAudioTrackChange = useCallback((index: number, field: 'title' | 'url', value: string) => {
     setProfile(prev => {
@@ -277,14 +285,14 @@ export default function EditMusicianProfile() {
   const handleAddAudioTrack = useCallback(() => {
     setProfile(prev => ({
       ...prev,
-      audioTracks: [...(prev?.audioTracks || []), { title: '', url: '' }],
+      audioTracks: [...(prev?.audioTracks || []), { id: uuidv4(), title: '', url: '' }],
     }));
   }, []);
 
-  const handleRemoveAudioTrack = useCallback((index: number) => {
+  const handleRemoveAudioTrack = useCallback((id: string) => {
     setProfile(prev => {
       if (!prev || !prev.audioTracks) return prev;
-      const newAudioTracks = prev.audioTracks.filter((_, i) => i !== index);
+      const newAudioTracks = prev.audioTracks.filter((track) => track.id !== id);
       return { ...prev, audioTracks: newAudioTracks };
     });
   }, []);
@@ -332,7 +340,11 @@ export default function EditMusicianProfile() {
       // Map snake_case from API to camelCase for frontend state
       const mappedData: MusicianProfile = {
         ...data,
-        audioTracks: data.audioTracks || [], // Ensure audioTracks is always an array
+        audioTracks: (data.audioTracks || []).map((track: { title: string; url: string; id?: string }) => ({
+          id: track.id || uuidv4(), // Ensure each track has an ID
+          title: track.title,
+          url: track.url,
+        })),
         // No explicit mapping needed here, as API now returns camelCase
       };
 
@@ -354,14 +366,14 @@ export default function EditMusicianProfile() {
 
       setProfile(mappedData);
       calculateProfileCompleteness(mappedData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching profile from API:', err);
-      setError('No se pudo cargar el perfil: ' + err.message);
+      setError('No se pudo cargar el perfil: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setShowErrorDialog(true);
     } finally {
       setLoading(false);
     }
-  }, [musicianId]);
+  }, [musicianId, calculateProfileCompleteness]);
 
   const fetchMetadata = useCallback(async () => {
     try {
@@ -375,37 +387,39 @@ export default function EditMusicianProfile() {
 
       const genresData = genresRes.ok ? await genresRes.json() : [];
       const instrumentsData = instrumentsRes.ok ? await instrumentsRes.json() : [];
-      const skillsData = skillsRes.ok ? await skillsRes.json() : [];
+      const allSkillsData = skillsRes.ok ? await skillsRes.json() : [];
       const availabilityData = availabilityRes.ok ? await availabilityRes.json() : [];
       const preferencesData = preferencesRes.ok ? await preferencesRes.json() : [];
 
       setAllGenres(genresData);
       setAllInstruments(instrumentsData);
-      setAllSkills(skillsData);
+      setAllSkills(allSkillsData);
       setAllAvailability(availabilityData);
       setAllPreferences(preferencesData);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error fetching metadata:', err);
       enqueueSnackbar('Error al cargar opciones de selección. Asegúrate de que la base de datos esté sembrada.', { variant: 'error' });
     }
-  }, []);
+  }, [enqueueSnackbar]);
 
   useEffect(() => {
-    fetchProfile();
-    fetchMetadata();
-  }, [fetchProfile, fetchMetadata]);
+    if (musicianId) {
+      fetchProfile();
+      fetchMetadata();
+    }
+  }, [musicianId, fetchProfile, fetchMetadata]);
 
-  const handleChange = useCallback((field: keyof MusicianProfile, value: any) => {
+  const handleChange = useCallback((field: keyof MusicianProfile, value: unknown) => {
     setProfile((prev: Partial<MusicianProfile> | null) => {
       const updatedProfile = { ...prev, [field]: value } as Partial<MusicianProfile>;
       calculateProfileCompleteness(updatedProfile);
       return updatedProfile;
     });
     setFormErrors((prev) => ({ ...prev, [field]: '' }));
-  }, []);
+  }, [calculateProfileCompleteness]);
 
   const handleArrayChange = useCallback(
-    (field: 'genres' | 'instruments' | 'skills' | 'availability' | 'preferences', value: any[]) => {
+    (field: 'genres' | 'instruments' | 'skills' | 'availability' | 'preferences', value: unknown[]) => {
       setProfile((prev: Partial<MusicianProfile> | null) => {
         const updatedProfile = { ...prev, [field]: value } as Partial<MusicianProfile>;
         calculateProfileCompleteness(updatedProfile);
@@ -413,33 +427,12 @@ export default function EditMusicianProfile() {
       });
       setFormErrors((prev) => ({ ...prev, [field]: '' }));
     },
-    [],
+    [calculateProfileCompleteness],
   );
-
-  const calculateProfileCompleteness = useCallback((currentProfile: Partial<MusicianProfile>) => {
-    let completedFields = 0;
-    const totalFields = 12; // Adjusted for musicianOrBand
-
-    if (currentProfile.fullName) completedFields++;
-    if (currentProfile.profileImageUrl) completedFields++; // Changed from profile_image_url
-    if (currentProfile.genres && currentProfile.genres.length > 0) completedFields++;
-    if (currentProfile.instruments && currentProfile.instruments.length > 0) completedFields++;
-    if (currentProfile.skills && currentProfile.skills.length > 0) completedFields++;
-    if (currentProfile.city && currentProfile.city) completedFields++;
-    if (currentProfile.phoneNumber) completedFields++;
-    if (currentProfile.email) completedFields++;
-    if (currentProfile.websiteUrl) completedFields++;
-    if (socialMediaInputs && socialMediaInputs.length > 0 && socialMediaInputs.some(link => link.url.trim() !== '')) // Check if there's at least one non-empty social media link
-      completedFields++;
-    if (currentProfile.isPublic !== null && currentProfile.isPublic !== undefined) completedFields++; // Changed from is_public
-    if (currentProfile.musicianOrBand) completedFields++; // Added musicianOrBand
-
-    setProfileCompleteness(Math.min(100, Math.round((completedFields / totalFields) * 100)));
-  }, [socialMediaInputs]);
 
   const validateStep = useCallback(
     (step: number) => {
-      let errors: Record<string, string> = {};
+      const errors: Record<string, string> = {};
       let hasError = false;
 
       if (!profile) return true; // Should not happen if profile is loaded
@@ -507,7 +500,7 @@ export default function EditMusicianProfile() {
     try {
       // Exclude createdAt, updatedAt, and other auto-managed fields by the database
       // Also exclude availability from the payload as it's no longer a required field
-      const { genres, instruments, skills, availability, preferences, socialMediaLinks, ...restOfProfile } = profile; // Removed createdAt, updatedAt, and socialMediaLinks
+      const { genres, instruments, skills, preferences, ...restOfProfile } = profile; // Removed socialMediaLinks
 
       // Transform socialMediaInputs array to socialMediaLinks object
       const transformedSocialMediaLinks: Record<string, string> = {};
@@ -554,9 +547,9 @@ export default function EditMusicianProfile() {
 
       enqueueSnackbar('Progreso guardado', { variant: 'success', autoHideDuration: 2000 });
       success = true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error partially saving profile:', err);
-      enqueueSnackbar('Error al guardar progreso: ' + err.message, { variant: 'error' });
+      enqueueSnackbar('Error al guardar progreso: ' + (err instanceof Error ? err.message : 'Unknown error'), { variant: 'error' });
       success = false;
     } finally {
       setSubmitting(false);
@@ -613,7 +606,7 @@ export default function EditMusicianProfile() {
     setError(null);
 
     // Exclude createdAt, updatedAt, and other auto-managed fields by the database
-    const { genres, instruments, skills, availability, preferences, bio, experienceLevel, socialMediaLinks, ...restOfProfile } = profile; // Removed createdAt, updatedAt, and socialMediaLinks
+      const { genres, instruments, skills, preferences, bio, experienceLevel, ...restOfProfile } = profile; // Removed socialMediaLinks
 
     // Transform socialMediaInputs array to socialMediaLinks object
     const transformedSocialMediaLinks: Record<string, string> = {};
@@ -630,7 +623,6 @@ export default function EditMusicianProfile() {
       genres: genres?.map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })) || [],
       instruments: instruments?.map((i: { id: string; name: string }) => ({ id: i.id, name: i.name })) || [],
       skills: skills?.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })) || [],
-      availability: availability?.map((a: { id: string; name: string }) => ({ id: a.id, name: a.name })) || [],
       preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
       socialMediaLinks: Object.keys(transformedSocialMediaLinks).length > 0 ? transformedSocialMediaLinks : null,
     };
@@ -664,9 +656,9 @@ export default function EditMusicianProfile() {
 
       enqueueSnackbar('Perfil actualizado exitosamente!', { variant: 'success' });
       router.push(`/m/${musicianId}`); // Redirect to the profile page
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating profile:', err);
-      setError('Error al actualizar el perfil: ' + err.message);
+      setError('Error al actualizar el perfil: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setShowErrorDialog(true);
     } finally {
       setSubmitting(false);
@@ -751,10 +743,18 @@ export default function EditMusicianProfile() {
                     helperText={formErrors.genres}
                   />
                 )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
-                  ))
+              renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key : _unusedKey, ...rest } = getTagProps({ index }); // 👈 sacamos key del spread
+                    return (
+                      <Chip
+                        key={`chip10-${option.name}-${index}`}
+                        label={option.name}
+                        variant="outlined"
+                        {...rest} // sin key duplicada
+                      />
+                    );
+                  })
                 }
               />
               <Autocomplete
@@ -772,10 +772,52 @@ export default function EditMusicianProfile() {
                     helperText={formErrors.instruments}
                   />
                 )}
+               renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key : _unusedKey, ...rest } = getTagProps({ index }); // 👈 sacamos key del spread
+                    return (
+                      <Chip
+                        key={`chip2-${option.name}-${index}`}
+                        label={option.name}
+                        variant="outlined"
+                        {...rest} // sin key duplicada
+                      />
+                    );
+                  })
+                }
+              />
+              <TextField
+                label="Tarifa por Hora (USD) (Opcional)"
+                type="number"
+                value={profile.hourlyRate || ''}
+                onChange={(e) => handleChange('hourlyRate', parseFloat(e.target.value))}
+                fullWidth
+                // Removed error and helperText for hourlyRate as it's now optional
+                InputProps={{
+                  startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                }}
+              />
+              <Autocomplete
+                multiple
+                options={allPreferences}
+                getOptionLabel={(option) => option.name}
+                value={profile.preferences || []}
+                onChange={(_, newValue) => handleArrayChange('preferences', newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Preferencias Adicionales" placeholder="Selecciona preferencias" />
+                )}
                 renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
-                  ))
+                  value.map((option, index) => {
+                    const { key : _unusedKey, ...rest } = getTagProps({ index }); // 👈 sacamos key del spread
+                    return (
+                      <Chip
+                        key={`chip3-${option.name}-${index}`}
+                        label={option.name}
+                        variant="outlined"
+                        {...rest} // sin key duplicada
+                      />
+                    );
+                  })
                 }
               />
               <Autocomplete
@@ -785,41 +827,39 @@ export default function EditMusicianProfile() {
                 value={profile.skills || []}
                 onChange={(_, newValue) => handleArrayChange('skills', newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} label="Habilidades Adicionales" placeholder="Selecciona habilidades" />
+                  <TextField {...params} label="Habilidades" placeholder="Selecciona habilidades" />
                 )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
-                  ))
+               renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const { key : _unusedKey, ...rest } = getTagProps({ index }); // 👈 sacamos key del spread
+                    return (
+                      <Chip
+                        key={`chip4-${option.name}-${index}`}
+                        label={option.name}
+                        variant="outlined"
+                        {...rest} // sin key duplicada
+                      />
+                    );
+                  })
                 }
               />
-              {/* Removed FormControl for Nivel de Experiencia */}
-
-              {/* The Typography with "TESTING AUDIO SECTION VISIBILITY" was here, it's removed as we restore the full section */}
-
-              <Typography variant="subtitle1" sx={{ fontWeight: 'medium', mt: 2, color: 'text.secondary' }}>
-                Pistas de Audio (Opcional)
-              </Typography>
               {currentAudioTracks.map((track, index) => (
-                <Stack key={index} direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+                <Stack key={track.id} direction="row" spacing={1} alignItems="center">
                   <TextField
-                    label={`Título Pista ${index + 1}`}
+                    label="Título de la Pista"
                     value={track.title}
                     onChange={(e) => handleAudioTrackChange(index, 'title', e.target.value)}
                     fullWidth
                     size="small"
                   />
                   <TextField
-                    label={`URL Pista ${index + 1}`}
+                    label="URL de la Pista (YouTube, Spotify, etc.)"
                     value={track.url}
                     onChange={(e) => handleAudioTrackChange(index, 'url', e.target.value)}
                     fullWidth
                     size="small"
-                    type="url"
-                    placeholder="https://ejemplo.com/audio.mp3"
-                    helperText="Enlace directo al archivo de audio (ej. MP3, WAV)"
                   />
-                  <IconButton onClick={() => handleRemoveAudioTrack(index)} color="error" size="small">
+                  <IconButton onClick={() => handleRemoveAudioTrack(track.id)} color="error" size="small">
                     <DeleteIcon />
                   </IconButton>
                 </Stack>
@@ -938,10 +978,19 @@ export default function EditMusicianProfile() {
                     helperText={formErrors.availability}
                   />
                 )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
-                  ))
+               renderTags={(value, getTagProps) =>
+                  value.map((option, index) => {
+                    const {  key: _unusedKey, ...rest } = getTagProps({ index }); // 👈 sacamos key del spread
+                    
+                    return (
+                      <Chip
+                        key={`chip6-${option.name}-${index}`}
+                        label={option.name}
+                        variant="outlined"
+                        {...rest} // sin key duplicada
+                      />
+                    );
+                  })
                 }
               />
               <TextField
@@ -964,11 +1013,19 @@ export default function EditMusicianProfile() {
                 renderInput={(params) => (
                   <TextField {...params} label="Preferencias Adicionales" placeholder="Selecciona habilidades" />
                 )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip variant="outlined" label={option.name} {...getTagProps({ index })} />
-                  ))
-                }
+               renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const { key: _unusedKey, ...rest } = getTagProps({ index }); // 👈 sacamos key del spread
+                  return (
+                    <Chip
+                      key={`chip8-${option.name}-${index}`}
+                      label={option.name}
+                      variant="outlined"
+                      {...rest} // sin key duplicada
+                    />
+                  );
+                })
+              }
               />
             </Stack>
           );

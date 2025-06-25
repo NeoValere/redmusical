@@ -4,13 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import {
   Box,
-  Button,
-  Typography,
   CircularProgress,
   Alert,
   Avatar,
   InputLabel,
-} from '@mui/material';
+} from '@mui/material'; // Removed Button, Typography
 import { Camera } from 'phosphor-react';
 
 interface ProfileImageUploaderProps {
@@ -68,8 +66,8 @@ const ProfileImageUploader: React.FC<ProfileImageUploaderProps> = ({
       const data = await response.json();
       setPreviewImageUrl(data.publicUrl); // Update preview immediately
       onImageUploadSuccess(data.publicUrl); // Notify parent component
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // Changed to unknown
+      setError(err instanceof Error ? err.message : 'An unknown error occurred'); // Added instanceof Error check
     } finally {
       setLoading(false);
     }

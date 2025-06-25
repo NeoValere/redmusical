@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 
-export async function GET(request: Request) {
+export async function GET() {
   const cookieStore = cookies();
   const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
 
@@ -42,8 +42,11 @@ export async function GET(request: Request) {
       defaultPreset: profileData?.default_theme_preset,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected error in theme API:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Database } from '@/lib/database.types';
 import { FcGoogle } from 'react-icons/fc';
-import { MusicNotesSimple } from 'phosphor-react'; // Added
 import {
-  Box,
   Button,
   TextField,
   Typography,
@@ -20,6 +18,7 @@ import {
   alpha // Added
 } from '@mui/material';
 import Link from 'next/link'; // Added
+import { MusicNotesSimple } from 'phosphor-react'; // Added
 
 export default function LoginCard() {
   const theme = useTheme(); // Added

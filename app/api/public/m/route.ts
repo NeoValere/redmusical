@@ -1,22 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Musician } from '@prisma/client';
-
-// Define a type for the selected musician data
-interface MusicianSearchResult {
-  id: string;
-  userId: string;
-  fullName: string | null;
-  artisticName: string | null;
-  city: string | null;
-  province: string | null;
-  profileImageUrl: string | null;
-  experienceLevel: string | null;
-  musicianOrBand: string | null;
-  instruments: { instrument: { name: string } }[];
-  genres: { genre: { name: string } }[];
-  skills: { skill: { name: string } }[];
-}
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
@@ -38,12 +22,10 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '12', 10);
     const skip = (page - 1) * limit;
 
-    let whereClause: any = {
-      AND: [{ isPublic: true }],
-    };
+    const andConditions: Prisma.MusicianWhereInput[] = [{ isPublic: true }];
 
     if (searchTerm) {
-      whereClause.AND.push({
+      andConditions.push({
         OR: [
           { artisticName: { contains: searchTerm, mode: 'insensitive' } },
           { fullName: { contains: searchTerm, mode: 'insensitive' } },
@@ -54,21 +36,21 @@ export async function GET(request: Request) {
 
     if (musicianOrBand) {
       if (musicianOrBand === 'Musician') {
-        whereClause.AND.push({
+        andConditions.push({
           OR: [
             { musicianOrBand: { equals: 'Musician' } },
             { musicianOrBand: { equals: null } },
           ],
         });
       } else {
-        whereClause.AND.push({ musicianOrBand: { equals: musicianOrBand } });
+        andConditions.push({ musicianOrBand: { equals: musicianOrBand } });
       }
     }
     if (province) {
-      whereClause.AND.push({ province: { contains: province, mode: 'insensitive' } });
+      andConditions.push({ province: { contains: province, mode: 'insensitive' } });
     }
     if (city) {
-      whereClause.AND.push({ city: { contains: city, mode: 'insensitive' } });
+      andConditions.push({ city: { contains: city, mode: 'insensitive' } });
     }
     if (genres && genres.length > 0) {
       const genreIds = await prisma.genre.findMany({
@@ -76,7 +58,7 @@ export async function GET(request: Request) {
         select: { id: true },
       });
       if (genreIds.length > 0) {
-        whereClause.AND.push({
+        andConditions.push({
           genres: { some: { genreId: { in: genreIds.map((g) => g.id) } } },
         });
       }
@@ -87,7 +69,7 @@ export async function GET(request: Request) {
         select: { id: true },
       });
       if (instrumentIds.length > 0) {
-        whereClause.AND.push({
+        andConditions.push({
           instruments: {
             some: { instrumentId: { in: instrumentIds.map((i) => i.id) } },
           },
@@ -100,7 +82,7 @@ export async function GET(request: Request) {
         select: { id: true },
       });
       if (skillIds.length > 0) {
-        whereClause.AND.push({
+        andConditions.push({
           skills: { some: { skillId: { in: skillIds.map((s) => s.id) } } },
         });
       }
@@ -111,7 +93,7 @@ export async function GET(request: Request) {
         select: { id: true },
       });
       if (availabilityIds.length > 0) {
-        whereClause.AND.push({
+        andConditions.push({
           availability: {
             some: { availabilityId: { in: availabilityIds.map((a) => a.id) } },
           },
@@ -119,14 +101,14 @@ export async function GET(request: Request) {
       }
     }
     if (acceptsGigs === 'true') {
-      whereClause.AND.push({ acceptsGigs: true });
+      andConditions.push({ acceptsGigs: true });
     }
     if (acceptsCollaborations === 'true') {
-      whereClause.AND.push({ acceptsCollaborations: true });
+      andConditions.push({ acceptsCollaborations: true });
     }
     if (minRate) {
       const minRateNum = parseInt(minRate, 10);
-      whereClause.AND.push({
+      andConditions.push({
         OR: [
           { hourlyRate: { gte: minRateNum } },
           { hourlyRate: { equals: null } },
@@ -134,15 +116,15 @@ export async function GET(request: Request) {
       });
     }
     if (maxRate && parseInt(maxRate, 10) < 500) { // Only apply max rate if it's not the default max
-        whereClause.AND.push({ hourlyRate: { lte: parseInt(maxRate, 10) } });
+        andConditions.push({ hourlyRate: { lte: parseInt(maxRate, 10) } });
     }
 
     const totalCount = await prisma.musician.count({
-      where: whereClause,
+      where: { AND: andConditions },
     });
 
     const musicians = await prisma.musician.findMany({
-      where: whereClause,
+      where: { AND: andConditions },
       select: {
         id: true,
         userId: true,
@@ -196,9 +178,12 @@ export async function GET(request: Request) {
       limit,
       totalPages: Math.ceil(totalCount / limit),
     });
-  } catch (error: any) {
-    console.error('Error fetching public musicians:', error.message);
-    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Error fetching public musicians:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
     if (prisma) {
       await prisma.$disconnect();

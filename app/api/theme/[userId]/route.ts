@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+interface UserMetaData {
+  theme_presets: Prisma.JsonValue | null;
+  default_theme_preset: Prisma.JsonValue | null;
+}
 
 export async function GET(
   request: Request,
@@ -14,7 +20,7 @@ export async function GET(
 
   try {
     // Use a raw query to safely access the auth.users table
-    const users: any[] = await prisma.$queryRaw`
+    const users: unknown[] = await prisma.$queryRaw`
       SELECT raw_user_meta_data FROM auth.users WHERE id = ${userId}::uuid
     `;
 
@@ -22,14 +28,17 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userData = users[0].raw_user_meta_data;
+    const userData = users[0] as { raw_user_meta_data: UserMetaData };
 
     return NextResponse.json({
-      presets: userData?.theme_presets || null,
-      defaultPreset: userData?.default_theme_preset || null,
+      presets: userData?.raw_user_meta_data?.theme_presets || null,
+      defaultPreset: userData?.raw_user_meta_data?.default_theme_preset || null,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected error fetching theme settings:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -37,9 +38,12 @@ export async function GET(request: Request) {
         console.log(`[register-profile GET] No profile found for userId: ${userId}, role: ${role}, email: ${email}`);
         return NextResponse.json({ exists: false }, { status: 200 });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`[register-profile GET] Error checking ${role} profile existence by userId:`, error);
-      return NextResponse.json({ error: `Failed to check ${role} profile existence`, details: error.message }, { status: 500 });
+      if (error instanceof Error) {
+        return NextResponse.json({ error: `Failed to check ${role} profile existence`, details: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ error: `Failed to check ${role} profile existence` }, { status: 500 });
     }
   } else if (email) { // Fallback if userId is not valid or not provided, but email is
     try {
@@ -54,9 +58,12 @@ export async function GET(request: Request) {
         console.log(`[register-profile GET] Email does not exist: ${email}`);
         return NextResponse.json({ exists: false }, { status: 200 });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[register-profile GET] Error checking email existence:', error);
-      return NextResponse.json({ error: 'Failed to check email existence', details: error.message }, { status: 500 });
+      if (error instanceof Error) {
+        return NextResponse.json({ error: 'Failed to check email existence', details: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ error: 'Failed to check email existence' }, { status: 500 });
     }
   } else {
     console.warn('[register-profile GET] Missing required parameters: userId/role or email.');
@@ -93,13 +100,18 @@ export async function DELETE(request: Request) {
     } else {
       return NextResponse.json({ error: 'Invalid role specified for deletion' }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting profile:', error);
     // Handle case where profile might not exist (e.g., P2025)
-    if (error.code === 'P2025') {
-      return NextResponse.json({ error: 'Profile not found', details: error.message }, { status: 404 });
+    if (error instanceof PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return NextResponse.json({ error: 'Profile not found', details: error.message }, { status: 404 });
+      }
     }
-    return NextResponse.json({ error: 'Failed to delete profile', details: error.message }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: 'Failed to delete profile', details: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Failed to delete profile' }, { status: 500 });
   }
 }
 
@@ -198,9 +210,12 @@ export async function POST(request: Request) {
       console.warn('[register-profile POST] Invalid role specified or profile already exists for this userId and role.');
       return NextResponse.json({ error: 'Invalid role specified or profile already exists for this userId and role' }, { status: 400 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[register-profile POST] Error creating or fetching profile:', error);
     // Ensure all error paths return JSON
-    return NextResponse.json({ error: 'Failed to create or fetch profile', details: error.message || 'Unknown error' }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: 'Failed to create or fetch profile', details: error.message || 'Unknown error' }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Failed to create or fetch profile' }, { status: 500 });
   }
 }

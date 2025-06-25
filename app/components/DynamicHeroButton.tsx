@@ -1,13 +1,13 @@
 "use client";
 
 import Link from 'next/link';
-import { Button, Stack, Menu, MenuItem, IconButton, Typography, Box } from '@mui/material';
-import { SignIn, UserCircle, List as ListIcon, User, Buildings } from 'phosphor-react'; // Added User, Buildings
+import { Button, Menu, MenuItem, useTheme } from '@mui/material';
+import { SignIn, UserCircle, List as ListIcon, User as UserIcon, Buildings } from 'phosphor-react'; // Aliased User as UserIcon
 import { useState } from 'react';
-import { useTheme } from '@mui/material/styles'; // Import useTheme
+import { User } from '@supabase/supabase-js';
 
 interface DynamicHeroButtonProps {
-  currentUser: any; // Supabase user object
+  currentUser: User | null; // Supabase user object
   userRoles: {
     isMusician: boolean;
     isContractor: boolean;
@@ -97,7 +97,7 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
             onClick={handleClose}
             sx={{ paddingY: 1.5, paddingX: 2.5 }}
           >
-            <User size={20} style={{ marginRight: theme.spacing(1.5), color: theme.palette.primary.main }} />
+            <UserIcon size={20} style={{ marginRight: theme.spacing(1.5), color: theme.palette.primary.main }} />
             Panel de Músico
           </MenuItem>
           <MenuItem

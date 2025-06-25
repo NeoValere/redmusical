@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useEffect, useState } from 'react';
+import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'; // Import User type
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -9,30 +9,22 @@ import {
   Container, 
   Typography, 
   Grid, // Standard Grid import for v6/v7
-  Card, 
-  CardContent, 
-  CardMedia, 
   Button, 
-  Chip, 
   Stack, 
   TextField, 
   CircularProgress,
   Pagination,
-  Modal,
-  Paper,
-  Link as MuiLink,
-  AppBar,
-  Toolbar,
   useTheme,
-  alpha,
-  InputAdornment
+  InputAdornment,
+  Paper, // Re-added Paper
+  useMediaQuery, // Added useMediaQuery
 } from '@mui/material';
-import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass, MapPin, MusicNote, Star } from 'phosphor-react';
+import { MagnifyingGlass, UserPlus } from 'phosphor-react'; // Removed unused phosphor-react icons
 import MusicianCard, { Musician } from '@/app/components/MusicianCard';
 
 interface MusicianListProps {
   sessionChecked: boolean;
-  currentUser: any;
+  currentUser: User | null; // Changed from any
 }
 
 const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
@@ -40,6 +32,7 @@ const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClientComponentClient();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Defined isMobile
 
   const [musicians, setMusicians] = useState<Musician[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,9 +83,9 @@ const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
         setMusicians(data.musicians);
         setTotalPages(data.totalPages);
 
-      } catch (e: any) {
+      } catch (e: unknown) { // Changed to unknown
         setError('Error al cargar los músicos. Intente nuevamente.');
-        console.error(e);
+        console.error(e instanceof Error ? e.message : 'An unknown error occurred'); // Added instanceof Error check
       } finally {
         setIsLoading(false);
       }
@@ -128,7 +121,7 @@ const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
 
         <Paper elevation={0} sx={{ p: {xs: 2, sm:3}, mb: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 10 }}>
+            <Grid size={isMobile ? 12 : 10}>
               <TextField
                 fullWidth
                 label="Buscar por nombre, instrumento, ciudad..."
@@ -144,7 +137,7 @@ const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
                 }}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            <Grid size={isMobile ? 12 : 2}>
               <TextField
                 fullWidth
                 select

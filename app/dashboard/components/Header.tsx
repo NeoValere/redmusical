@@ -2,7 +2,6 @@
 
 import { Box, Typography, IconButton, AppBar, Toolbar } from '@mui/material';
 import { useTheme } from '@mui/material/styles'; // Import useTheme
-import { usePathname } from 'next/navigation';
 import { useDashboard } from '../context/DashboardContext';
 import { motion } from 'framer-motion';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -12,37 +11,30 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon'; // Added import
 import { useState } from 'react'; // Needed for Menu state
-import { SignOut, Headphones, PlusCircle, UserCircle, MagnifyingGlass } from 'phosphor-react'; // Icons for menu
+import { SignOut, MagnifyingGlass } from 'phosphor-react'; // Removed Headphones, PlusCircle, UserCircle
 
 interface HeaderProps {
-  userName: string;
   handleDrawerToggle: () => void; // For desktop sidebar, and potentially mobile menu if different icon
   isMobile: boolean;
   isSidebarOpen: boolean;
   handleLogout: () => void;
   userRole: string | null;
-  activeRole: string | null;
-  userId: string | null; // Needed for role switching/creation logic
   hasContractorProfile: boolean;
   handleSwitchRole: () => Promise<void>;
   handleCreateContractorProfile: () => Promise<void>;
 }
 
 export default function Header({
-  userName,
   handleDrawerToggle,
   isMobile,
   isSidebarOpen,
   handleLogout,
   userRole,
-  activeRole,
-  userId, // Destructure userId
   hasContractorProfile,
   handleSwitchRole,
   handleCreateContractorProfile,
 }: HeaderProps) {
   const theme = useTheme();
-  const pathname = usePathname();
   const { pageTitle } = useDashboard();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const mobileMenuOpen = Boolean(anchorEl);

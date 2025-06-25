@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { FloppyDisk } from 'phosphor-react';
 import {
   Box,
   Button,
@@ -24,19 +23,7 @@ const UploadImagePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const pathSegments = window.location.pathname.split('/');
-    const id = pathSegments[2]; // Assuming URL is /m/[id]/upload-image
-    if (id) {
-      setMusicianId(id);
-      fetchMusicianProfileImage(id);
-    } else {
-      setError('Musician ID not found in URL.');
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchMusicianProfileImage = async (id: string) => {
+  const fetchMusicianProfileImage = useCallback(async (id: string) => { // Wrapped in useCallback
     setLoading(true);
     setError(null);
     try {
@@ -45,7 +32,7 @@ const UploadImagePage = () => {
         router.push('/login');
         return;
       }
-      const user = session.user;
+      // const user = session.user; // Removed unused user variable
 
       const response = await fetch(`/api/m/${id}`, {
         headers: {
@@ -58,12 +45,24 @@ const UploadImagePage = () => {
       }
       const data = await response.json();
       setProfileImageUrl(data.profileImageUrl || null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // Changed to unknown
+      setError(err instanceof Error ? err.message : 'An unknown error occurred'); // Added instanceof Error check
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, supabase]); // Added dependencies
+
+  useEffect(() => {
+    const pathSegments = window.location.pathname.split('/');
+    const id = pathSegments[2]; // Assuming URL is /m/[id]/upload-image
+    if (id) {
+      setMusicianId(id);
+      fetchMusicianProfileImage(id);
+    } else {
+      setError('Musician ID not found in URL.');
+      setLoading(false);
+    }
+  }, [fetchMusicianProfileImage]); // Added fetchMusicianProfileImage to dependency array
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
@@ -101,8 +100,8 @@ const UploadImagePage = () => {
       setProfileImageUrl(data.publicUrl);
       alert('Imagen de perfil actualizada correctamente');
       router.push(`/m/${musicianId}`); // Redirect back to profile after upload
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) { // Changed to unknown
+      setError(err instanceof Error ? err.message : 'An unknown error occurred'); // Added instanceof Error check
     } finally {
       setLoading(false);
     }

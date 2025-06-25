@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'; // Import User type
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -9,31 +9,25 @@ import {
   Container, 
   Typography, 
   Grid, // Standard Grid import for v6/v7
-  Card, 
-  CardContent, 
-  CardMedia, 
   Button, 
-  Chip, 
   Stack, 
-  TextField, 
   CircularProgress,
-  Pagination,
-  Modal,
   Paper,
   Link as MuiLink,
   AppBar,
   Toolbar,
   useTheme,
-  alpha,
-  InputAdornment
+  InputAdornment, // Keep InputAdornment as it's used in TextField
+  TextField, // Keep TextField as it's used
+  Pagination, // Keep Pagination as it's used
 } from '@mui/material';
-import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass, MapPin, MusicNote, Star } from 'phosphor-react';
+import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass } from 'phosphor-react'; // Removed unused phosphor-react icons
 import MusicianCard, { Musician } from '@/app/components/MusicianCard';
 
 const PublicPageHeader = () => {
   const theme = useTheme();
   const supabase = createClientComponentClient();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null); // Changed from any
   
   useEffect(() => {
     const getUser = async () => {
@@ -91,8 +85,8 @@ function MusicosPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [currentUser] = useState<User | null>(null); // Changed from any
+  const [sessionChecked] = useState(false);
 
   // Initialize state from URL search parameters
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
@@ -119,15 +113,6 @@ function MusicosPageContent() {
 
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setCurrentUser(session?.user || null);
-      setSessionChecked(true);
-    };
-    checkSession();
-  }, [supabase]);
-
-  useEffect(() => {
     const fetchMusicians = async () => {
       setIsLoading(true);
       setError(null);
@@ -149,9 +134,9 @@ function MusicosPageContent() {
         setMusicians(data.musicians);
         setTotalPages(data.totalPages);
 
-      } catch (e: any) {
+      } catch (e: unknown) { // Changed to unknown
         setError('Error al cargar los músicos. Intente nuevamente.');
-        console.error(e);
+        console.error(e instanceof Error ? e.message : 'An unknown error occurred'); // Added instanceof Error check
       } finally {
         setIsLoading(false);
       }

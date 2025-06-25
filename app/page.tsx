@@ -3,14 +3,14 @@
 export const runtime = 'nodejs';
 
 import Link from 'next/link';
-import { useEffect, useState, useRef } from 'react'; // Added useRef
+import { useEffect, useState } from 'react'; // Removed useRef
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Slider from 'react-slick'; // Added Slider
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
 import { useRouter } from 'next/navigation';
-import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, User, Buildings, ListChecks, Quotes, Sparkle, MagnifyingGlass } from 'phosphor-react'; // Added Sparkle, MagnifyingGlass
-import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, IconButton, Paper, Grid, Card, CardContent, alpha, TextField, InputAdornment } from '@mui/material'; // Added TextField, InputAdornment
+import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, Buildings, Quotes, Sparkle, MagnifyingGlass, User as UserIcon } from 'phosphor-react'; // Aliased User to UserIcon
+import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, Paper, Card, CardContent, alpha, TextField, InputAdornment } from '@mui/material'; // Removed IconButton, Grid
 import { motion } from 'framer-motion';
 import DynamicHeroButton from '@/app/components/DynamicHeroButton'; // Import the new component
 
@@ -30,8 +30,10 @@ const staggerContainer = {
   },
 };
 
+import { User } from '@supabase/supabase-js'; // Import User type from supabase-js
+
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<any>(null); // Stores Supabase user object
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userRoles, setUserRoles] = useState<{ isMusician: boolean; isContractor: boolean; userId: string | null }>({ isMusician: false, isContractor: false, userId: null });
   const router = useRouter();
   const supabase = createClientComponentClient();
@@ -74,8 +76,8 @@ export default function Home() {
             console.error('Failed to fetch user roles:', response.status);
             setUserRoles({ isMusician: false, isContractor: false, userId: session.user.id }); // Fallback
           }
-        } catch (error) {
-          console.error('Error fetching user roles:', error);
+        } catch (error: unknown) { // Changed to unknown
+          console.error('Error fetching user roles:', error instanceof Error ? error.message : 'An unknown error occurred'); // Added instanceof Error check
           setUserRoles({ isMusician: false, isContractor: false, userId: session.user.id }); // Fallback
         }
       } else {
@@ -425,7 +427,7 @@ export default function Home() {
               }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>
-                    <User size={36} color={theme.palette.primary.main} weight="duotone" /> {/* Dorado */}
+                    <UserIcon size={36} color={theme.palette.primary.main} weight="duotone" /> {/* Dorado */}
                     <Typography variant="h5" component="h3" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
                       Para Músicos
                     </Typography>
@@ -535,7 +537,7 @@ export default function Home() {
               }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Stack direction="row" alignItems="center" spacing={1.5} mb={2.5}>
-                    <User size={36} color={theme.palette.primary.main} weight="duotone" /> {/* Dorado */}
+                    <UserIcon size={36} color={theme.palette.primary.main} weight="duotone" /> {/* Dorado */}
                     <Typography variant="h5" component="h3" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
                       ¿Sos Músico?
                     </Typography>
@@ -625,9 +627,7 @@ export default function Home() {
                 autoplaySpeed: 6000,
                 fade: true, 
                 cssEase: 'linear', 
-                beforeChange: (current, next) => {
-                  // You can add logic here if needed when slide changes
-                },
+                
               }}
             >
               {[

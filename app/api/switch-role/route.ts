@@ -53,8 +53,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ message: 'Role updated successfully', redirectUrl: redirectUrl });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unexpected error during role switch:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

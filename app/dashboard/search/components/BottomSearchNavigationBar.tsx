@@ -15,12 +15,12 @@ export default function BottomSearchNavigationBar({ activeView, setActiveView }:
   const theme = useTheme();
   const router = useRouter();
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { id: 'inicio', label: 'Inicio', icon: <Home />, href: '/dashboard/search' },
     { id: 'explorar', label: 'Explorar', icon: <Search />, href: '/dashboard/musicos' },
     { id: 'favoritos', label: 'Favoritos', icon: <Favorite />, href: '/dashboard/favorites' },
     { id: 'mensajes', label: 'Mensajes', icon: <Message />, href: '/dashboard/messages' },
-  ];
+  ], []); // Empty dependency array means it's created once
 
   const backgroundColor = useMemo(() => {
     return navItems.some(item => item.id === activeView) ? theme.palette.primary.main : theme.palette.background.paper;

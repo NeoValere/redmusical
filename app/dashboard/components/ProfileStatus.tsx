@@ -67,7 +67,7 @@ export default function ProfileStatus({ userId, profileStatus, isPublic }: Profi
           {!isActive && (
             <Button
               component={Link}
-              href={`/musicians/${userId}/edit`} // Link to edit page
+              href={`/m/${userId}/edit`} // Link to edit page
               variant="contained"
               color="primary"
               startIcon={<UserCirclePlus size={20} />}
@@ -78,7 +78,7 @@ export default function ProfileStatus({ userId, profileStatus, isPublic }: Profi
           )}
           <Button
             component={Link}
-            href={`/musicians/${userId}`}
+            href={`/m/${userId}`}
             variant="outlined"
             color="primary"
             startIcon={<Eye size={20} />}

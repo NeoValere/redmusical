@@ -52,7 +52,7 @@ const ProfileImageUploader: React.FC<ProfileImageUploaderProps> = ({
         return;
       }
 
-      const response = await fetch(`/api/musicians/${musicianId}/upload-image`, {
+      const response = await fetch(`/api/m/${musicianId}/upload-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,

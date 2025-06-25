@@ -36,7 +36,7 @@ export default function VisibilitySettings({ userId, initialIsPublic, onVisibili
     setShowProfilePublicly(newIsPublic); // Optimistic update
 
     try {
-      const response = await fetch(`/api/musicians/${userId}/update-profile`, {
+      const response = await fetch(`/api/m/${userId}/update-profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPublic: newIsPublic }),

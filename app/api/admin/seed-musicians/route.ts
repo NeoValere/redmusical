@@ -1,0 +1,391 @@
+import { NextRequest, NextResponse } from 'next/server';
+import axios from 'axios';
+import { PrismaClient, Prisma } from '@prisma/client'; // Added Prisma for JsonObject
+import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
+import pLimit from 'p-limit';
+
+/* ──────────── instancias ──────────── */
+const prisma   = new PrismaClient();
+const openai   = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+/* ──────────── helpers generales ──────────── */
+const MB_HEADERS = {
+  'User-Agent':
+    process.env.MUSICBRAINZ_APP_NAME ??
+    'RedMusicalApp/1.0 ( contacto@ejemplo.com )'
+};
+
+async function getSpotifyToken() {
+  const { data }: { data: { access_token: string } } = await axios.post(
+    'https://accounts.spotify.com/api/token',
+    new URLSearchParams({ grant_type: 'client_credentials' }).toString(),
+    {
+      headers: {
+        Authorization:
+          'Basic ' +
+          Buffer.from(
+            `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+          ).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    }
+  );
+  return data.access_token as string;
+}
+
+/* ──────────── MusicBrainz ──────────── */
+async function* mbArtistsAR(batch = 100, start = 0) {
+  const url =
+    `https://musicbrainz.org/ws/2/artist` +
+    `?query=country:AR&limit=${batch}&offset=${start}&fmt=json`; 
+  console.log(`[mbArtistsAR] Fetching from MusicBrainz: ${url}`);
+  try {
+    const { data }: { data: { artists: any[]; count?: number } } = await axios.get(url, { headers: MB_HEADERS });
+    if (!data.artists || !data.artists.length) {
+        console.log(`[mbArtistsAR] No artists returned from MusicBrainz for offset ${start}, limit ${batch}.`);
+        return; 
+    }
+    console.log(`[mbArtistsAR] Yielding ${data.artists.length} artists. Total MB count (if available): ${data.count}`);
+    yield data.artists; 
+  } catch (error) {
+    console.error(`[mbArtistsAR] Error fetching from MusicBrainz:`, error);
+    return; 
+  }
+}
+
+function spotifyIdFromRelations(rel: any[]): string | null {
+  const r = rel?.find(
+    (x: any) =>
+      x.type === 'streaming' &&
+      x.url?.resource?.includes('open.spotify.com/artist/')
+  );
+  return r ? r.url.resource.split('/').pop() : null;
+}
+
+/* ──────────── Spotify ──────────── */
+interface SpArtist {
+  id: string;
+  name: string;
+  images: { url: string }[];
+  followers: { total: number };
+}
+
+async function getSpotifyById(id: string, token: string): Promise<SpArtist | null> {
+  try {
+    const { data } = await axios.get<SpArtist>(
+      `https://api.spotify.com/v1/artists/${id}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return data;
+  } catch { return null; }
+}
+
+async function searchSpotifyImage(name: string, token: string): Promise<{ imageUrl: string | null; followers: number; foundSpotifyId?: string }> {
+  interface SpotifySearchResponse {
+    artists: {
+      items: Array<{
+        id: string; 
+        name: string;
+        images?: Array<{ url: string }>;
+        followers: { total: number };
+      }>;
+    };
+  }
+  try {
+    console.log(`[searchSpotifyImage] Searching Spotify for "${name}"`);
+    const { data } = await axios.get<SpotifySearchResponse>(
+      'https://api.spotify.com/v1/search',
+      {
+        params: { q: `"${name}"`, type: 'artist', limit: 1 }, // Removed market: 'AR'
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    const hit = data.artists.items?.[0];
+    if (hit) {
+      console.log(`[searchSpotifyImage] Found hit for "${name}": Name: "${hit.name}", Followers: ${hit.followers?.total ?? 0}, Image: ${hit.images?.[0]?.url ? 'Yes' : 'No'}`);
+      // Relaxing the exact name match to increase success rate for popular artists
+      return {
+        imageUrl: hit.images?.[0]?.url ?? null,
+        followers: hit.followers?.total ?? 0,
+        foundSpotifyId: hit.id
+      };
+    }
+    console.log(`[searchSpotifyImage] No hit found for "${name}".`);
+    return { imageUrl: null, followers: 0 };
+  } catch (error) { 
+    console.error(`[searchSpotifyImage] Error searching for "${name}":`, error);
+    return { imageUrl: null, followers: 0 }; 
+  }
+}
+
+/* ──────────── GPT Data Enrichment ──────────── */
+interface GptArtistData {
+  bio: string;
+  artistType: 'Musician' | 'Band' | 'Unknown';
+  genres: string[];
+  province: string | null;
+  instruments: string[];
+}
+
+async function enrichArtistDataWithGPT(
+  artistName: string,
+  mbData: { type?: string | null; areaName?: string | null; beginAreaName?: string | null; tags: string[] }
+): Promise<Partial<GptArtistData> | null> {
+  const prompt = `
+Para el artista/grupo musical argentino llamado "${artistName}", proporciona la siguiente información como un objeto JSON.
+Contexto existente de MusicBrainz:
+- Tipo de MusicBrainz: ${mbData.type || 'No disponible'}
+- Área principal de MusicBrainz (puede ser país o provincia): ${mbData.areaName || 'No disponible'}
+- Área de inicio de MusicBrainz (suele ser ciudad): ${mbData.beginAreaName || 'No disponible'}
+- Etiquetas/géneros existentes de MusicBrainz: ${mbData.tags.join(', ') || 'Ninguno'}
+
+Devuelve SOLAMENTE un objeto JSON con la siguiente estructura:
+{
+  "bio": "Una biografía detallada y atractiva de 5-7 frases en español rioplatense. Evita el lenguaje corporativo. Si es una banda, describe su estilo y trayectoria. Si es solista, su carrera y principales características.",
+  "artistType": "Musician" | "Band" | "Unknown",
+  "genres": ["genre1", "genre2", "genre3"],
+  "province": "Nombre de la provincia argentina" | null,
+  "instruments": ["instrumento1", "instrumento2"]
+}
+Asegúrate de que la respuesta sea únicamente el objeto JSON. No incluyas explicaciones adicionales.
+Si alguna información no se puede determinar con certeza, usa valores apropiados.
+El campo "artistType" es crucial. La "bio" debe ser siempre generada.
+`;
+
+  try {
+    console.log(`[GPT] Generating data for ${artistName}.`);
+    const res = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.5,
+      response_format: { type: "json_object" }
+    });
+    const content = res.choices[0].message.content;
+    if (content) {
+      const parsedData = JSON.parse(content) as Partial<GptArtistData>;
+      if (typeof parsedData.bio === 'string' && Array.isArray(parsedData.genres) && Array.isArray(parsedData.instruments)) {
+        console.log(`[GPT] Successfully parsed data for ${artistName}.`);
+        return parsedData;
+      } else {
+        console.warn(`[GPT] Parsed data for ${artistName} has incorrect structure:`, parsedData);
+        return null;
+      }
+    }
+    console.warn(`[GPT] No content received for ${artistName}.`);
+    return null;
+  } catch (error: any) {
+    console.error(`[GPT] Error for ${artistName}:`, error.message || error);
+    return null;
+  }
+}
+
+/* ──────────── subir imagen a Supabase ──────────── */
+async function mirror(url?: string | null) {
+  if (!url) return null;
+  try {
+    let ext = 'jpg'; 
+    try {
+      const pathname = new URL(url).pathname;
+      const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
+      const dotIndex = lastSegment.lastIndexOf('.');
+      if (dotIndex > 0 && dotIndex < lastSegment.length - 1) {
+        const potentialExt = lastSegment.substring(dotIndex + 1).toLowerCase();
+        const knownImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'];
+        if (knownImageExtensions.includes(potentialExt)) {
+          ext = potentialExt;
+        }
+      }
+    } catch (e) {
+      console.warn(`[mirror] Could not parse URL for extension: ${url}. Defaulting to .jpg. Error: ${e}`);
+    }
+    
+    const fileName = `${crypto.randomUUID()}.${ext}`;
+    console.log(`[mirror] Attempting to upload ${url} as ${fileName} with content-type image/${ext}`);
+    const { data } = await axios.get<ArrayBuffer>(url, { responseType: 'arraybuffer' });
+    const { error } = await supabase.storage.from('profile-images').upload(fileName, data, { contentType: `image/${ext}` });
+    if (error) {
+      console.error(`[mirror] Supabase upload error for ${fileName}:`, error);
+      throw error;
+    }
+    return supabase.storage.from('profile-images').getPublicUrl(fileName).data.publicUrl;
+  } catch (e: any) {
+    console.error(`[mirror] General error mirroring image ${url}:`, e.message || e);
+    return url; 
+  }
+}
+
+/* ──────────── API handler ──────────── */
+export async function POST(req: NextRequest) {
+  let apiOffset = 0;
+  let apiLimit = 50; // Default limit
+
+  try {
+    const body = await req.json();
+    if (typeof body === 'object' && body !== null) {
+      apiOffset = typeof body.offset === 'number' && body.offset >= 0 ? body.offset : 0;
+      apiLimit = typeof body.limit === 'number' && body.limit > 0 ? body.limit : 50;
+    } else {
+      console.warn('[SEEDER] Request body was not a valid JSON object or was null, using default offset/limit.');
+    }
+  } catch (e) {
+    console.warn('[SEEDER] Could not parse JSON body or body was empty, using default offset/limit. Error:', e);
+  }
+  
+  console.log(`[SEEDER] API Request - Effective Offset: ${apiOffset}, Effective Limit for this run: ${apiLimit}`);
+
+  const spToken = await getSpotifyToken();
+  if (!spToken) {
+    console.error('[SEEDER] Spotify auth failed');
+    return NextResponse.json({ error: 'Spotify auth failed' }, { status: 500 });
+  }
+  console.log('[SEEDER] Spotify token obtained successfully.');
+
+  const mbLimiter = pLimit(1);
+  const spLimiter = pLimit(10);
+  let processedCount = 0;
+  let skippedCount = 0;
+  let mbBatchIteration = 0; 
+  let totalArtistsFetchedThisAPICall = 0;
+
+  for await (const mbBatch of mbArtistsAR(apiLimit, apiOffset)) { 
+    mbBatchIteration++;
+    totalArtistsFetchedThisAPICall = mbBatch.length; 
+    console.log(`[SEEDER] Fetched ${totalArtistsFetchedThisAPICall} artists from MusicBrainz (Generator iteration: ${mbBatchIteration}). Processing now.`);
+    
+    if (totalArtistsFetchedThisAPICall === 0) {
+        console.log(`[SEEDER] No artists returned from MusicBrainz at offset ${apiOffset} with limit ${apiLimit}.`);
+        break; 
+    }
+
+    await Promise.all(
+      mbBatch.map((mb: any, indexInAPIBatch: number) =>
+        mbLimiter(async () => {
+          const artistLogPrefix = `[SEEDER] Artist: ${mb.name} (MBID: ${mb.id}) - Index in API Batch ${indexInAPIBatch}:`;
+          try {
+            console.log(`${artistLogPrefix} Starting processing.`);
+          
+            const beginYear = mb['life-span']?.begin?.slice(0, 4);
+            if (beginYear && +beginYear < 1960) {
+              console.log(`${artistLogPrefix} Skipped - Begin year too early: ${beginYear}`);
+              skippedCount++; return;
+            }
+
+            const relUrl = `https://musicbrainz.org/ws/2/artist/${mb.id}?inc=url-rels&fmt=json`;
+            const { data: relData }: { data: { relations: any[] } } = await axios.get(relUrl, { headers: MB_HEADERS });
+            
+            let websiteUrl: string | null = null;
+            const socialMediaLinks: Prisma.JsonObject = {};
+            relData.relations?.forEach((rel: any) => {
+              if (rel.url?.resource) {
+                if (rel.type === 'official homepage') websiteUrl = rel.url.resource;
+                else if (rel.type === 'soundcloud') socialMediaLinks.soundcloud = rel.url.resource;
+                else if (rel.type === 'youtube') socialMediaLinks.youtube = rel.url.resource;
+                else if (rel.type === 'bandcamp') socialMediaLinks.bandcamp = rel.url.resource;
+                else if (rel.type === 'social network' && rel.url.resource.includes('instagram.com')) socialMediaLinks.instagram = rel.url.resource;
+                else if (rel.type === 'social network' && rel.url.resource.includes('facebook.com')) socialMediaLinks.facebook = rel.url.resource;
+                else if (rel.type === 'social network' && rel.url.resource.includes('twitter.com')) socialMediaLinks.twitter = rel.url.resource;
+              }
+            });
+
+            let finalSpId = spotifyIdFromRelations(relData.relations);
+            console.log(`${artistLogPrefix} Spotify ID from MB relations: ${finalSpId}`);
+
+            let img: string | null = null;
+            let followers = 0;
+            
+            if (finalSpId) {
+              const sp = await spLimiter(() => getSpotifyById(finalSpId!, spToken));
+              if (sp) {
+                img = sp.images?.[0]?.url ?? null;
+                followers = sp.followers.total;
+                console.log(`${artistLogPrefix} Found Spotify data by ID. Image: ${img ? 'Yes' : 'No'}, Followers: ${followers}`);
+              } else {
+                console.log(`${artistLogPrefix} No Spotify data found by ID ${finalSpId}.`);
+              }
+            }
+
+            if (!img) {
+              console.log(`${artistLogPrefix} Attempting to search Spotify image by name.`);
+              const spotifySearchResult = await spLimiter(() => searchSpotifyImage(mb.name, spToken));
+              img = spotifySearchResult.imageUrl;
+              if (followers === 0 && spotifySearchResult.followers > 0) followers = spotifySearchResult.followers;
+              if (spotifySearchResult.foundSpotifyId && !finalSpId) finalSpId = spotifySearchResult.foundSpotifyId;
+            }
+            
+            if (finalSpId) socialMediaLinks.spotify = `https://open.spotify.com/artist/${finalSpId}`;
+
+            if (!img) { console.log(`${artistLogPrefix} Skipped - No image.`); skippedCount++; return; }
+            if (followers < 1000) { console.log(`${artistLogPrefix} Skipped - Low followers: ${followers}.`); skippedCount++; return; }
+
+            const mbTags = (mb.tags ?? []).map((t: any) => t.name);
+            const gptData = await enrichArtistDataWithGPT(mb.name, { type: mb.type, areaName: mb.area?.name, beginAreaName: mb['begin-area']?.name, tags: mbTags });
+
+            let finalBio = gptData?.bio || `Biografía de ${mb.name}.`;
+            let finalMusicianOrBand = (gptData?.artistType && gptData.artistType !== 'Unknown') ? gptData.artistType : (mb.type === 'Person' ? 'Musician' : 'Band');
+            
+            const rawCombinedGenres = Array.from(new Set([...(gptData?.genres || []), ...mbTags]));
+            const filteredGenres = rawCombinedGenres.filter(genre => genre.toLowerCase() !== 'argentina');
+            const finalGenres = filteredGenres.slice(0, 5); 
+
+            let finalProvince = mb.area?.name === 'Argentina' ? (gptData?.province || null) : (mb.area?.name || gptData?.province || null);
+             if (mb.area?.name && mb.area.name !== 'Argentina' && gptData?.province && gptData.province !== mb.area.name) {
+            } else if (finalProvince === 'Argentina' && gptData?.province && gptData.province !== 'Argentina') {
+                finalProvince = gptData.province; 
+            }
+
+            const gptInstrumentNames = (gptData?.instruments || []);
+            const storedImg = await mirror(img);
+            
+            await prisma.musician.upsert({
+              where: { artisticName: mb.name },
+              create: {
+                userId: crypto.randomUUID(),
+                email: `${mb.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/gi, '')}@example.com`,
+                artisticName: mb.name,
+                fullName: mb['sort-name'] ?? mb.name,
+                city: mb['begin-area']?.name ?? null,
+                province: finalProvince,
+                bio: finalBio,
+                profileImageUrl: storedImg,
+                websiteUrl: websiteUrl,
+                musicianOrBand: finalMusicianOrBand,
+                isAutogenerated: true,
+                socialMediaLinks: Object.keys(socialMediaLinks).length > 0 ? socialMediaLinks : undefined,
+                genres: { create: finalGenres.map(name => ({ genre: { connectOrCreate: { where: { name: name.toLowerCase().trim() }, create: { name: name.toLowerCase().trim() } } } })) },
+                instruments: gptInstrumentNames.length > 0 ? { create: gptInstrumentNames.map(name => ({ instrument: { connectOrCreate: { where: { name: name.toLowerCase().trim() }, create: { name: name.toLowerCase().trim() } } } })) } : undefined
+              },
+              update: {
+                profileImageUrl: storedImg, isAutogenerated: true, bio: finalBio, musicianOrBand: finalMusicianOrBand, province: finalProvince, websiteUrl: websiteUrl,
+                socialMediaLinks: Object.keys(socialMediaLinks).length > 0 ? socialMediaLinks : Prisma.JsonNull,
+                genres: { deleteMany: {}, create: finalGenres.map(name => ({ genre: { connectOrCreate: { where: { name: name.toLowerCase().trim() }, create: { name: name.toLowerCase().trim() } } } })) },
+                instruments: { deleteMany: {}, create: gptInstrumentNames.map(name => ({ instrument: { connectOrCreate: { where: { name: name.toLowerCase().trim() }, create: { name: name.toLowerCase().trim() } } } })) }
+              }
+            });
+            processedCount++;
+            console.log(`${artistLogPrefix} Successfully processed.`);
+          } catch (error: any) {
+            console.error(`${artistLogPrefix} Error:`, error.message || error, error.stack);
+            skippedCount++;
+          }
+        })
+      )
+    );
+    console.log(`[SEEDER] API Call Finished. Processed in this call: ${processedCount}, Skipped in this call: ${skippedCount}.`);
+    break; 
+  }
+  
+  if (mbBatchIteration === 0 && totalArtistsFetchedThisAPICall === 0) {
+      console.log(`[SEEDER] No artists found at offset ${apiOffset} with limit ${apiLimit}.`);
+  }
+
+  return NextResponse.json({ 
+    processed: processedCount, 
+    skipped: skippedCount, 
+    nextOffset: apiOffset + apiLimit 
+  });
+}

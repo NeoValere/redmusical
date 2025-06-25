@@ -31,6 +31,7 @@ import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass, MapPin, MusicNote,
 
 interface Musician {
   id: string;
+  userId: string;
   fullName: string; // Keep fullName
   artisticName?: string; // Added artisticName
   city: string;
@@ -56,10 +57,20 @@ const PublicPageHeader = () => {
   return (
     <AppBar
       position="sticky"
-      elevation={1}
-      sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
+      elevation={0}
+      sx={{ 
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper, 
+      }}
     >
-      <Toolbar sx={{ maxWidth: '1300px', width: '100%', mx: 'auto', px: { xs: 2, sm: 3 }, justifyContent: 'space-between' }}>
+      <Toolbar sx={{ 
+        maxWidth: '1300px', 
+        width: '100%', 
+        mx: 'auto', 
+        px: { xs: 2, sm: 3 }, 
+        justifyContent: 'space-between',
+        backgroundColor: theme.palette.background.paper,
+      }}>
         <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
           <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} />
           <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
@@ -84,8 +95,10 @@ const PublicPageHeader = () => {
 const MusicianCard: React.FC<{ musician: Musician }> = ({ musician }) => {
   const theme = useTheme();
   return (
-    <Link href={`/musicians/${musician.id}`} passHref style={{ textDecoration: 'none', height: '100%' }}>
-      <Card sx={{ 
+    <Link style={{ backgroundColor: theme.palette.background.paper , textDecoration: 'none', height: '100%' }} href={`/m/${musician.userId}`} passHref >
+      <Card 
+        elevation={0}
+        sx={{ 
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
@@ -95,7 +108,9 @@ const MusicianCard: React.FC<{ musician: Musician }> = ({ musician }) => {
           transform: 'translateY(-4px)',
           boxShadow: theme.shadows[4],
           cursor: 'pointer'
-        }
+        },
+        backgroundColor: theme.palette.background.paper,
+      
       }}>
         <CardMedia
           component="img"
@@ -108,12 +123,13 @@ const MusicianCard: React.FC<{ musician: Musician }> = ({ musician }) => {
           <Typography gutterBottom variant="h5" component="div" fontWeight="bold" color="primary.main">
             {musician.artisticName || musician.fullName} {/* Display artisticName or fallback to fullName */}
           </Typography>
+          { musician.city && 
           <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
             <MapPin size={18} color={theme.palette.text.secondary} />
             <Typography variant="body2" color="text.secondary">
               {musician.city}
             </Typography>
-          </Stack>
+          </Stack> }
           {musician.instruments && musician.instruments.length > 0 && (
             <Stack direction="row" alignItems="center" spacing={0.5} mb={1}>
               <MusicNote size={18} color={theme.palette.text.secondary} />
@@ -122,18 +138,18 @@ const MusicianCard: React.FC<{ musician: Musician }> = ({ musician }) => {
               </Typography>
             </Stack>
           )}
-          {musician.experienceLevel && (
+        {/*   {musician.experienceLevel && (
              <Stack direction="row" alignItems="center" spacing={0.5} mb={2}>
               <Star size={18} color={theme.palette.text.secondary} />
               <Typography variant="body2" color="text.secondary">
                 {musician.experienceLevel}
               </Typography>
             </Stack>
-          )}
+          )} */}
           {musician.genres && musician.genres.length > 0 && (
             <Box mb={2}>
               {musician.genres.slice(0, 3).map(g => (
-                <Chip key={g.genre.name} label={g.genre.name} size="small" sx={{ mr: 0.5, mb: 0.5, backgroundColor: alpha(theme.palette.secondary.main, 0.1) }} />
+                <Chip  key={g.genre.name} label={g.genre.name} size="small" sx={{ mr: 0.5, mb: 0.5, backgroundColor: alpha(theme.palette.secondary.main, 0.7) }} />
               ))}
             </Box>
           )}
@@ -159,10 +175,10 @@ export default function MusicosPage() {
 
   // Initialize state from URL search parameters
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
-  const [experienceFilter, setExperienceFilter] = useState(() => searchParams.get('experience') || '');
+ // const [experienceFilter, setExperienceFilter] = useState(() => searchParams.get('experience') || '');
   const [page, setPage] = useState(() => parseInt(searchParams.get('pageNumber') || '1', 10));
-  const [isBandFilter, setIsBandFilter] = useState<string | null>(null); // New state for band/solo filter
-  
+  const [tipoFilter, setTipoFilter] = useState<string | null>(searchParams.get('tipo') || null);
+
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 12;
 
@@ -170,15 +186,15 @@ export default function MusicosPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchTerm) params.set('q', searchTerm);
-    if (experienceFilter) params.set('experience', experienceFilter);
-    if (isBandFilter !== null) params.set('isBand', isBandFilter); // Add isBand filter to URL
+  //  if (experienceFilter) params.set('experience', experienceFilter);
+    if (tipoFilter) params.set('tipo', tipoFilter);
     if (page > 1) params.set('pageNumber', page.toString());
-    
+
     // Only push if params changed to avoid potential loops if router.replace itself triggers re-render
-    if (params.toString() !== searchParams.toString().split('&').filter(p => p.startsWith('q=') || p.startsWith('experience=') || p.startsWith('isBand=') || p.startsWith('pageNumber=')).join('&')) {
+    if (params.toString() !== searchParams.toString().split('&').filter(p => p.startsWith('q=') || p.startsWith('experience=') || p.startsWith('musicianOrBand=') || p.startsWith('pageNumber=')).join('&')) {
       router.replace(`/musicos?${params.toString()}`, { scroll: false });
     }
-  }, [searchTerm, experienceFilter, isBandFilter, page, router, searchParams]);
+  }, [searchTerm, tipoFilter, page, router, searchParams]);
 
 
   useEffect(() => {
@@ -197,18 +213,18 @@ export default function MusicosPage() {
       try {
         const query = new URLSearchParams();
         if (searchTerm) query.append('q', searchTerm);
-        if (experienceFilter) query.append('experience', experienceFilter);
-        if (isBandFilter !== null) query.append('isBand', isBandFilter); // Add isBand filter to API call
-        query.append('page', page.toString()); // API uses 'page'
+      //  if (experienceFilter) query.append('experience', experienceFilter);
+        if (tipoFilter) query.append('tipo', tipoFilter);
+        query.append('page', page.toString());
         query.append('limit', itemsPerPage.toString());
 
-        const response = await fetch(`/api/public/musicians?${query.toString()}`);
-        
+        const response = await fetch(`/api/public/m?${query.toString()}`);
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        
+
         setMusicians(data.musicians);
         setTotalPages(data.totalPages);
 
@@ -221,15 +237,10 @@ export default function MusicosPage() {
     };
 
     if (sessionChecked) {
-        fetchMusicians();
+      fetchMusicians();
     }
-  }, [searchTerm, page, experienceFilter, isBandFilter, sessionChecked, supabase, itemsPerPage]); // Updated dependencies
+  }, [searchTerm, page, tipoFilter, sessionChecked, supabase, itemsPerPage]);
 
-  // const handleContact = () => { // Removed contact handler
-  //   if (!currentUser) {
-  //     setIsContactModalOpen(true);
-  //   } else {
-  //     alert('Redirigiendo a contacto (funcionalidad para logueados pendiente)...');
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
     window.scrollTo(0, 0);
@@ -244,7 +255,7 @@ export default function MusicosPage() {
   }
 
   return (
-    <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
       <PublicPageHeader />
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
         <Typography variant="h3" component="h1" gutterBottom fontWeight="bold" color="text.primary" sx={{ textAlign: 'center', mb:1}}>
@@ -254,7 +265,7 @@ export default function MusicosPage() {
           Encontrá el talento perfecto para tu proyecto, banda o evento. Filtrá por instrumento, zona y más.
         </Typography>
 
-        <Paper elevation={2} sx={{ p: {xs: 2, sm:3}, mb: 4, borderRadius: 2, bgcolor: 'background.paper' }}>
+        <Paper elevation={0} sx={{ p: {xs: 2, sm:3}, mb: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
           <Grid container spacing={2} alignItems="center">
             <Grid size={{ xs: 12, md: 10 }}>
               <TextField
@@ -278,10 +289,10 @@ export default function MusicosPage() {
                 select
                 label="Tipo"
                 variant="outlined"
-                value={isBandFilter === null ? '' : (isBandFilter === 'true' ? 'band' : 'solo')}
+                value={tipoFilter || ''}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  setIsBandFilter(value === '' ? null : (value === 'band' ? 'true' : 'false'));
+                  setTipoFilter(e.target.value === '' ? null : e.target.value);
+                  setPage(1); // Reset page to 1 when filter changes
                 }}
                 SelectProps={{
                   native: true,
@@ -289,8 +300,11 @@ export default function MusicosPage() {
                 InputLabelProps={{ shrink: true }}
               >
                 <option value="">Todos</option>
-                <option value="solo">Solista</option>
-                <option value="band">Banda</option>
+                <option value="Musician">Solista</option>
+                <option value="Band">Banda</option>
+                <option value="Group">Grupo</option>
+                <option value="Choir">Coro</option>
+                <option value="Orchestra">Orquesta</option>
               </TextField>
             </Grid>
           </Grid>
@@ -316,7 +330,7 @@ export default function MusicosPage() {
           <>
             <Grid container spacing={3}>
               {musicians.map((musician) => (
-                <Grid key={musician.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                <Grid  key={musician.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                   <MusicianCard musician={musician} />
                 </Grid>
               ))}

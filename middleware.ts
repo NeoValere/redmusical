@@ -65,28 +65,25 @@ export async function middleware(req: NextRequest) {
   // Define paths that require authentication (excluding /admin as it's handled above)
   const protectedPaths = [
     '/dashboard',
-    '/musicians/[id]/edit',
-    '/musicians/[id]/upload-image', // Add upload-image page to protected paths
-    // '/api/musicians', // All musician API routes - this will be handled more granularly
-    '/api/musicians/[id]/update', // Specific API routes that need protection
-    '/api/musicians/[id]/update-profile',
-    '/api/musicians/[id]/upload-image',
-    // Note: /api/musicians/[id]/get-profile should remain public
+    '/m/[id]/edit',
+    '/m/[id]/upload-image', // Add upload-image page to protected paths
+    '/api/m/[id]/update', // Specific API routes that need protection
+    '/api/m/[id]/update-profile',
+    '/api/m/[id]/upload-image',
     '/api/switch-role',
     '/api/create-preference',
     '/api/webhook',
     '/favorites',
-    // '/admin', // Removed as it's handled separately above
   ];
 
   // Special handling for public musician profiles: they should not be protected
-  // This checks if the path starts with /musicians/ and does NOT contain /edit or /upload-image
-  const isPublicMusicianProfilePage = pathname.startsWith('/musicians/') &&
+  // This checks if the path starts with /m/ and does NOT contain /edit or /upload-image
+  const isPublicMusicianProfilePage = pathname.startsWith('/m/') &&
                                  !pathname.includes('/edit') &&
                                  !pathname.includes('/upload-image');
 
   // Allow public access to the get-profile API endpoint
-  const isPublicGetProfileAPI = pathname.match(/^\/api\/musicians\/[^/]+\/get-profile$/);
+  const isPublicGetProfileAPI = pathname.match(/^\/api\/m\/[^/]+\/get-profile$/);
 
   if (isPublicMusicianProfilePage || isPublicGetProfileAPI) {
     return res; // Allow access without authentication
@@ -94,7 +91,7 @@ export async function middleware(req: NextRequest) {
 
   // Check if the current path is protected
   const isProtected = protectedPaths.some(path => {
-    // For dynamic routes like /musicians/[id]/edit, we check if the path starts with the base
+    // For dynamic routes like /m/[id]/edit, we check if the path starts with the base
     // and is not the specific get-profile route (already handled)
     if (path.includes('[id]')) {
       const base = path.split('[id]')[0];

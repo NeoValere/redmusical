@@ -41,7 +41,7 @@ export default function BottomNavigationBar({ activeView, setActiveView, musicia
         value={activeView}
         onChange={(event, newValue) => {
           if (newValue === 'quick-edit' && musicianId) {
-            router.push(`/musicians/${musicianId}/edit`);
+            router.push(`/m/${musicianId}/edit`);
           } else {
             setActiveView(newValue);
           }

@@ -167,7 +167,7 @@ const RegisterCard = () => {
         }
 
         if (role === 'musician') {
-          router.push(`/musicians/${data.user.id}`);
+          router.push(`/m/${data.user.id}`);
         } else {
           router.push('/dashboard');
         }

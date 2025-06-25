@@ -323,7 +323,7 @@ export default function EditMusicianProfile() {
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/musicians/${musicianId}/get-profile`);
+      const response = await fetch(`/api/m/${musicianId}/get-profile`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch profile');
@@ -530,7 +530,7 @@ export default function EditMusicianProfile() {
 
       console.log('Payload being sent for partial save:', payload); // Debug log
 
-      const response = await fetch(`/api/musicians/${musicianId}/update-profile`, {
+      const response = await fetch(`/api/m/${musicianId}/update-profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -638,7 +638,7 @@ export default function EditMusicianProfile() {
     console.log('Payload being sent for full submit:', payload); // Debug log
 
     try {
-      const response = await fetch(`/api/musicians/${musicianId}/update-profile`, {
+      const response = await fetch(`/api/m/${musicianId}/update-profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -663,7 +663,7 @@ export default function EditMusicianProfile() {
       });
 
       enqueueSnackbar('Perfil actualizado exitosamente!', { variant: 'success' });
-      router.push(`/musicians/${musicianId}`); // Redirect to the profile page
+      router.push(`/m/${musicianId}`); // Redirect to the profile page
     } catch (err: any) {
       console.error('Error updating profile:', err);
       setError('Error al actualizar el perfil: ' + err.message);
@@ -709,8 +709,11 @@ export default function EditMusicianProfile() {
                   <MenuItem value="">
                     <em>Seleccionar...</em>
                   </MenuItem>
-                  <MenuItem value="musician">Músico Solista</MenuItem>
-                  <MenuItem value="band">Banda</MenuItem>
+                  <MenuItem value="Musician">Músico Solista</MenuItem>
+                  <MenuItem value="Band">Banda</MenuItem>
+                  <MenuItem value="Group">Grupo</MenuItem>
+                  <MenuItem value="Choir">Coro</MenuItem>
+                  <MenuItem value="Orchestra">Orquesta</MenuItem>
                 </Select>
                 {formErrors.musicianOrBand && <Typography color="error" variant="caption">{formErrors.musicianOrBand}</Typography>}
               </FormControl>

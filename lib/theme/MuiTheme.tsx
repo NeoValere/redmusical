@@ -1,98 +1,145 @@
 'use client';
 
-import React, { ReactNode, useMemo, useState, createContext, useContext } from 'react';
-import { createTheme, ThemeProvider as MuiThemeProvider, PaletteMode } from '@mui/material';
+import React, { ReactNode, createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createTheme, ThemeProvider as MuiThemeProvider, Theme, PaletteOptions } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// No MuiThemeContext or useMuiTheme needed if mode is fixed
-// interface MuiThemeContextType {
-//   toggleColorMode: () => void;
-//   mode: PaletteMode;
-// }
+export interface Preset {
+  name: string;
+  palette: PaletteOptions;
+}
 
-// const MuiThemeContext = createContext<MuiThemeContextType | undefined>(undefined);
+export const initialTheme = createTheme({
+  palette: {
+    primary: {
+      main: '#d6a841',
+      contrastText: '#1A1A1A',
+    },
+    secondary: {
+      main: '#7f8fa6',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#082537',
+      paper: '#183b4f',
+    },
+    text: {
+      primary: '#F0F0F0',
+      secondary: '#B0B0B0',
+    },
+    success: {
+      main: '#3bb273',
+    },
+    divider: 'rgba(255, 255, 255, 0.12)',
+  },
+  typography: {
+    fontFamily: ['Inter', 'Manrope', 'sans-serif'].join(','),
+    h1: { fontWeight: 700 },
+    h2: { fontWeight: 700 },
+    h3: { fontWeight: 600 },
+    h4: { fontWeight: 600 },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: ({ ownerState, theme }) => ({
+          ...(ownerState.variant === 'contained' &&
+            ownerState.color === 'primary' && {
+              '&:hover': {
+                backgroundColor: '#b78a34',
+              },
+            }),
+        }),
+      },
+    },
+   /*  MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#183b4f',
+        }
+      }
+    } */
+  },
+});
 
-// export const useMuiTheme = () => {
-//   const context = useContext(MuiThemeContext);
-//   if (context === undefined) {
-//     throw new Error('useMuiTheme must be used within a MuiAppThemeProvider');
-//   }
-//   return context;
-// };
+const ThemeContext = createContext({
+  theme: initialTheme,
+  presets: [] as Preset[],
+  defaultPreset: '',
+  setTheme: (palette: PaletteOptions) => {},
+  savePreset: (preset: Preset) => {},
+  deletePreset: (presetName: string) => {},
+  revertToOriginal: () => {},
+  setDefaultPreset: (presetName: string) => {},
+});
+
+export const useThemeContext = () => useContext(ThemeContext);
 
 export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
-  // Mode is fixed to 'dark' (oscuro moderado)
-  const mode: PaletteMode = 'dark';
+  const [originalTheme] = useState<Theme>(initialTheme);
+  const [currentTheme, setCurrentTheme] = useState<Theme>(initialTheme);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [defaultPreset, setDefaultPresetState] = useState<string>('');
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-          primary: {
-            main: '#d6a841', // Dorado principal
-            contrastText: '#1A1A1A', // Texto oscuro para contraste con dorado
-          },
-          secondary: {
-            main: '#7f8fa6', // Gris azulado secundario
-            contrastText: '#ffffff',
-          },
-          background: {
-            default: '#082537', // Azul muy oscuro (mencionado por el usuario)
-            paper: '#183b4f',   // Azul verdoso oscuro (mencionado por el usuario)
-          },
-          text: {
-            primary: '#F0F0F0',   // Casi blanco para texto principal
-            secondary: '#B0B0B0', // Gris claro para texto secundario
-          },
-          success: {
-            main: '#3bb273', 
-          },
-          divider: 'rgba(255, 255, 255, 0.12)', // Divisor más visible
-        },
-        typography: {
-          fontFamily: ['Inter', 'Manrope', 'sans-serif'].join(','),
-          h1: { fontWeight: 700 },
-          h2: { fontWeight: 700 },
-          h3: { fontWeight: 600 },
-          h4: { fontWeight: 600 },
-          h5: { fontWeight: 600 },
-          h6: { fontWeight: 600 },
-        },
-        components: {
-          MuiButton: {
-            styleOverrides: {
-              root: ({ ownerState, theme }) => ({
-                ...(ownerState.variant === 'contained' &&
-                  ownerState.color === 'primary' && {
-                    '&:hover': {
-                      backgroundColor: '#b78a34', // Dorado más oscuro para hover
-                    },
-                  }),
-              }),
-            },
-          },
-          MuiAppBar: {
-            styleOverrides: {
-              root: {
-                 // Asegurar que el AppBar use el color de fondo de 'paper' del tema
-                backgroundColor: '#183b4f', // Coincide con el nuevo background.paper
-              }
-            }
-          }
-        },
-      }),
-    [mode], // Aunque mode es fijo, useMemo lo necesita si estuviera en el scope.
-            // Podríamos quitar useMemo si mode es realmente una constante global al provider.
-            // Por ahora lo dejamos para mantener la estructura.
-  );
+  useEffect(() => {
+    const savedPresets = localStorage.getItem('themePresets');
+    const defaultPresetName = localStorage.getItem('defaultPreset');
+    const loadedPresets = savedPresets ? JSON.parse(savedPresets) : [];
+    
+    if (loadedPresets.length > 0) {
+      setPresets(loadedPresets);
+    }
+
+    if (defaultPresetName) {
+      setDefaultPresetState(defaultPresetName);
+      const defaultPreset = loadedPresets.find((p: Preset) => p.name === defaultPresetName);
+      if (defaultPreset) {
+        const newTheme = createTheme({ ...originalTheme, palette: defaultPreset.palette });
+        setCurrentTheme(newTheme);
+      }
+    }
+  }, []);
+
+  const setTheme = (palette: PaletteOptions) => {
+    const newTheme = createTheme({ ...originalTheme, palette });
+    setCurrentTheme(newTheme);
+  };
+
+  const savePreset = (preset: Preset) => {
+    const newPresets = [...presets.filter(p => p.name !== preset.name), preset];
+    setPresets(newPresets);
+    localStorage.setItem('themePresets', JSON.stringify(newPresets));
+  };
+
+  const deletePreset = (presetName: string) => {
+    const newPresets = presets.filter(p => p.name !== presetName);
+    setPresets(newPresets);
+    localStorage.setItem('themePresets', JSON.stringify(newPresets));
+  };
+
+  const revertToOriginal = () => {
+    setCurrentTheme(originalTheme);
+  };
+
+  const setDefaultPreset = (presetName: string) => {
+    localStorage.setItem('defaultPreset', presetName);
+    setDefaultPresetState(presetName);
+    const preset = presets.find(p => p.name === presetName);
+    if (preset) {
+      setTheme(preset.palette);
+    }
+  };
+
+  const memoizedTheme = useMemo(() => currentTheme, [currentTheme]);
 
   return (
-    // <MuiThemeContext.Provider value={{ toggleColorMode, mode }}> // No longer needed
-    <MuiThemeProvider theme={theme}>
-      <CssBaseline />
-      {children}
-    </MuiThemeProvider>
-    // </MuiThemeContext.Provider> // No longer needed
+    <ThemeContext.Provider value={{ theme: memoizedTheme, presets, setTheme, savePreset, deletePreset, revertToOriginal, setDefaultPreset, defaultPreset }}>
+      <MuiThemeProvider theme={memoizedTheme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
+    </ThemeContext.Provider>
   );
 };

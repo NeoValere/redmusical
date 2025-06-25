@@ -1,8 +1,11 @@
+"use client";
+
 // app/admin/page.tsx
 import React from 'react';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import ThemeEditor from '../../components/ThemeEditor';
 
 export default function AdminDashboardPage() {
   return (
@@ -13,7 +16,7 @@ export default function AdminDashboardPage() {
       <Typography variant="body1">
         Welcome to the RedMusical Admin Panel. Use the sidebar to navigate through the different sections.
       </Typography>
-      {/* Placeholder for future dashboard widgets or summaries */}
+      <ThemeEditor />
     </Paper>
   );
 }

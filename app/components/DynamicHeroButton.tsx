@@ -93,7 +93,7 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
         >
           <MenuItem
             component={Link}
-            href={`/musicians/${userId}`}
+            href={`/dashboard`}
             onClick={handleClose}
             sx={{ paddingY: 1.5, paddingX: 2.5 }}
           >
@@ -102,11 +102,11 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
           </MenuItem>
           <MenuItem
             component={Link}
-            href="/dashboard"
+            href="/dashboard/search"
             onClick={handleClose}
             sx={{ paddingY: 1.5, paddingX: 2.5 }}
           >
-            <Buildings size={20} style={{ marginRight: theme.spacing(1.5), color: theme.palette.secondary.main }} />
+            <Buildings size={20} style={{ marginRight: theme.spacing(1.5), color: theme.palette.primary.main }} />
             Panel de Búsqueda
           </MenuItem>
         </Menu>
@@ -118,7 +118,7 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
     return (
       <Button
         component={Link}
-        href={`/musicians/${userId}`}
+        href={`/m/${userId}`}
         variant="contained"
         color="primary"
         size="large"

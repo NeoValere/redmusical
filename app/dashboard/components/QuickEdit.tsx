@@ -62,7 +62,7 @@ export default function QuickEdit({ userId, musicianProfile }: QuickEditProps) {
         </Typography>
         <Button
           component={Link}
-          href={`/musicians/${userId}/edit`}
+          href={`/m/${userId}/edit`}
           variant="contained"
           color="primary"
           size="small"

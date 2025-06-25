@@ -62,7 +62,7 @@ export default function LoginCard() {
     } else if (data.user) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user && user.user_metadata.role === 'musician') {
-        router.push(`/musicians/${user.id}`);
+        router.push(`/m/${user.id}`);
       } else if (user && user.user_metadata.role === 'contractor') {
         router.push('/dashboard/search');
       } else {

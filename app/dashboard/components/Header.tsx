@@ -2,6 +2,7 @@
 
 import { Box, Typography, IconButton, AppBar, Toolbar } from '@mui/material';
 import { useTheme } from '@mui/material/styles'; // Import useTheme
+import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 // ArrowForwardIosIcon is no longer needed
@@ -19,6 +20,7 @@ interface HeaderProps {
   isSidebarOpen: boolean;
   handleLogout: () => void;
   userRole: string | null;
+  activeRole: string | null;
   userId: string | null; // Needed for role switching/creation logic
   hasContractorProfile: boolean;
   handleSwitchRole: () => Promise<void>;
@@ -32,12 +34,14 @@ export default function Header({
   isSidebarOpen,
   handleLogout,
   userRole,
+  activeRole,
   userId, // Destructure userId
   hasContractorProfile,
   handleSwitchRole,
   handleCreateContractorProfile,
 }: HeaderProps) {
   const theme = useTheme();
+  const pathname = usePathname();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const mobileMenuOpen = Boolean(anchorEl);
 
@@ -96,7 +100,9 @@ export default function Header({
             ¡Hola {userName}!
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Desde acá podés gestionar tu perfil, revisar tu visibilidad y optimizar tu llegada a quienes buscan músicos.
+            {activeRole === 'contractor'
+              ? 'Encontrá a los mejores músicos para tus proyectos.'
+              : 'Desde acá podés gestionar tu perfil, revisar tu visibilidad y optimizar tu llegada a quienes buscan músicos.'}
           </Typography>
         </Box>
 

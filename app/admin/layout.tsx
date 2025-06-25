@@ -11,6 +11,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import MenuIcon from '@mui/icons-material/Menu';
 import { MuiAppThemeProvider } from '@/lib/theme/MuiTheme'; // Import the theme provider
 import Link from 'next/link'; // Import Link for navigation
+import { usePathname } from 'next/navigation';
 
 const drawerWidth = 240;
 
@@ -21,6 +22,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const pathname = usePathname();
 
   const handleDrawerToggle = () => {
     if (!isClosing) {
@@ -55,7 +57,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <List>
         {drawerItems.map((item) => (
           <ListItem key={item.text} disablePadding component={Link} href={item.path} sx={{ color: 'inherit', textDecoration: 'none' }}>
-            <ListItemButton selected={typeof window !== 'undefined' && window.location.pathname === item.path}>
+            <ListItemButton selected={pathname === item.path}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
@@ -76,6 +78,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             width: { sm: `calc(100% - ${drawerWidth}px)` },
             ml: { sm: `${drawerWidth}px` },
             zIndex: (theme) => theme.zIndex.drawer + 1, // Ensure AppBar is above Drawer
+            bgcolor: 'secondary.main',
           }}
         >
           <Toolbar>

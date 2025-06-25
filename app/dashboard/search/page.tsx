@@ -1,50 +1,75 @@
-import React from 'react';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
-import SwitchRoleButton from './components/SwitchRoleButton';
+'use client';
 
-export const dynamic = 'force-dynamic'; // Ensure dynamic rendering for cookies()
+import { useTheme, Box, Typography, Grid, Card, CardContent, Button, alpha } from '@mui/material';
+import { Favorite, Message, Search } from '@mui/icons-material';
+import Link from 'next/link';
 
-export default async function SearchDashboardPage() {
-  const supabase = createRouteHandlerClient({ cookies });
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const userId = session?.user?.id || null;
-  const userEmail = session?.user?.email || null;
-  const userFullName = session?.user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'New User';
-
-  let hasMusicianProfile = false;
-  if (userId) {
-    const musicianProfile = await prisma.musician.findFirst({
-      where: { userId: userId },
-    });
-    hasMusicianProfile = !!musicianProfile;
-  }
+export default function SearchDashboardPage() {
+  const theme = useTheme();
 
   return (
-    <div>
-      <h1>Búsqueda de músicos</h1>
-      <p>Bienvenido a tu área de búsqueda.</p>
-      {/* Placeholder for search filters */}
-      <div>
-        <h2>Filtros</h2>
-        <div>
-          <label htmlFor="musicianOrBand">Músico/Banda:</label>
-          <select id="musicianOrBand" name="musicianOrBand">
-            <option value="">Todos</option>
-            <option value="musician">Músico Solista</option>
-            <option value="band">Banda</option>
-          </select>
-        </div>
-        {/* Zona and Instrumento filters removed */}
-      </div>
-      <SwitchRoleButton
-        userId={userId}
-        userEmail={userEmail}
-        userFullName={userFullName}
-        hasMusicianProfile={hasMusicianProfile}
-      />
-    </div>
+    <Box
+      component="section"
+      id="inicio-section"
+      sx={{
+        mb: 4,
+        p: { xs: 2, sm: 3 },
+        backgroundColor: alpha(theme.palette.background.paper, 0.7),
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderRadius: 2,
+        boxShadow: theme.shadows[2],
+        border: `1px solid ${theme.palette.divider}`,
+      }}
+    >
+      <Typography variant="h6" color="textSecondary" paragraph>
+        Bienvenido a tu panel de búsqueda.
+      </Typography>
+
+      <Grid container spacing={3} sx={{ my: 4 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Card>
+            <CardContent>
+              <Favorite sx={{ fontSize: 40, color: 'primary.main' }} />
+              <Typography variant="h5">0</Typography>
+              <Typography color="textSecondary">Músicos Favoritos</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Card>
+            <CardContent>
+              <Message sx={{ fontSize: 40, color: 'secondary.main' }} />
+              <Typography variant="h5">0</Typography>
+              <Typography color="textSecondary">Mensajes Enviados</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2} justifyContent="center">
+        <Grid>
+          <Link href="/search" passHref>
+            <Button variant="contained" color="primary" startIcon={<Search />}>
+              Explorar Músicos
+            </Button>
+          </Link>
+        </Grid>
+        <Grid>
+          <Link href="/favorites" passHref>
+            <Button variant="outlined" color="primary" startIcon={<Favorite />}>
+              Mis Favoritos
+            </Button>
+          </Link>
+        </Grid>
+        <Grid>
+          <Link href="/messages" passHref>
+            <Button variant="outlined" color="secondary" startIcon={<Message />}>
+              Mensajes
+            </Button>
+          </Link>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

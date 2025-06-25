@@ -26,7 +26,7 @@ const UploadImagePage = () => {
 
   useEffect(() => {
     const pathSegments = window.location.pathname.split('/');
-    const id = pathSegments[2]; // Assuming URL is /musicians/[id]/upload-image
+    const id = pathSegments[2]; // Assuming URL is /m/[id]/upload-image
     if (id) {
       setMusicianId(id);
       fetchMusicianProfileImage(id);
@@ -47,7 +47,7 @@ const UploadImagePage = () => {
       }
       const user = session.user;
 
-      const response = await fetch(`/api/musicians/${id}`, {
+      const response = await fetch(`/api/m/${id}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const UploadImagePage = () => {
         return;
       }
 
-      const response = await fetch(`/api/musicians/${musicianId}/upload-image`, {
+      const response = await fetch(`/api/m/${musicianId}/upload-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -100,7 +100,7 @@ const UploadImagePage = () => {
       const data = await response.json();
       setProfileImageUrl(data.publicUrl);
       alert('Imagen de perfil actualizada correctamente');
-      router.push(`/musicians/${musicianId}`); // Redirect back to profile after upload
+      router.push(`/m/${musicianId}`); // Redirect back to profile after upload
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -161,7 +161,7 @@ const UploadImagePage = () => {
             <Button
               variant="contained"
               color="primary"
-              onClick={() => router.push(`/musicians/${musicianId}`)}
+              onClick={() => router.push(`/m/${musicianId}`)}
               sx={{ py: 1, px: 3, fontWeight: 'semibold' }}
             >
               Volver al Perfil

@@ -86,20 +86,31 @@ export default function Home() {
   }, [supabase]); // Removed router from dependencies as it's not directly used for redirection here anymore
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', overflowX: 'hidden' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: theme.palette.secondary.main, color: 'text.primary', overflowX: 'hidden' }}>
       {/* Navigation */}
       <AppBar
         position="sticky"
-        elevation={1} 
+        elevation={0}
         sx={{
           // backgroundColor ya está manejado por el override en MuiTheme.tsx
+          bgcolor: theme.palette.secondary.main, // Apply secondary color here
           borderBottom: `1px solid ${theme.palette.divider}`
         }}
       >
-        <Toolbar sx={{ maxWidth: '1300px', width: '100%', mx: 'auto', px: { xs: 2, sm: 3 }, justifyContent: 'space-between' }}>
+        <Toolbar
+         
+         sx={{ 
+          maxWidth: '1300px', 
+          width: '100%', 
+          mx: 'auto', 
+          px: { xs: 2, sm: 3 }, 
+          justifyContent: 'space-between',
+          bgcolor: theme.palette.secondary.main, // Apply secondary color here
+          color: theme.palette.secondary.contrastText // Ensure text contrasts
+        }}>
           <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
             <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} /> {/* Dorado */}
-            <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}> {/* Casi blanco */}
+            <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'inherit' }}>
               redmusical.ar
             </Typography>
           </MuiLink>
@@ -111,12 +122,12 @@ export default function Home() {
                 variant="outlined"
                 startIcon={<SignIn size={20} />}
                 sx={{
-                  color: theme.palette.text.primary, 
-                  borderColor: theme.palette.primary.main, 
+                  color: 'inherit',
+                  borderColor: 'inherit',
                   '&:hover': {
-                    borderColor: theme.palette.primary.light || '#edd8a7', 
-                    color: theme.palette.primary.light || '#edd8a7', 
-                    bgcolor: 'rgba(214, 168, 65, 0.08)', 
+                    borderColor: theme.palette.primary.main,
+                    color: theme.palette.primary.main,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
                   },
                 }}
               >
@@ -140,12 +151,12 @@ export default function Home() {
                 href="/dashboard" 
                 variant="outlined"
                 sx={{
-                  color: theme.palette.text.primary, 
-                  borderColor: theme.palette.primary.main,
+                  color: 'inherit',
+                  borderColor: 'inherit',
                   '&:hover': {
-                    borderColor: theme.palette.primary.light || '#edd8a7', 
-                    color: theme.palette.primary.light || '#edd8a7', 
-                    bgcolor: 'rgba(214, 168, 65, 0.08)', 
+                    borderColor: theme.palette.primary.main,
+                    color: theme.palette.primary.main,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
                   },
                 }}
               >
@@ -297,7 +308,7 @@ export default function Home() {
                 sx={{ mt: 4, mb: 2 }}
               >
                 <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
-                  ¿Sos músico o banda? <MuiLink component={Link} href={currentUser ? (userRoles.isMusician ? `/musicians/${userRoles.userId}` : "/select-role?role=musician") : "/register?role=musician"} fontWeight="bold" color="primary">Creá tu perfil gratis y mostrate.</MuiLink>
+                  ¿Sos músico o banda? <MuiLink component={Link} href={currentUser ? (userRoles.isMusician ? `/m/${userRoles.userId}` : "/select-role?role=musician") : "/register?role=musician"} fontWeight="bold" color="primary">Creá tu perfil gratis y mostrate.</MuiLink>
                 </Typography>
                 <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
                   ¿Buscás músicos? <MuiLink component={Link} href="/musicos" fontWeight="bold" color="primary">Explorá nuestra red.</MuiLink>

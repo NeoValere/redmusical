@@ -34,7 +34,7 @@ export default function Home() {
           const hasContractorProfile = contractorData.exists;
 
           if (hasMusicianProfile) {
-            router.push(`/musicians/${user.id}`);
+            router.push(`/m/${user.id}`);
           } else if (hasContractorProfile) {
             router.push('/dashboard/search');
           } else {

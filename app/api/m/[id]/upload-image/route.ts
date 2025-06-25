@@ -59,7 +59,7 @@ export async function POST(
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      console.error('API /api/musicians/[id]/upload-image: Unauthorized - No active session or session error:', sessionError);
+      console.error('API /api/m/[id]/upload-image: Unauthorized - No active session or session error:', sessionError);
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
@@ -67,7 +67,7 @@ export async function POST(
 
     // Ensure the user is authorized to update this specific musician profile
     if (id !== userIdFromSession) {
-      console.error(`API /api/musicians/[id]/upload-image: Forbidden - User ${userIdFromSession} attempted to upload image for profile of ${id}`);
+      console.error(`API /api/m/[id]/upload-image: Forbidden - User ${userIdFromSession} attempted to upload image for profile of ${id}`);
       return NextResponse.json({ message: 'Forbidden: You can only upload images for your own profile.' }, { status: 403 });
     }
 
@@ -78,7 +78,7 @@ export async function POST(
     });
 
     if (!musicianRecord) {
-      console.error(`API /api/musicians/[id]/upload-image: Musician with userId ${userIdFromSession} not found in database.`);
+      console.error(`API /api/m/[id]/upload-image: Musician with userId ${userIdFromSession} not found in database.`);
       return NextResponse.json({ message: 'Musician profile not found' }, { status: 404 });
     }
 

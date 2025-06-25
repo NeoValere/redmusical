@@ -104,11 +104,13 @@ export async function middleware(req: NextRequest) {
     return pathname.startsWith(path);
   });
 
+  const publicPaths = ['/', '/musicos', '/login', '/register'];
+
   // If the path is protected and there's no session, redirect to login
-  if (isProtected && !session) {
+  if (isProtected && !session && !publicPaths.includes(pathname)) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
-    redirectUrl.searchParams.set(`redirectedFrom`, pathname);
+    redirectUrl.searchParams.set('redirectedFrom', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 

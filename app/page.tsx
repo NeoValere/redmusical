@@ -1,5 +1,7 @@
 "use client";
 
+export const runtime = 'nodejs';
+
 import Link from 'next/link';
 import { useEffect, useState, useRef } from 'react'; // Added useRef
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';

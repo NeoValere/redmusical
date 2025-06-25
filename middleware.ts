@@ -14,53 +14,53 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Handle /admin routes specifically
-  if (pathname.startsWith('/admin')) {
-    if (!session) {
-      // Not logged in, redirect to login
-      const redirectUrl = req.nextUrl.clone();
-      redirectUrl.pathname = '/login';
-      redirectUrl.searchParams.set(`redirectedFrom`, pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
+  // if (pathname.startsWith('/admin')) {
+  //   if (!session) {
+  //     // Not logged in, redirect to login
+  //     const redirectUrl = req.nextUrl.clone();
+  //     redirectUrl.pathname = '/login';
+  //     redirectUrl.searchParams.set(`redirectedFrom`, pathname);
+  //     return NextResponse.redirect(redirectUrl);
+  //   }
 
-    // Logged in, call the API route to check if user is an admin
-    try {
-      // Construct the absolute URL for the API route
-      const checkAdminUrl = new URL('/api/auth/check-admin-status', req.url);
+  //   // Logged in, call the API route to check if user is an admin
+  //   try {
+  //     // Construct the absolute URL for the API route
+  //     const checkAdminUrl = new URL('/api/auth/check-admin-status', req.url);
       
-      // Pass along the cookies from the original request to the API route
-      // This is crucial for the API route to authenticate the user with Supabase
-      const apiRes = await fetch(checkAdminUrl.toString(), {
-        headers: {
-          cookie: req.headers.get('cookie') || '', // Pass existing cookies
-        },
-      });
+  //     // Pass along the cookies from the original request to the API route
+  //     // This is crucial for the API route to authenticate the user with Supabase
+  //     const apiRes = await fetch(checkAdminUrl.toString(), {
+  //       headers: {
+  //         cookie: req.headers.get('cookie') || '', // Pass existing cookies
+  //       },
+  //     });
 
-      if (!apiRes.ok) {
-        console.error("Admin check API call failed:", apiRes.status, await apiRes.text());
-        // Not an admin or error, redirect to homepage
-        return NextResponse.redirect(new URL('/', req.url));
-      }
+  //     if (!apiRes.ok) {
+  //       console.error("Admin check API call failed:", apiRes.status, await apiRes.text());
+  //       // Not an admin or error, redirect to homepage
+  //       return NextResponse.redirect(new URL('/', req.url));
+  //     }
 
-      const { isAdmin, error: apiError } = await apiRes.json();
+  //     const { isAdmin, error: apiError } = await apiRes.json();
 
-      if (apiError) {
-        console.error("Error from admin check API:", apiError);
-        return NextResponse.redirect(new URL('/', req.url));
-      }
+  //     if (apiError) {
+  //       console.error("Error from admin check API:", apiError);
+  //       return NextResponse.redirect(new URL('/', req.url));
+  //     }
 
-      if (!isAdmin) {
-        // Not an admin, redirect to homepage
-        return NextResponse.redirect(new URL('/', req.url));
-      }
-      // User is an admin, allow access
-      return res;
-    } catch (error) {
-      console.error("Error calling admin check API in middleware:", error);
-      // On error, redirect to a generic error page or homepage
-      return NextResponse.redirect(new URL('/error', req.url));
-    }
-  }
+  //     if (!isAdmin) {
+  //       // Not an admin, redirect to homepage
+  //       return NextResponse.redirect(new URL('/', req.url));
+  //     }
+  //     // User is an admin, allow access
+  //     return res;
+  //   } catch (error) {
+  //     console.error("Error calling admin check API in middleware:", error);
+  //     // On error, redirect to a generic error page or homepage
+  //     return NextResponse.redirect(new URL('/error', req.url));
+  //   }
+  // }
 
   // Define paths that require authentication (excluding /admin as it's handled above)
   const protectedPaths = [

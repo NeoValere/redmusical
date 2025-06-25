@@ -3,9 +3,16 @@
 import { useTheme, Box, Typography, Grid, Card, CardContent, Button, alpha } from '@mui/material';
 import { Favorite, Message, Search } from '@mui/icons-material';
 import Link from 'next/link';
+import { useDashboard } from '../context/DashboardContext';
+import { useEffect } from 'react';
 
 export default function SearchDashboardPage() {
   const theme = useTheme();
+  const { setPageTitle } = useDashboard();
+
+  useEffect(() => {
+    setPageTitle('Explorar Músicos');
+  }, [setPageTitle]);
 
   return (
     <Box
@@ -22,10 +29,6 @@ export default function SearchDashboardPage() {
         border: `1px solid ${theme.palette.divider}`,
       }}
     >
-      <Typography variant="h6" color="textSecondary" paragraph>
-        Bienvenido a tu panel de búsqueda.
-      </Typography>
-
       <Grid container spacing={3} sx={{ my: 4 }}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <Card>

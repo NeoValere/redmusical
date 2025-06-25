@@ -3,6 +3,7 @@
 import { Box, Typography, IconButton, AppBar, Toolbar } from '@mui/material';
 import { useTheme } from '@mui/material/styles'; // Import useTheme
 import { usePathname } from 'next/navigation';
+import { useDashboard } from '../context/DashboardContext';
 import { motion } from 'framer-motion';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 // ArrowForwardIosIcon is no longer needed
@@ -42,6 +43,7 @@ export default function Header({
 }: HeaderProps) {
   const theme = useTheme();
   const pathname = usePathname();
+  const { pageTitle } = useDashboard();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const mobileMenuOpen = Boolean(anchorEl);
 
@@ -97,12 +99,7 @@ export default function Header({
 
         <Box sx={{ flexGrow: 1 }}>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-            ¡Hola {userName}!
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {activeRole === 'contractor'
-              ? 'Encontrá a los mejores músicos para tus proyectos.'
-              : 'Desde acá podés gestionar tu perfil, revisar tu visibilidad y optimizar tu llegada a quienes buscan músicos.'}
+            {pageTitle}
           </Typography>
         </Box>
 

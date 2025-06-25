@@ -22,7 +22,7 @@ interface DashboardPageProps {
 }
 
 export default function DashboardPage({}: DashboardPageProps) {
-  const { activeView } = useDashboard();
+  const { activeView, setPageTitle } = useDashboard();
   const [userId, setUserId] = useState<string | null>(null);
   const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);
   const supabase = createClientComponentClient();
@@ -45,6 +45,25 @@ export default function DashboardPage({}: DashboardPageProps) {
     };
     fetchUserProfile();
   }, [supabase, router]);
+
+  useEffect(() => {
+    switch (activeView) {
+      case 'mi-perfil':
+        setPageTitle('Mi Perfil');
+        break;
+      case 'estadisticas':
+        setPageTitle('Estadísticas');
+        break;
+      case 'visibilidad':
+        setPageTitle('Visibilidad');
+        break;
+      case 'mi-plan':
+        setPageTitle('Mi Plan');
+        break;
+      default:
+        setPageTitle('Dashboard');
+    }
+  }, [activeView, setPageTitle]);
 
   const handleVisibilityChange = (newIsPublic: boolean) => {
     setMusicianProfile(prevProfile => {

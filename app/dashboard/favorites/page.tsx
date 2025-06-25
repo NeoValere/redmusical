@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useDashboard } from '../context/DashboardContext';
 import {
   Container,
   Typography,
@@ -43,8 +44,13 @@ const mockFavorites: FavoriteMusician[] = [
 ];
 
 export default function FavoritesPage() {
+  const { setPageTitle } = useDashboard();
   const [favorites, setFavorites] = useState<FavoriteMusician[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setPageTitle('Mis Favoritos');
+  }, [setPageTitle]);
 
   useEffect(() => {
     // Simulate API call to fetch favorites
@@ -70,9 +76,6 @@ export default function FavoritesPage() {
 
   return (
     <Container sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Mis Músicos Favoritos
-      </Typography>
       {favorites.length === 0 ? (
         <Typography>No tenés músicos guardados en favoritos.</Typography>
       ) : (
@@ -98,12 +101,12 @@ export default function FavoritesPage() {
                   </Typography>
                   <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <Link href={`/m/${musician.id}`} passHref>
+                      <Link href={`/m/${musician.id}?view=mi-perfil`} passHref>
                         <Button size="small" startIcon={<Person />}>
                           Ver Perfil
                         </Button>
                       </Link>
-                      <Link href={`/messages/${musician.id}`} passHref>
+                      <Link href={`/messages/${musician.id}?view=mensajes`} passHref>
                         <Button size="small" startIcon={<Message />}>
                           Mensaje
                         </Button>

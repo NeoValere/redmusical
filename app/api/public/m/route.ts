@@ -22,78 +22,119 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const searchTerm = searchParams.get('q') || '';
-    const musicianOrBandParam = searchParams.get('tipo');
-    const experienceFilter = searchParams.get('experience') || '';
+    const musicianOrBand = searchParams.get('musicianOrBand');
+    const province = searchParams.get('province');
+    const city = searchParams.get('city');
+    const genres = searchParams.get('genres')?.split(',');
+    const instruments = searchParams.get('instruments')?.split(',');
+    const skills = searchParams.get('skills')?.split(',');
+    const acceptsGigs = searchParams.get('acceptsGigs');
+    const acceptsCollaborations = searchParams.get('acceptsCollaborations');
+    const availability = searchParams.get('availability')?.split(',');
+    const minRate = searchParams.get('minRate');
+    const maxRate = searchParams.get('maxRate');
+
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '12', 10);
     const skip = (page - 1) * limit;
 
-    const removeAccents = (str: string | null | undefined) => {
-      if (!str) return '';
-      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    };
-
     let whereClause: any = {
-      AND: [
-        { isPublic: true },
-      ],
+      AND: [{ isPublic: true }],
     };
 
-    if (musicianOrBandParam) {
+    if (searchTerm) {
       whereClause.AND.push({
-        musicianOrBand: {
-          equals: musicianOrBandParam,
-          mode: 'insensitive',
-        },
+        OR: [
+          { artisticName: { contains: searchTerm, mode: 'insensitive' } },
+          { fullName: { contains: searchTerm, mode: 'insensitive' } },
+          { bio: { contains: searchTerm, mode: 'insensitive' } },
+        ],
       });
     }
 
-    if (experienceFilter) {
-      whereClause.AND.push({ experienceLevel: experienceFilter });
+    if (musicianOrBand) {
+      if (musicianOrBand === 'Musician') {
+        whereClause.AND.push({
+          OR: [
+            { musicianOrBand: { equals: 'Musician' } },
+            { musicianOrBand: { equals: null } },
+          ],
+        });
+      } else {
+        whereClause.AND.push({ musicianOrBand: { equals: musicianOrBand } });
+      }
     }
-
-    if (searchTerm) {
-      const unaccentedSearchTerm = removeAccents(searchTerm.toLowerCase());
-      const searchWords = unaccentedSearchTerm.split(' ').filter(word => word.length > 0);
-
-      const orConditions = [];
-
-      for (const word of searchWords) {
-        const baseTerm = getBaseTermUnaccented(word);
-
-        const termConditions = [
-          { artisticName: { contains: word, mode: 'insensitive' } },
-          { fullName: { contains: word, mode: 'insensitive' } },
-          { bio: { contains: word, mode: 'insensitive' } },
-          { city: { contains: word, mode: 'insensitive' } },
-          { province: { contains: word, mode: 'insensitive' } },
-          { servicesOffered: { hasSome: [word] } },
-          { influences: { hasSome: [word] } },
-          { gearHighlights: { hasSome: [word] } },
-          { instruments: { some: { instrument: { name: { contains: word, mode: 'insensitive' } } } } },
-          { genres: { some: { genre: { name: { contains: word, mode: 'insensitive' } } } } },
-          { skills: { some: { skill: { name: { contains: word, mode: 'insensitive' } } } } },
-        ];
-
-        if (baseTerm) {
-          termConditions.push(
-            { artisticName: { contains: baseTerm, mode: 'insensitive' } },
-            { fullName: { contains: baseTerm, mode: 'insensitive' } },
-            { bio: { contains: baseTerm, mode: 'insensitive' } },
-            { city: { contains: baseTerm, mode: 'insensitive' } },
-            { province: { contains: baseTerm, mode: 'insensitive' } },
-            { instruments: { some: { instrument: { name: { contains: baseTerm, mode: 'insensitive' } } } } },
-            { genres: { some: { genre: { name: { contains: baseTerm, mode: 'insensitive' } } } } },
-            { skills: { some: { skill: { name: { contains: baseTerm, mode: 'insensitive' } } } } }
-          );
-        }
-
-        orConditions.push(...termConditions);
+    if (province) {
+      whereClause.AND.push({ province: { contains: province, mode: 'insensitive' } });
+    }
+    if (city) {
+      whereClause.AND.push({ city: { contains: city, mode: 'insensitive' } });
+    }
+    if (genres && genres.length > 0) {
+      const genreIds = await prisma.genre.findMany({
+        where: { name: { in: genres, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (genreIds.length > 0) {
+        whereClause.AND.push({
+          genres: { some: { genreId: { in: genreIds.map((g) => g.id) } } },
+        });
       }
-
-      if (orConditions.length > 0) {
-        whereClause.AND.push({ OR: orConditions });
+    }
+    if (instruments && instruments.length > 0) {
+      const instrumentIds = await prisma.instrument.findMany({
+        where: { name: { in: instruments, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (instrumentIds.length > 0) {
+        whereClause.AND.push({
+          instruments: {
+            some: { instrumentId: { in: instrumentIds.map((i) => i.id) } },
+          },
+        });
       }
+    }
+    if (skills && skills.length > 0) {
+      const skillIds = await prisma.skill.findMany({
+        where: { name: { in: skills, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (skillIds.length > 0) {
+        whereClause.AND.push({
+          skills: { some: { skillId: { in: skillIds.map((s) => s.id) } } },
+        });
+      }
+    }
+    if (availability && availability.length > 0) {
+      const availabilityIds = await prisma.availability.findMany({
+        where: { name: { in: availability, mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (availabilityIds.length > 0) {
+        whereClause.AND.push({
+          availability: {
+            some: { availabilityId: { in: availabilityIds.map((a) => a.id) } },
+          },
+        });
+      }
+    }
+    if (acceptsGigs === 'true') {
+      whereClause.AND.push({ acceptsGigs: true });
+    }
+    if (acceptsCollaborations === 'true') {
+      whereClause.AND.push({ acceptsCollaborations: true });
+    }
+    if (minRate) {
+      const minRateNum = parseInt(minRate, 10);
+      whereClause.AND.push({
+        OR: [
+          { hourlyRate: { gte: minRateNum } },
+          { hourlyRate: { equals: null } },
+        ],
+      });
+    }
+    if (maxRate && parseInt(maxRate, 10) < 500) { // Only apply max rate if it's not the default max
+        whereClause.AND.push({ hourlyRate: { lte: parseInt(maxRate, 10) } });
     }
 
     const totalCount = await prisma.musician.count({
@@ -164,27 +205,3 @@ export async function GET(request: Request) {
     }
   }
 }
-
-const getBaseTermUnaccented = (unaccentedWord: string): string | null => {
-  // Specific role/instrument transformations (unaccented)
-  const roleMap: { [key: string]: string } = {
-    "tecladista": "teclado",
-    "guitarrista": "guitarra",
-    "bajista": "bajo",
-    "baterista": "bateria",
-    "violinista": "violin",
-    "saxofonista": "saxofon",
-    "cantante": "canto",
-    // Add more as needed
-  };
-  if (roleMap[unaccentedWord]) {
-    return roleMap[unaccentedWord];
-  }
-
-  // General plural 's' removal (e.g., teclados -> teclado)
-  if (unaccentedWord.endsWith('s') && !unaccentedWord.endsWith('ss') && unaccentedWord.length > 2) {
-    return unaccentedWord.slice(0, -1);
-  }
-
-  return null;
-};

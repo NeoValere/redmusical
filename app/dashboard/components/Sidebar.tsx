@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation'; // Added usePathname
-import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle, MagnifyingGlass } from 'phosphor-react';
+import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle, MagnifyingGlass, Chat } from 'phosphor-react';
 import Image from 'next/image';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
@@ -21,6 +21,7 @@ import {
   Toolbar,
 } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
+import { useEffect } from 'react';
 
 interface SidebarProps {
   userRole: string | null;
@@ -61,9 +62,12 @@ export default function Sidebar({
   const theme = useTheme();
   const pathname = usePathname();
 
+  useEffect(() => {
+    localStorage.setItem('activeView', activeView);
+  }, [activeView]);
+
   const musicianNavItems = [
     { id: 'mi-perfil', text: 'Mi perfil', icon: <User size={24} />, href: '/dashboard' },
-    { id: 'edicion-perfil', text: 'Edición de perfil', icon: <MusicNotesSimple size={24} />, href: `/m/${userId}/edit` },
     { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} />, href: '/dashboard?view=estadisticas' },
     { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} />, href: '/dashboard?view=visibilidad' },
     { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} />, href: '/dashboard?view=mi-plan' },
@@ -71,9 +75,9 @@ export default function Sidebar({
 
   const contractorNavItems = [
     { id: 'inicio', text: 'Inicio', icon: <User size={24} />, href: '/dashboard/search' },
-    { id: 'explorar-musicos', text: 'Explorar Músicos', icon: <MagnifyingGlass size={24} />, href: '/dashboard/search' },
-    { id: 'favoritos', text: 'Mis Favoritos', icon: <CreditCard size={24} />, href: '/dashboard/favorites' },
-    { id: 'mensajes', text: 'Mensajes', icon: <Eye size={24} />, href: '/dashboard/messages' },
+    { id: 'explorar-musicos', text: 'Explorar Músicos', icon: <MagnifyingGlass size={24} />, href: '/dashboard/musicos' },
+    { id: 'favoritos', text: 'Mis Favoritos', icon: <CreditCard size={24} />, href: '/dashboard/favorites?view=favoritos' },
+    { id: 'mensajes', text: 'Mensajes', icon: <Chat size={24} />, href: '/dashboard/messages?view=mensajes' },
   ];
 
   const navItems = activeRole === 'contractor' ? contractorNavItems : musicianNavItems;

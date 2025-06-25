@@ -2,13 +2,14 @@
 
 import { useEffect, useState, ReactNode } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import BottomNavigationBar from './components/BottomNavigationBar';
 import { Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { darkenColor } from '../../utils';
 import BottomSearchNavigationBar from './search/components/BottomSearchNavigationBar';
+import MobileNavigationBar from './components/MobileNavigationBar';
 import { DashboardContext } from './context/DashboardContext';
 
 interface MusicianProfile {
@@ -27,25 +28,39 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const supabase = createClientComponentClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isSidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [activeView, setActiveView] = useState<string>('mi-perfil');
+  const [pageTitle, setPageTitle] = useState<string>('Inicio');
 
   useEffect(() => {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
   useEffect(() => {
-    const view = searchParams.get('view');
-    if (view) {
-      setActiveView(view);
-    } else {
-      // Reset to default if no view is specified
-      setActiveView('mi-perfil');
+    // Contractor routes
+    if (pathname === '/dashboard/search') {
+      setActiveView('inicio');
+    } else if (pathname === '/dashboard/musicos') {
+      setActiveView('explorar');
+    } else if (pathname === '/dashboard/favorites') {
+      setActiveView('favoritos');
+    } else if (pathname === '/dashboard/messages') {
+      setActiveView('mensajes');
     }
-  }, [searchParams]);
+    // Musician routes (and default)
+    else {
+      const view = searchParams.get('view');
+      if (view) {
+        setActiveView(view);
+      } else {
+        setActiveView('mi-perfil');
+      }
+    }
+  }, [pathname, searchParams]);
 
   const handleDrawerToggle = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -127,9 +142,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       const currentPath = window.location.pathname;
       if (!determinedRole) {
         router.push('/select-role');
-      } else if (currentActiveRole === 'contractor' && !currentPath.startsWith('/dashboard/search') && !currentPath.startsWith('/dashboard/favorites') && !currentPath.startsWith('/dashboard/messages')) {
+      } else if (
+        currentActiveRole === 'contractor' &&
+        !currentPath.startsWith('/dashboard/search') &&
+        !currentPath.startsWith('/dashboard/favorites') &&
+        !currentPath.startsWith('/dashboard/messages') &&
+        !currentPath.startsWith('/dashboard/musicos')
+      ) {
         router.push('/dashboard/search');
-      } else if (currentActiveRole === 'musician' && (currentPath.startsWith('/dashboard/search') || currentPath.startsWith('/dashboard/favorites') || currentPath.startsWith('/dashboard/messages'))) {
+      } else if (
+        currentActiveRole === 'musician' &&
+        (currentPath.startsWith('/dashboard/search') ||
+          currentPath.startsWith('/dashboard/favorites') ||
+          currentPath.startsWith('/dashboard/musicos') ||
+          currentPath.startsWith('/dashboard/messages'))
+      ) {
         router.push('/dashboard');
       }
     };
@@ -152,8 +179,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     } else {
       router.push('/dashboard');
     }
-    // We might not need a full refresh if state updates handle everything
-    setTimeout(() => router.refresh(), 100);
   };
 
   const handleCreateContractorProfile = async () => {
@@ -237,27 +262,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           paddingBottom: isMobile ? '56px' : 0,
         }}
       >
-        <Header
-          userName={userName || 'Usuario'}
-          handleDrawerToggle={handleDrawerToggle}
-          isMobile={isMobile}
-          isSidebarOpen={isSidebarOpen}
-          handleLogout={handleLogout}
-          userRole={userRole}
-          activeRole={activeRole}
-          userId={userId}
-          hasContractorProfile={hasContractorProfile}
-          handleSwitchRole={handleSwitchRole}
-          handleCreateContractorProfile={handleCreateContractorProfile}
-        />
-        <DashboardContext.Provider value={{ activeView, setActiveView }}>
+        <DashboardContext.Provider value={{ activeView, setActiveView, pageTitle, setPageTitle }}>
+          <Header
+            userName={userName || 'Usuario'}
+            handleDrawerToggle={handleDrawerToggle}
+            isMobile={isMobile}
+            isSidebarOpen={isSidebarOpen}
+            handleLogout={handleLogout}
+            userRole={userRole}
+            activeRole={activeRole}
+            userId={userId}
+            hasContractorProfile={hasContractorProfile}
+            handleSwitchRole={handleSwitchRole}
+            handleCreateContractorProfile={handleCreateContractorProfile}
+          />
           {children}
         </DashboardContext.Provider>
       </Box>
       {isMobile && (
-        activeRole === 'contractor'
-          ? <BottomSearchNavigationBar activeView={activeView} setActiveView={setActiveView} /> 
-          : <BottomNavigationBar activeView={activeView} setActiveView={setActiveView} musicianId={musicianProfile?.userId} />
+        <MobileNavigationBar activeView={activeView} setActiveView={setActiveView} activeRole={activeRole} musicianProfile={musicianProfile} />
       )}
     </Box>
   );

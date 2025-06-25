@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle, Warning, UserCirclePlus, Eye } from 'phosphor-react';
+import { CheckCircle, Warning, UserCirclePlus, Eye, PencilSimple } from 'phosphor-react';
 import { Box, Typography, Button, Paper, useTheme, Stack } from '@mui/material'; // Removed Grid
 
 interface ProfileStatusProps {
@@ -101,6 +101,21 @@ export default function ProfileStatus({ userId, profileStatus, isPublic }: Profi
           >
             Ver Perfil Público
           </Button>
+          {isActive && (
+            <Button
+              component={Link}
+              href={`/m/${userId}/edit`}
+              variant="contained"
+              color="secondary"
+              startIcon={<PencilSimple size={20} />}
+              sx={{
+                textTransform: 'none',
+                width: { xs: '100%', sm: 'auto' },
+              }}
+            >
+              Editar Perfil
+            </Button>
+          )}
         </Stack>
       </Box>
     </Paper>

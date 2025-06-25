@@ -5,6 +5,8 @@ import { createContext, useContext, Dispatch, SetStateAction } from 'react';
 interface DashboardContextType {
   activeView: string;
   setActiveView: Dispatch<SetStateAction<string>>;
+  pageTitle: string;
+  setPageTitle: Dispatch<SetStateAction<string>>;
 }
 
 export const DashboardContext = createContext<DashboardContextType | undefined>(undefined);

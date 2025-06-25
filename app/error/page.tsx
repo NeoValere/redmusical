@@ -18,8 +18,8 @@ export default function ErrorPage() {
     <div style={{ padding: '20px', textAlign: 'center' }}>
       <h1>Error</h1>
       <p>{errorMessage}</p>
-      <p>Please try again or contact support if the issue persists.</p>
-      <a href="/">Go to Home</a>
+      <p>Probá de nuevo o contactá a soporte si el error persiste.</p>
+      <a href="/">Ir al home</a>
     </div>
   );
 }

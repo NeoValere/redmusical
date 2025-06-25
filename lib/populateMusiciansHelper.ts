@@ -2,7 +2,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { v4 as uuidv4 } from 'uuid';
-import fetch from 'node-fetch'; // Using node-fetch as it's already a dependency
+// import fetch from 'node-fetch'; // Using node-fetch as it's already a dependency
 
 const prisma = new PrismaClient();
 

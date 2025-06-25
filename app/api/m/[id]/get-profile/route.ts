@@ -7,13 +7,13 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client'; // Import Prisma types
 
 export async function GET(
-  request: Request, // Add request parameter
-  { params }: { params: { id: string } } // Destructure params from the second argument
+  request: Request,
+  context: { params: { id: string } }
 ) {
   // As per Next.js 15 guidelines, dynamic APIs like params and cookies are asynchronous.
   // See: https://nextjs.org/docs/messages/sync-dynamic-apis
 
- // const resolvedParams = await params; // Await params directly
+  const { params } = context;
   const { id: musicianId } = params; // Access id from resolved params, rename to musicianId for clarity
   console.log({ musicianIdFromParams: musicianId })
   try {

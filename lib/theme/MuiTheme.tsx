@@ -44,6 +44,7 @@ export const initialTheme = createTheme({
   components: {
     MuiButton: {
       styleOverrides: {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         root: ({ ownerState, theme }) => ({
           ...(ownerState.variant === 'contained' &&
             ownerState.color === 'primary' && {
@@ -68,10 +69,14 @@ const ThemeContext = createContext({
   theme: initialTheme,
   presets: [] as Preset[],
   defaultPreset: '',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setTheme: (palette: PaletteOptions) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   savePreset: (preset: Preset) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   deletePreset: (presetName: string) => {},
   revertToOriginal: () => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setDefaultPreset: (presetName: string) => {},
 });
 
@@ -100,7 +105,7 @@ export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
         setCurrentTheme(newTheme);
       }
     }
-  }, []);
+  }, [originalTheme]);
 
   const setTheme = (palette: PaletteOptions) => {
     const newTheme = createTheme({ ...originalTheme, palette });

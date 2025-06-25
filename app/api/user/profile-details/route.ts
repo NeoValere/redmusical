@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 export async function GET(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -18,10 +20,6 @@ export async function GET(request: Request) {
     }
 
     const userId = session.user.id;
-
-    if (!userId) {
-      return NextResponse.json({ userId: null, isMusician: false, isContractor: false, error: 'User ID not found in session' }, { status: 400 });
-    }
 
     const musicianProfile = await prisma.musician.findFirst({
       where: { userId: userId },

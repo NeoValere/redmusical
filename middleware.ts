@@ -1,141 +1,54 @@
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
 
-// Define a type for the session payload for clarity
-interface SessionPayload {
-  userId: string;
-  // Add other session-related properties here
-}
-
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
-  let session: SessionPayload | null = null;
+  const supabase = createMiddlewareClient({ req, res });
 
-  // 1. Extract token from cookies
-  const token = req.cookies.get('auth-token')?.value;
-
-  if (token) {
-    try {
-      // 2. Verify the token
-      const decoded = jwt.verify(
-        token,
-        process.env.SUPABASE_JWT_SECRET || ''
-      ) as SessionPayload;
-      session = decoded;
-    } catch (error) {
-      // Token is invalid or expired
-      console.error('JWT verification error:', error);
-      // Invalidate the session
-      session = null;
-    }
-  }
+  const { data: { session } } = await supabase.auth.getSession();
 
   const { pathname } = req.nextUrl;
 
-  // Handle /admin routes specifically
-  // if (pathname.startsWith('/admin')) {
-  //   if (!session) {
-  //     // Not logged in, redirect to login
-  //     const redirectUrl = req.nextUrl.clone();
-  //     redirectUrl.pathname = '/login';
-  //     redirectUrl.searchParams.set(`redirectedFrom`, pathname);
-  //     return NextResponse.redirect(redirectUrl);
-  //   }
-
-  //   // Logged in, call the API route to check if user is an admin
-  //   try {
-  //     // Construct the absolute URL for the API route
-  //     const checkAdminUrl = new URL('/api/auth/check-admin-status', req.url);
-      
-  //     // Pass along the cookies from the original request to the API route
-  //     // This is crucial for the API route to authenticate the user with Supabase
-  //     const apiRes = await fetch(checkAdminUrl.toString(), {
-  //       headers: {
-  //         cookie: req.headers.get('cookie') || '', // Pass existing cookies
-  //       },
-  //     });
-
-  //     if (!apiRes.ok) {
-  //       console.error("Admin check API call failed:", apiRes.status, await apiRes.text());
-  //       // Not an admin or error, redirect to homepage
-  //       return NextResponse.redirect(new URL('/', req.url));
-  //     }
-
-  //     const { isAdmin, error: apiError } = await apiRes.json();
-
-  //     if (apiError) {
-  //       console.error("Error from admin check API:", apiError);
-  //       return NextResponse.redirect(new URL('/', req.url));
-  //     }
-
-  //     if (!isAdmin) {
-  //       // Not an admin, redirect to homepage
-  //       return NextResponse.redirect(new URL('/', req.url));
-  //     }
-  //     // User is an admin, allow access
-  //     return res;
-  //   } catch (error) {
-  //     console.error("Error calling admin check API in middleware:", error);
-  //     // On error, redirect to a generic error page or homepage
-  //     return NextResponse.redirect(new URL('/error', req.url));
-  //   }
-  // }
-
-  // Define paths that require authentication (excluding /admin as it's handled above)
+  // Define paths that require authentication
   const protectedPaths = [
     '/dashboard',
     '/m/[id]/edit',
-    '/m/[id]/upload-image', // Add upload-image page to protected paths
-    '/api/m/[id]/update', // Specific API routes that need protection
+    '/m/[id]/upload-image',
+    '/api/m/[id]/update',
     '/api/m/[id]/update-profile',
     '/api/m/[id]/upload-image',
     '/api/switch-role',
     '/api/create-preference',
     '/api/webhook',
     '/favorites',
+    // Note: /api/user/profile-details is implicitly protected
+    // because it requires a valid session, but it doesn't need to be listed here.
+    // The middleware ensures the session is fresh for all requests.
   ];
 
-  // Special handling for public musician profiles: they should not be protected
-  // This checks if the path starts with /m/ and does NOT contain /edit or /upload-image
-  const isPublicMusicianProfilePage = pathname.startsWith('/m/') &&
-                                 !pathname.includes('/edit') &&
-                                 !pathname.includes('/upload-image');
-
-  // Allow public access to the get-profile API endpoint
-  const isPublicGetProfileAPI = pathname.match(/^\/api\/m\/[^/]+\/get-profile$/);
-
-  if (isPublicMusicianProfilePage || isPublicGetProfileAPI) {
-    return res; // Allow access without authentication
-  }
-
-  // Check if the current path is protected
-  const isProtected = protectedPaths.some(path => {
-    // For dynamic routes like /m/[id]/edit, we check if the path starts with the base
-    // and is not the specific get-profile route (already handled)
-    if (path.includes('[id]')) {
-      const base = path.split('[id]')[0];
-      // Ensure we are not re-protecting the get-profile API if it matches a broader pattern
-      if (pathname.startsWith(base.replace(/\/$/, '')) && !isPublicGetProfileAPI) {
-        return true;
+  // Function to check if a path is protected
+  const isProtectedPath = (path: string) => {
+    return protectedPaths.some(protectedPath => {
+      if (protectedPath.includes('[id]')) {
+        // Convert dynamic route pattern to a regex
+        const regex = new RegExp(`^${protectedPath.replace(/\[id\]/g, '[^/]+')}`);
+        return regex.test(path);
       }
-      return false;
-    }
-    return pathname.startsWith(path);
-  });
+      return path.startsWith(protectedPath);
+    });
+  };
 
-  const publicPaths = ['/', '/musicos', '/login', '/register'];
-
-  // If the path is protected and there's no session, redirect to login
-  if (isProtected && !session && !publicPaths.includes(pathname)) {
+  // If the user is not authenticated and is trying to access a protected path
+  if (!session && isProtectedPath(pathname)) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/login';
     redirectUrl.searchParams.set('redirectedFrom', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If the path is /login or /register and there's a session, redirect to dashboard
-  if ((pathname === '/login' || pathname === '/register') && session) {
+  // If the user is authenticated and tries to access login or register, redirect to dashboard
+  if (session && (pathname === '/login' || pathname === '/register')) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 

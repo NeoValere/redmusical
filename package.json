@@ -21,6 +21,7 @@
     "@supabase/supabase-js": "^2.50.0",
     "@types/lodash": "^4.17.18",
     "@types/react-slick": "^0.23.13",
+    "@vercel/functions": "^2.2.2",
     "axios": "^1.10.0",
     "framer-motion": "^12.18.1",
     "jsonwebtoken": "^9.0.2",

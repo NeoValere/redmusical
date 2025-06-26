@@ -1,13 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ipAddress, geolocation } from '@vercel/functions';
 
-export async function middleware(request: NextRequest) {
+/**
+ * @param {import('next/server').NextRequest} request
+ */
+export async function middleware(request) {
   const response = NextResponse.next();
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -38,7 +41,7 @@ export async function middleware(request: NextRequest) {
     '/favorites',
   ];
 
-  const isProtectedPath = (path: string) =>
+  const isProtectedPath = (path) =>
     protectedPaths.some((protectedPath) => {
       if (protectedPath.includes('[id]')) {
         const regex = new RegExp(`^${protectedPath.replace(/\[id\]/g, '[^/]+')}`);

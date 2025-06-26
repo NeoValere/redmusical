@@ -42,7 +42,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@prisma/client": "^6.10.0",
+    "@prisma/client": "6.10.0",
     "@types/axios": "^0.9.36",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",

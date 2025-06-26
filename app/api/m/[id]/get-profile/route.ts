@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'; // Explicitly set route as dynamic
 
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';

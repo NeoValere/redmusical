@@ -1,3 +1,4 @@
+'use server';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // Assuming you have a Prisma client instance exported from here
 

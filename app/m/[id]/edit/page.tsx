@@ -141,6 +141,7 @@ type MusicianProfile = Database['public']['Tables']['Musician']['Row'] & {
   acceptsCollaborations?: boolean | null; // Added acceptsCollaborations
   acceptsGigs?: boolean | null; // Added acceptsGigs
   fullName?: string | null; // Added fullName
+  artisticName?: string | null; // Added artisticName
   bio?: string | null; // Made optional
   experienceLevel?: string | null; // Made optional
   hourlyRate?: number | null; // Made optional
@@ -519,6 +520,7 @@ export default function EditMusicianProfile() {
         // availability is no longer sent as a required field
         preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
         socialMediaLinks: Object.keys(transformedSocialMediaLinks).length > 0 ? transformedSocialMediaLinks : null,
+        profileCompleteness: profileCompleteness,
       };
 
       console.log('Payload being sent for partial save:', payload); // Debug log
@@ -625,6 +627,7 @@ export default function EditMusicianProfile() {
       skills: skills?.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })) || [],
       preferences: preferences?.map((p: { id: string; name: string }) => ({ id: p.id, name: p.name })) || [],
       socialMediaLinks: Object.keys(transformedSocialMediaLinks).length > 0 ? transformedSocialMediaLinks : null,
+      profileCompleteness: profileCompleteness,
     };
 
     console.log('Payload being sent for full submit:', payload); // Debug log
@@ -681,14 +684,22 @@ export default function EditMusicianProfile() {
                 currentImageUrl={profile.profileImageUrl || null} // Changed from profile_image_url
                 onImageUploadSuccess={(url) => handleChange('profileImageUrl', url)} // Changed from profile_image_url
               />
-              <TextField
-                label="Nombre Completo"
-                value={profile.fullName || ''} // Changed from full_name
-                onChange={(e) => handleChange('fullName', e.target.value)} // Changed from full_name
-                fullWidth
-                error={!!formErrors.fullName} // Changed from full_name
-                helperText={formErrors.fullName} // Changed from full_name
-              />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <TextField
+                  label="Nombre Completo"
+                  value={profile.fullName || ''} // Changed from full_name
+                  onChange={(e) => handleChange('fullName', e.target.value)} // Changed from full_name
+                  fullWidth
+                  error={!!formErrors.fullName} // Changed from full_name
+                  helperText={formErrors.fullName} // Changed from full_name
+                />
+                <TextField
+                  label="Nombre Artístico (Opcional)"
+                  value={profile.artisticName || ''}
+                  onChange={(e) => handleChange('artisticName', e.target.value)}
+                  fullWidth
+                />
+              </Box>
               <FormControl fullWidth error={!!formErrors.musicianOrBand}>
                 <InputLabel id="musicianOrBand-label">Tipo (Músico Solista / Banda)</InputLabel>
                 <Select

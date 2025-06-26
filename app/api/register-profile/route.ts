@@ -197,18 +197,17 @@ export async function POST(request: Request) {
           fullName,
           email,
           artisticName: fullName,
-          // location: '', // 'location' is not a field, city/province are. Set to null or empty.
           city: null,
           province: null,
-          instruments: { create: [] }, // Correct way to initialize empty many-to-many
-          genres: { create: [] },      // Correct way to initialize empty many-to-many
+          instruments: { create: [] },
+          genres: { create: [] },
           bio: '',
           hourlyRate: 0,
-          availability: { create: [] }, // Correct way to initialize empty many-to-many
-          // Ensure all required fields from schema are present or have defaults
+          availability: { create: [] },
+          isPublic: false, // Set isPublic to false by default
         },
       });
-      return NextResponse.json({ message: 'Musician profile created', profile: musician, redirectUrl: '/dashboard' }, { status: 201 });
+      return NextResponse.json({ message: 'Musician profile created', profile: musician, redirectUrl: `/m/${musician.userId}/edit` }, { status: 201 });
     } else if (role === 'contractor' && !contractorProfile) {
       console.log('[register-profile POST] Creating new contractor profile.');
       const contractor = await prisma.contractor.create({

@@ -37,6 +37,7 @@ export async function GET(
       id: string;
       userId: string;
       fullName: string | null;
+      artisticName: string | null; // Added artisticName
       bio: string | null;
       profileImageUrl: string | null;
       city: string | null;
@@ -138,6 +139,7 @@ export async function GET(
     // Prisma now returns camelCase fields directly after schema update
     const profile = {
       ...musicianData,
+      artisticName: musicianData.artisticName, // Added artisticName
       email: undefined,
       phoneNumber: undefined,
       profileColorCover: musicianData.profileColorCover,

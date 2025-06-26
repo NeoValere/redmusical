@@ -203,11 +203,12 @@ async function main(offset: number = 0, batchLimit: number = 10) {
           const mirroredImg = imgUrlToMirror ? await mirrorImage(imgUrlToMirror) : null;
 
           /* Crear en Prisma (idempotente por nombre) */
+          const email = `${artist.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/gi, '')}@redmusical.example.com`;
           await prisma.musician.upsert({
-            where: { artisticName: artist.name },
+            where: { email: email },
             create: {
               userId: crypto.randomUUID(), // Consider if this needs to be deterministic or linked to an actual user system
-              email: `${artist.name.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/gi, '')}@redmusical.example.com`, // Generate placeholder email
+              email: email, // Generate placeholder email
               artisticName: artist.name,
               fullName: mb?.name ?? artist.name, // MB name if available
               city: mb?.['begin-area']?.name ?? mb?.area?.name ?? null, // MB begin_area or area

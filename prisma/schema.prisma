@@ -29,7 +29,7 @@ model Musician {
   instagramUrl        String?
   profileImageUrl     String?
   isPremium           Boolean                @default(false)
-  artisticName        String                 @unique // Made unique and non-nullable for seeder
+  artisticName        String? // Made optional
   experienceLevel     String?
   servicesOffered     String[]
   influences          String[]

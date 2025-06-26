@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { MusicNotesSimple, User, ChartBar, Eye, CreditCard, SignOut, Headphones, PlusCircle, MagnifyingGlass, Chat } from 'phosphor-react';
+import { Musician } from '@prisma/client'; // Import Musician type
 import {
   Box,
   List,
@@ -32,6 +33,7 @@ interface SidebarProps {
   setActiveView: (view: string) => void;
   handleSwitchRole: () => Promise<void>;
   handleCreateContractorProfile: () => Promise<void>;
+  musicianProfile: Musician | null; // Added musicianProfile prop
 }
 
 export default function Sidebar({
@@ -48,6 +50,7 @@ export default function Sidebar({
   setActiveView,
   handleSwitchRole,
   handleCreateContractorProfile,
+  musicianProfile, // Destructure musicianProfile
 }: SidebarProps) {
   const theme = useTheme();
 
@@ -57,9 +60,12 @@ export default function Sidebar({
 
   const musicianNavItems = [
     { id: 'mi-perfil', text: 'Mi perfil', icon: <User size={24} />, href: '/dashboard' },
-    { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} />, href: '/dashboard?view=estadisticas' },
-    { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} />, href: '/dashboard?view=visibilidad' },
-    { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} />, href: '/dashboard?view=mi-plan' },
+    // Conditionally include other musician items if musicianProfile exists
+    ...(musicianProfile ? [
+      { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} />, href: '/dashboard?view=estadisticas' },
+      { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} />, href: '/dashboard?view=visibilidad' },
+      { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} />, href: '/dashboard?view=mi-plan' },
+    ] : []),
   ];
 
   const contractorNavItems = [

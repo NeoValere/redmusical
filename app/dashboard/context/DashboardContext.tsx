@@ -10,6 +10,8 @@ interface DashboardContextType {
   setPageTitle: Dispatch<SetStateAction<string>>;
   userId: string | null;
   musicianProfile: Musician | null;
+  userFullName: string | null; // Added userFullName
+  userEmail: string | null;    // Added userEmail
 }
 
 export const DashboardContext = createContext<DashboardContextType | undefined>(undefined);

@@ -12,20 +12,28 @@ interface BottomNavigationBarProps {
   musicianId?: string | null;
 }
 
-const navItems = [
-  { id: 'mi-perfil', label: 'Perfil', icon: <User size={26} /> },
-  { id: 'estadisticas', label: 'Datos', icon: <ChartBar size={26} /> },
-  { id: 'visibilidad', label: 'Visibilidad', icon: <Eye size={26} /> },
-  { id: 'mi-plan', label: 'Plan', icon: <CreditCard size={26} /> }
-];
-
 export default function BottomNavigationBar({ activeView, setActiveView, musicianId }: BottomNavigationBarProps) {
   const theme = useTheme();
   const router = useRouter();
 
+  const navItems = useMemo(() => {
+    const items = [
+      { id: 'mi-perfil', label: 'Perfil', icon: <User size={26} /> },
+    ];
+
+    if (musicianId) {
+      items.push(
+        { id: 'estadisticas', label: 'Datos', icon: <ChartBar size={26} /> },
+        { id: 'visibilidad', label: 'Visibilidad', icon: <Eye size={26} /> },
+        { id: 'mi-plan', label: 'Plan', icon: <CreditCard size={26} /> }
+      );
+    }
+    return items;
+  }, [musicianId]);
+
   const backgroundColor = useMemo(() => {
     return navItems.some(item => item.id === activeView) ? theme.palette.primary.main : theme.palette.background.paper;
-  }, [activeView, theme.palette.primary.main, theme.palette.background.paper]); // Removed navItems from dependency array
+  }, [activeView, theme.palette.primary.main, theme.palette.background.paper, navItems]);
 
   const paperSx = useMemo(() => ({
     position: 'fixed',

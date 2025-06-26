@@ -7,6 +7,7 @@ type MusicianWithRelations = {
   id: string;
   userId: string;
   fullName: string | null;
+  artisticName: string | null; // Added artisticName
   email: string | null;
   bio: string | null;
   profileImageUrl: string | null;
@@ -56,6 +57,8 @@ export async function PUT(
       isPublic, // Explicitly destructure isPublic
       musicianOrBand, // Added musicianOrBand
       socialMediaLinks, // Destructure socialMediaLinks
+      artisticName, // Destructure artisticName
+      profileCompleteness,
       ...otherData // All other fields not explicitly destructured
     } = await request.json();
 
@@ -110,6 +113,14 @@ export async function PUT(
         } else {
           musicianUpdateData.socialMediaLinks = socialMediaLinks as Prisma.InputJsonValue;
         }
+      }
+
+      if (artisticName !== undefined) {
+        musicianUpdateData.artisticName = artisticName;
+      }
+
+      if (profileCompleteness !== undefined) {
+        musicianUpdateData.profileCompleteness = profileCompleteness;
       }
 
       // Check if the email is being updated and if it already exists for another user

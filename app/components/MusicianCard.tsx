@@ -18,7 +18,7 @@ export interface Musician {
   id: string;
   userId: string;
   fullName: string;
-  artisticName?: string;
+  artisticName?: string | null; // Changed to allow null
   city: string;
   instruments: { instrument: { name:string } }[];
   profileImageUrl?: string;

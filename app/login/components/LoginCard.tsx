@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { Database } from '@/lib/database.types';
 import { FcGoogle } from 'react-icons/fc';
 import {
@@ -35,10 +35,7 @@ export default function LoginCard() {
     return null;
   }
 
-  const supabase = createClientComponentClient<Database>({
-    supabaseUrl,
-    supabaseKey: supabaseAnonKey,
-  });
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

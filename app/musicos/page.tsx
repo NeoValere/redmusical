@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense, useEffect, useState } from 'react';
-import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'; // Import User type
+import { createClient } from '@/utils/supabase/client';
+import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -26,7 +27,7 @@ import MusicianCard, { Musician } from '@/app/components/MusicianCard';
 
 const PublicPageHeader = () => {
   const theme = useTheme();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [currentUser, setCurrentUser] = useState<User | null>(null); // Changed from any
   
   useEffect(() => {
@@ -79,14 +80,13 @@ function MusicosPageContent() {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   const [musicians, setMusicians] = useState<Musician[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const [currentUser] = useState<User | null>(null); // Changed from any
-  const [sessionChecked] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Initialize state from URL search parameters
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
@@ -142,23 +142,22 @@ function MusicosPageContent() {
       }
     };
 
-    if (sessionChecked) {
-      fetchMusicians();
-    }
-  }, [searchTerm, page, tipoFilter, sessionChecked, supabase, itemsPerPage]);
+    fetchMusicians();
+  }, [searchTerm, page, tipoFilter, supabase, itemsPerPage]);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setCurrentUser(session?.user ?? null);
+      setSessionChecked(true);
+    };
+    checkSession();
+  }, [supabase]);
 
   const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
     window.scrollTo(0, 0);
   };
-
-  if (!sessionChecked) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ bgcolor: theme.palette.background.default, minHeight: '100vh' }}>

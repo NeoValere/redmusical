@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js'; // Import createClient for service role
 import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,10 +12,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const cookieStore = cookies(); // Call cookies() once at the top
+  const cookieStore = await cookies(); // Call cookies() once at the top
 
   // Create a Supabase client configured to use cookies (for user session)
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore }); // Pass a function returning the pre-fetched cookieStore
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+      },
+    }
+  );
 
   // Create a Supabase client with service role key (for privileged operations like deleting files)
   const supabaseAdmin = createClient(

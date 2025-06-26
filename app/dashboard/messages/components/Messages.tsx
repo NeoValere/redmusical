@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useConversations, useMessages } from '../hooks/useMessages';
+import { mutate } from 'swr';
 import { useDashboard } from '../../context/DashboardContext';
+import { useParams } from 'next/navigation';
 import {
   Typography,
   List,
@@ -32,12 +35,6 @@ interface Message {
   timestamp: string;
 }
 
-// Mock data for a conversation
-const mockMessages: Message[] = [
-  { id: '1', text: '¡Hola! Me interesa tu perfil.', sender: 'me', timestamp: '10:00 AM' },
-  { id: '2', text: '¡Hola! Gracias por tu interés. ¿En qué puedo ayudarte?', sender: 'them', timestamp: '10:01 AM' },
-  { id: '3', text: 'Estoy buscando un guitarrista para un evento el próximo mes.', sender: 'me', timestamp: '10:02 AM' },
-];
 
 interface Conversation {
   musicianId: string;
@@ -47,44 +44,15 @@ interface Conversation {
   musicianImage: string;
 }
 
-// Mock data for conversations
-const mockConversations: Conversation[] = [
-  {
-    musicianId: '1',
-    musicianName: 'Carlos Rock',
-    lastMessage: '¡Hola! Me interesa tu perfil.',
-    lastMessageAt: 'Hace 2 horas',
-    musicianImage: 'https://source.unsplash.com/random/100x100?musician,1',
-  },
-  {
-    musicianId: '3',
-    musicianName: 'Ana Folk',
-    lastMessage: 'Gracias por contactarme. ¿Qué tipo de evento es?',
-    lastMessageAt: 'Ayer',
-    musicianImage: 'https://source.unsplash.com/random/100x100?musician,2',
-  },
-];
 
 const ConversationView = ({ conversation, onBack }: { conversation: Conversation | null, onBack: () => void }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
+  const params = useParams();
+  const musicianId = params.musicianId as string;
+  const { messages, isLoading } = useMessages(musicianId ?? null);
   const [newMessage, setNewMessage] = useState('');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const messageListRef = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (conversation) {
-      setLoading(true);
-      // Simulate API call to fetch messages for the conversation
-      console.log(`Fetching messages for musician ${conversation.musicianId}`);
-      setTimeout(() => {
-        // In a real app, you'd fetch messages for conversation.musicianId
-        setMessages(mockMessages);
-        setLoading(false);
-      }, 500);
-    }
-  }, [conversation]);
 
   useEffect(() => {
     if (messageListRef.current) {
@@ -92,17 +60,14 @@ const ConversationView = ({ conversation, onBack }: { conversation: Conversation
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim() === '') return;
-    const message: Message = {
-      id: (messages.length + 1).toString(),
-      text: newMessage,
-      sender: 'me',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages([...messages, message]);
     setNewMessage('');
-    console.log('Sending message:', message);
+    await fetch(`/api/messages/${conversation?.musicianId}`, {
+      method: 'POST',
+      body: JSON.stringify({ text: newMessage }),
+    });
+    mutate([`/api/messages`, conversation?.musicianId]);
   };
 
   if (!conversation) {
@@ -115,7 +80,7 @@ const ConversationView = ({ conversation, onBack }: { conversation: Conversation
     );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
         <CircularProgress />
@@ -146,7 +111,7 @@ const ConversationView = ({ conversation, onBack }: { conversation: Conversation
         }}
       >
         <List>
-          {messages.map((msg) => (
+          {messages.map((msg: Message) => (
             <ListItem
               key={msg.id}
               sx={{
@@ -197,23 +162,27 @@ const ConversationView = ({ conversation, onBack }: { conversation: Conversation
 
 export default function Messages() {
   const { setPageTitle } = useDashboard();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { conversations, isLoading } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const params = useParams();
+  const musicianId = params.musicianId as string;
 
   useEffect(() => {
     setPageTitle('Mensajes');
   }, [setPageTitle]);
 
   useEffect(() => {
-    // Simulate API call to fetch conversations
-    setTimeout(() => {
-      setConversations(mockConversations);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (conversations && conversations.length > 0) {
+      if (musicianId) {
+        const conversation = conversations.find((c: Conversation) => c.musicianId === musicianId);
+        setSelectedConversation(conversation);
+      } else {
+        setSelectedConversation(conversations[0]);
+      }
+    }
+  }, [conversations, musicianId]);
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -223,7 +192,7 @@ export default function Messages() {
     setSelectedConversation(null);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 200px)' }}>
         <CircularProgress />
@@ -231,9 +200,19 @@ export default function Messages() {
     );
   }
 
+  if (conversations.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80%' }}>
+        <Typography variant="h6" color="text.secondary">
+          No tenés mensajes aún.
+        </Typography>
+      </Box>
+    );
+  }
+
   const conversationList = (
     <List>
-      {conversations.map((convo) => (
+      {Array.isArray(conversations) && conversations.map((convo: Conversation) => (
         <React.Fragment key={convo.musicianId}>
           <ListItemButton
             selected={selectedConversation?.musicianId === convo.musicianId}

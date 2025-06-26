@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useDashboard } from './context/DashboardContext';
 import ProfileStatus from './components/ProfileStatus';
@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const { activeView, setPageTitle } = useDashboard();
   const [userId, setUserId] = useState<string | null>(null);
   const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const router = useRouter();
   const theme = useTheme();
 

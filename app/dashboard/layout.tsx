@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState, ReactNode } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -20,7 +20,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isSidebarOpen, setSidebarOpen] = useState(!isMobile);

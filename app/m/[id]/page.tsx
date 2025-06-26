@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'; // Import User type
+import { createClient } from '@/utils/supabase/client';
+import { User } from '@supabase/supabase-js';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import ProfileImageUploader from './components/ProfileImageUploader'; // Import ProfileImageUploader
@@ -300,7 +301,7 @@ function MusicianProfilePage() {
 
   const router = useRouter();
   const params = useParams();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = createClient();
   const userIdFromParams = params.id as string;
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'; // Explicitly set route as dynamic
 
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client'; // Import Prisma types
@@ -16,8 +16,16 @@ export async function GET(
   const { id: musicianId } = await params; // Await params resolution
   console.log({ musicianIdFromParams: musicianId })
   try {
-    const cookieStore = cookies(); // Await cookies directly
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore }); // Pass the cookies function directly
+    const cookieStore = await cookies(); // Await cookies directly
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+        },
+      }
+    );
     const { data: { user } } = await supabase.auth.getUser();
     // isOwner check might need adjustment if we are fetching by musicianId and not userId directly
     // For now, let's assume musicianId is the primary key of the Musician table.

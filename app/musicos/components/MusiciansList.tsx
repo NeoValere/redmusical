@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient, User } from '@supabase/auth-helpers-nextjs'; // Import User type
+import { createClient } from '@/utils/supabase/client';
+import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -31,7 +32,7 @@ const MusiciansList = ({ sessionChecked, currentUser }: MusicianListProps) => {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Defined isMobile
 
   const [musicians, setMusicians] = useState<Musician[]>([]);

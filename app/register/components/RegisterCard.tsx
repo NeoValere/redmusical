@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 // import Image from 'next/image'; // No longer using Next Image for logo here
 import { MusicNotes, MusicNotesSimple, MagnifyingGlass } from 'phosphor-react'; // Added MusicNotesSimple and MagnifyingGlass
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { FcGoogle } from 'react-icons/fc';
 import {
   Box,
@@ -39,7 +39,7 @@ const RegisterCard = () => {
 
   const formRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
     const checkUser = async () => {

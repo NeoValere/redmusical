@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react'; // Removed useRef
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import Slider from 'react-slick'; // Added Slider
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
@@ -36,7 +36,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userRoles, setUserRoles] = useState<{ isMusician: boolean; isContractor: boolean; userId: string | null }>({ isMusician: false, isContractor: false, userId: null });
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);

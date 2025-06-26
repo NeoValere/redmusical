@@ -251,7 +251,7 @@ export default function EditMusicianProfile() {
 
   const [profileCompleteness, setProfileCompleteness] = useState(0);
 
-  const calculateProfileCompleteness = useCallback((currentProfile: Partial<MusicianProfile>) => {
+  const calculateProfileCompleteness = useCallback((currentProfile: Partial<MusicianProfile>, socialMediaLinks: SocialMediaInput[]) => {
     let completedFields = 0;
     const totalFields = 12; // Adjusted for musicianOrBand
 
@@ -264,13 +264,13 @@ export default function EditMusicianProfile() {
     if (currentProfile.phoneNumber) completedFields++;
     if (currentProfile.email) completedFields++;
     if (currentProfile.websiteUrl) completedFields++;
-    if (socialMediaInputs && socialMediaInputs.length > 0 && socialMediaInputs.some(link => link.url.trim() !== '')) // Check if there's at least one non-empty social media link
+    if (socialMediaLinks && socialMediaLinks.length > 0 && socialMediaLinks.some(link => link.url.trim() !== '')) // Check if there's at least one non-empty social media link
       completedFields++;
     if (currentProfile.isPublic !== null && currentProfile.isPublic !== undefined) completedFields++; // Changed from is_public
     if (currentProfile.musicianOrBand) completedFields++; // Added musicianOrBand
 
     setProfileCompleteness(Math.min(100, Math.round((completedFields / totalFields) * 100)));
-  }, [socialMediaInputs]);
+  }, []);
 
   // Handlers for audio tracks
   const handleAudioTrackChange = useCallback((index: number, field: 'title' | 'url', value: string) => {
@@ -365,7 +365,7 @@ export default function EditMusicianProfile() {
       setSocialMediaInputs(initialSocialMediaInputs);
 
       setProfile(mappedData);
-      calculateProfileCompleteness(mappedData);
+      calculateProfileCompleteness(mappedData, initialSocialMediaInputs);
     } catch (err: unknown) {
       console.error('Error fetching profile from API:', err);
       setError('No se pudo cargar el perfil: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -412,22 +412,22 @@ export default function EditMusicianProfile() {
   const handleChange = useCallback((field: keyof MusicianProfile, value: unknown) => {
     setProfile((prev: Partial<MusicianProfile> | null) => {
       const updatedProfile = { ...prev, [field]: value } as Partial<MusicianProfile>;
-      calculateProfileCompleteness(updatedProfile);
+      calculateProfileCompleteness(updatedProfile, socialMediaInputs);
       return updatedProfile;
     });
     setFormErrors((prev) => ({ ...prev, [field]: '' }));
-  }, [calculateProfileCompleteness]);
+  }, [calculateProfileCompleteness, socialMediaInputs]);
 
   const handleArrayChange = useCallback(
     (field: 'genres' | 'instruments' | 'skills' | 'availability' | 'preferences', value: unknown[]) => {
       setProfile((prev: Partial<MusicianProfile> | null) => {
         const updatedProfile = { ...prev, [field]: value } as Partial<MusicianProfile>;
-        calculateProfileCompleteness(updatedProfile);
+        calculateProfileCompleteness(updatedProfile, socialMediaInputs);
         return updatedProfile;
       });
       setFormErrors((prev) => ({ ...prev, [field]: '' }));
     },
-    [calculateProfileCompleteness],
+    [calculateProfileCompleteness, socialMediaInputs],
   );
 
   const validateStep = useCallback(

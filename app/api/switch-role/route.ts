@@ -1,4 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // Import Prisma client
@@ -7,7 +7,16 @@ export const dynamic = 'force-dynamic'; // Force dynamic rendering
 
 export async function POST(request: Request) {
   const { userId, newRole } = await request.json();
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+      },
+    }
+  );
 
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();

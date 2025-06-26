@@ -118,12 +118,3 @@ export const initialTheme = createTheme({
     }
   }
 });
-
-export const MuiAppThemeProvider = ({ children }: { children: ReactNode }) => {
-  return (
-    <MuiThemeProvider theme={initialTheme}>
-      <CssBaseline />
-      {children}
-    </MuiThemeProvider>
-  );
-};

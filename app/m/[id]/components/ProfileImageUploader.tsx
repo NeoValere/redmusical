@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import {
   Box,
   CircularProgress,
@@ -22,7 +22,7 @@ const ProfileImageUploader: React.FC<ProfileImageUploaderProps> = ({
   currentImageUrl,
   onImageUploadSuccess,
 }) => {
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(currentImageUrl);

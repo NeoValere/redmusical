@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import {
   Box,
   Button,
@@ -17,7 +17,7 @@ import {
 
 const UploadImagePage = () => {
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const [musicianId, setMusicianId] = useState<string | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

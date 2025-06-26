@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { MusicNotes, Users, MagnifyingGlass } from 'phosphor-react';
 import Image from 'next/image';
 
@@ -13,7 +13,7 @@ export default function SelectRolePage() {
   const [hasMusicianProfile, setHasMusicianProfile] = useState(false); // New state
   const [hasContractorProfile, setHasContractorProfile] = useState(false); // New state
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
     const checkUserAndProfiles = async () => {

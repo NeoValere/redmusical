@@ -152,7 +152,7 @@ export default function Home() {
           {currentUser && ( // Example: Show a different button or user info if logged in
              <Button 
                 component={Link} 
-                href="/dashboard" 
+                href={userRoles.isMusician ? "/dashboard" : "/dashboard/search"} 
                 variant="outlined"
                 sx={{
                   color: 'inherit',

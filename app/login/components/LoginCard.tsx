@@ -59,9 +59,9 @@ export default function LoginCard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user && user.user_metadata.role === 'musician') {
         router.push(`/m/${user.id}`);
-      } else if (user && user.user_metadata.role === 'contractor') {
-        router.push('/dashboard/search');
       } else {
+        // After successful login, always redirect to the base dashboard.
+        // The dashboard layout will then determine the active role based on the URL.
         router.push('/dashboard');
       }
     }

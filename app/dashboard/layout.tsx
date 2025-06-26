@@ -57,8 +57,9 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     setSidebarOpen(!isSidebarOpen);
   };
 
+  // Effect to fetch user and profile data once on mount
   useEffect(() => {
-    const checkUserAndProfiles = async () => {
+    const fetchUserAndProfiles = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -67,87 +68,56 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
       }
 
       setUserId(user.id);
-      let musicianExists = false;
-      let contractorExists = false;
 
       try {
-        const musicianProfileRes = await fetch(`/api/register-profile?userId=${user.id}&role=musician`);
-        const musicianData = await musicianProfileRes.json();
-        musicianExists = musicianData.exists;
-        if (musicianData.exists) {
-          setMusicianProfile(musicianData.profile as Musician); // Cast to Musician
-        } else {
-          setMusicianProfile(null);
+        const profileRes = await fetch(`/api/register-profile?userId=${user.id}`);
+        const profileData = await profileRes.json();
+
+        const musicianExists = !!profileData.musicianProfile;
+        const contractorExists = !!profileData.contractorProfile;
+
+        setMusicianProfile(profileData.musicianProfile || null);
+        setHasContractorProfile(contractorExists);
+
+        let determinedRole: string | null = null;
+        if (musicianExists && contractorExists) {
+          determinedRole = 'both';
+        } else if (musicianExists) {
+          determinedRole = 'musician';
+        } else if (contractorExists) {
+          determinedRole = 'contractor';
         }
+        setUserRole(determinedRole); // Set the overall user role based on existing profiles
       } catch (error) {
-        console.error('Error checking musician profile:', error);
-      }
-
-      try {
-        const contractorProfileRes = await fetch(`/api/register-profile?userId=${user.id}&role=contractor`);
-        const contractorData = await contractorProfileRes.json();
-        contractorExists = contractorData.exists;
-      } catch (error) {
-        console.error('Error checking contractor profile:', error);
-      }
-
-      setHasContractorProfile(contractorExists);
-
-      let determinedRole: string | null = null;
-      if (musicianExists && contractorExists) {
-        determinedRole = 'both';
-      } else if (musicianExists) {
-        determinedRole = 'musician';
-      } else if (contractorExists) {
-        determinedRole = 'contractor';
-      }
-
-      setUserRole(determinedRole);
-
-      // Active role logic
-      const storedActiveRole = localStorage.getItem('activeRole');
-      let currentActiveRole = storedActiveRole;
-
-      if (!storedActiveRole && determinedRole) {
-        currentActiveRole = determinedRole === 'contractor' ? 'contractor' : 'musician';
-        localStorage.setItem('activeRole', currentActiveRole);
-      }
-      
-      if (determinedRole === 'musician' && currentActiveRole === 'contractor') {
-        currentActiveRole = 'musician';
-        localStorage.setItem('activeRole', 'musician');
-      }
-      
-      if (determinedRole === 'contractor' && currentActiveRole === 'musician') {
-        currentActiveRole = 'contractor';
-        localStorage.setItem('activeRole', 'contractor');
-      }
-
-      setActiveRole(currentActiveRole);
-
-      const currentPath = window.location.pathname;
-      if (!determinedRole) {
-        router.push('/select-role');
-      } else if (
-        currentActiveRole === 'contractor' &&
-        !currentPath.startsWith('/dashboard/search') &&
-        !currentPath.startsWith('/dashboard/favorites') &&
-        !currentPath.startsWith('/dashboard/messages') &&
-        !currentPath.startsWith('/dashboard/musicos')
-      ) {
-        router.push('/dashboard/search');
-      } else if (
-        currentActiveRole === 'musician' &&
-        (currentPath.startsWith('/dashboard/search') ||
-          currentPath.startsWith('/dashboard/favorites') ||
-          currentPath.startsWith('/dashboard/musicos') ||
-          currentPath.startsWith('/dashboard/messages'))
-      ) {
-        router.push('/dashboard');
+        console.error('Error checking user profiles and roles:', error);
       }
     };
-    checkUserAndProfiles();
-  }, [router, supabase]);
+    fetchUserAndProfiles();
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // Effect to determine active role based on pathname and user's available roles
+  useEffect(() => {
+    if (!userRole) return; // Wait until userRole is determined
+
+    const currentPath = window.location.pathname;
+    let newActiveRole: string | null = null;
+
+    if (userRole === 'both') {
+      if (currentPath.startsWith('/dashboard/search') || currentPath.startsWith('/dashboard/musicos') || currentPath.startsWith('/dashboard/favorites') || currentPath.startsWith('/dashboard/messages')) {
+        newActiveRole = 'contractor';
+      } else {
+        newActiveRole = 'musician';
+      }
+      localStorage.setItem('activeRole', newActiveRole);
+    } else if (userRole === 'musician') {
+      newActiveRole = 'musician';
+      localStorage.setItem('activeRole', newActiveRole);
+    } else if (userRole === 'contractor') {
+      newActiveRole = 'contractor';
+      localStorage.setItem('activeRole', newActiveRole);
+    }
+    setActiveRole(newActiveRole); // Set the active role state
+  }, [pathname, userRole]); // Dependencies: pathname, userRole (runs when path or userRole changes)
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -159,12 +129,6 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     const newRole = activeRole === 'musician' ? 'contractor' : 'musician';
     localStorage.setItem('activeRole', newRole);
     setActiveRole(newRole);
-
-    if (newRole === 'contractor') {
-      router.push('/dashboard/search');
-    } else {
-      router.push('/dashboard');
-    }
   };
 
   const handleCreateContractorProfile = async () => {
@@ -246,7 +210,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
           paddingBottom: isMobile ? '56px' : 0,
         }}
       >
-        <DashboardContext.Provider value={{ activeView, setActiveView, pageTitle, setPageTitle }}>
+        <DashboardContext.Provider value={{ activeView, setActiveView, pageTitle, setPageTitle, userId, musicianProfile }}>
           <Header
             handleDrawerToggle={handleDrawerToggle}
             isMobile={isMobile}

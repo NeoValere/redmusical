@@ -10,9 +10,9 @@ export async function GET(request: Request) {
 
   console.log(`[register-profile GET] userId: ${userId}, role: ${role}, email: ${email}`);
 
-  // Prioritize checking by userId and role if both are valid
-  if (userId && userId !== 'null' && role) {
-    try {
+  try {
+    // Prioritize checking by userId if it's valid
+    if (userId && userId !== 'null') {
       let profile = null;
       if (role === 'musician') {
         profile = await prisma.musician.findFirst({ where: { userId } });
@@ -22,52 +22,68 @@ export async function GET(request: Request) {
 
       if (profile) {
         console.log(`[register-profile GET] Profile found for userId: ${userId}, role: ${role}`);
-        return NextResponse.json({ profile, exists: true }, { status: 200 });
+        return NextResponse.json({ profile, exists: true, roleFound: role }, { status: 200 });
       } else {
+        // If no profile found by userId and specific role, check for any profile by userId
+        console.log(`[register-profile GET] No profile found for userId: ${userId}, role: ${role}. Checking for any profile by userId.`);
+        const existingMusician = await prisma.musician.findFirst({ where: { userId } });
+        const existingContractor = await prisma.contractor.findFirst({ where: { userId } });
+
+        if (existingMusician || existingContractor) {
+          console.log(`[register-profile GET] Found existing profiles for userId: ${userId}. Musician: ${!!existingMusician}, Contractor: ${!!existingContractor}`);
+          return NextResponse.json({
+            exists: true,
+            musicianProfile: existingMusician,
+            contractorProfile: existingContractor,
+            message: 'Profiles found for userId, but not necessarily for the requested role.'
+          }, { status: 200 });
+        }
+
         // If no profile found by userId, but email is provided, check by email as a fallback
         if (email) {
           console.log(`[register-profile GET] No profile by userId, checking by email: ${email}`);
-          const existingMusician = await prisma.musician.findUnique({ where: { email } });
-          const existingContractor = await prisma.contractor.findUnique({ where: { email } });
+          const existingMusicianByEmail = await prisma.musician.findUnique({ where: { email } });
+          const existingContractorByEmail = await prisma.contractor.findUnique({ where: { email } });
 
-          if (existingMusician || existingContractor) {
-            console.log(`[register-profile GET] Profile found by email: ${email}`);
-            return NextResponse.json({ exists: true, message: 'Profile found by email, but not linked to userId' }, { status: 200 });
+          if (existingMusicianByEmail || existingContractorByEmail) {
+            console.log(`[register-profile GET] Profile found by email: ${email}. Musician: ${!!existingMusicianByEmail}, Contractor: ${!!existingContractorByEmail}`);
+            return NextResponse.json({
+              exists: true,
+              musicianProfile: existingMusicianByEmail,
+              contractorProfile: existingContractorByEmail,
+              message: 'Profile found by email, but not linked to userId'
+            }, { status: 200 });
           }
         }
         console.log(`[register-profile GET] No profile found for userId: ${userId}, role: ${role}, email: ${email}`);
         return NextResponse.json({ exists: false }, { status: 200 });
       }
-    } catch (error: unknown) {
-      console.error(`[register-profile GET] Error checking ${role} profile existence by userId:`, error);
-      if (error instanceof Error) {
-        return NextResponse.json({ error: `Failed to check ${role} profile existence`, details: error.message }, { status: 500 });
-      }
-      return NextResponse.json({ error: `Failed to check ${role} profile existence` }, { status: 500 });
-    }
-  } else if (email) { // Fallback if userId is not valid or not provided, but email is
-    try {
+    } else if (email) { // Fallback if userId is not valid or not provided, but email is
       console.log(`[register-profile GET] Checking email existence for: ${email}`);
       const existingMusician = await prisma.musician.findUnique({ where: { email } });
       const existingContractor = await prisma.contractor.findUnique({ where: { email } });
 
       if (existingMusician || existingContractor) {
-        console.log(`[register-profile GET] Email exists: ${email}`);
-        return NextResponse.json({ exists: true }, { status: 200 });
+        console.log(`[register-profile GET] Email exists: ${email}. Musician: ${!!existingMusician}, Contractor: ${!!existingContractor}`);
+        return NextResponse.json({
+          exists: true,
+          musicianProfile: existingMusician,
+          contractorProfile: existingContractor
+        }, { status: 200 });
       } else {
         console.log(`[register-profile GET] Email does not exist: ${email}`);
         return NextResponse.json({ exists: false }, { status: 200 });
       }
-    } catch (error: unknown) {
-      console.error('[register-profile GET] Error checking email existence:', error);
-      if (error instanceof Error) {
-        return NextResponse.json({ error: 'Failed to check email existence', details: error.message }, { status: 500 });
-      }
-      return NextResponse.json({ error: 'Failed to check email existence' }, { status: 500 });
+    } else {
+      console.warn('[register-profile GET] Missing required parameters: userId/role or email.');
+      return NextResponse.json({ error: 'Either a valid userId and role, or an email parameter is required' }, { status: 400 });
     }
-  } else {
-    console.warn('[register-profile GET] Missing required parameters: userId/role or email.');
-    return NextResponse.json({ error: 'Either a valid userId and role, or an email parameter is required' }, { status: 400 });
+  } catch (error: unknown) {
+    console.error(`[register-profile GET] Error checking profile existence:`, error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: `Failed to check profile existence`, details: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: `Failed to check profile existence` }, { status: 500 });
   }
 }
 

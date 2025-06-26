@@ -11,7 +11,7 @@ export default function Search() {
   const { setPageTitle } = useDashboard();
 
   useEffect(() => {
-    setPageTitle('Explorar Músicos');
+    setPageTitle('Inicio');
   }, [setPageTitle]);
 
   return (
@@ -50,29 +50,7 @@ export default function Search() {
         </Grid>
       </Grid>
 
-      <Grid container spacing={2} justifyContent="center">
-        <Grid>
-          <Link href="/search" passHref>
-            <Button variant="contained" color="primary" startIcon={<SearchIcon />}>
-              Explorar Músicos
-            </Button>
-          </Link>
-        </Grid>
-        <Grid>
-          <Link href="/favorites" passHref>
-            <Button variant="outlined" color="primary" startIcon={<Favorite />}>
-              Mis Favoritos
-            </Button>
-          </Link>
-        </Grid>
-        <Grid>
-          <Link href="/messages" passHref>
-            <Button variant="outlined" color="secondary" startIcon={<Message />}>
-              Mensajes
-            </Button>
-          </Link>
-        </Grid>
-      </Grid>
+    
     </Box>
   );
 }

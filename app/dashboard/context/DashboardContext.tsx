@@ -1,12 +1,15 @@
 'use client';
 
 import { createContext, useContext, Dispatch, SetStateAction } from 'react';
+import { Musician } from '@prisma/client';
 
 interface DashboardContextType {
   activeView: string;
   setActiveView: Dispatch<SetStateAction<string>>;
   pageTitle: string;
   setPageTitle: Dispatch<SetStateAction<string>>;
+  userId: string | null;
+  musicianProfile: Musician | null;
 }
 
 export const DashboardContext = createContext<DashboardContextType | undefined>(undefined);

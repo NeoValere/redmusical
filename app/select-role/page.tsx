@@ -3,15 +3,28 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { MusicNotes, Users, MagnifyingGlass } from 'phosphor-react';
-import Image from 'next/image';
+import { MusicNotes, Users, MagnifyingGlass, MusicNotesSimple } from 'phosphor-react';
+import {
+  Box,
+  Button,
+  Typography,
+  Paper,
+  Alert,
+  CircularProgress,
+  Link as MuiLink,
+  Stack,
+  useTheme,
+  alpha
+} from '@mui/material';
+import Link from 'next/link';
 
 export default function SelectRolePage() {
+  const theme = useTheme();
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [hasMusicianProfile, setHasMusicianProfile] = useState(false); // New state
-  const [hasContractorProfile, setHasContractorProfile] = useState(false); // New state
+  const [hasMusicianProfile, setHasMusicianProfile] = useState(false);
+  const [hasContractorProfile, setHasContractorProfile] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -23,7 +36,6 @@ export default function SelectRolePage() {
         return;
       }
 
-      // Check if both profiles already exist for this user
       const [musicianProfileRes, contractorProfileRes] = await Promise.all([
         fetch(`/api/register-profile?userId=${user.id}&role=musician`),
         fetch(`/api/register-profile?userId=${user.id}&role=contractor`)
@@ -36,7 +48,6 @@ export default function SelectRolePage() {
       setHasContractorProfile(contractorData.exists);
 
       if (musicianData.exists && contractorData.exists) {
-        // If both profiles exist, redirect to dashboard
         router.push('/dashboard');
       }
     };
@@ -92,20 +103,17 @@ export default function SelectRolePage() {
       };
 
       if (role === 'both') {
-        // Create both profiles
         await Promise.all([
           createProfile('musician'),
           createProfile('contractor')
         ]);
 
-        router.push('/dashboard'); // Redirect to a general dashboard for 'both'
+        router.push('/dashboard');
       } else {
-        // Create single profile
         const result = await createProfile(role);
-        const { redirectUrl } = result; // Get redirectUrl from the API response
+        const { redirectUrl } = result;
 
-        // Redirect based on selected role
-        router.push(redirectUrl || '/dashboard'); // Use redirectUrl from API, fallback to /dashboard
+        router.push(redirectUrl || '/dashboard');
       }
 
     } catch (err: unknown) {
@@ -117,63 +125,97 @@ export default function SelectRolePage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-        <div className="flex justify-center mb-6">
-          <Image src="/next.svg" alt="redmusical.ar Logo" width={150} height={40} />
-        </div>
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">¡Hola!</h1>
-        <p className="text-gray-600 mb-8">{getWelcomeMessage()}</p>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        bgcolor: theme.palette.background.default,
+        p: { xs: 2, sm: 4 },
+      }}
+    >
+      <Paper
+        elevation={6}
+        sx={{
+          maxWidth: 480,
+          mx: 'auto',
+          p: { xs: 3, sm: 4 },
+          borderRadius: 2,
+          bgcolor: theme.palette.background.paper,
+          border: `1px solid ${theme.palette.divider}`,
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+        }}
+      >
+        {/* Logo Section */}
+        <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4 }}>
+          <MusicNotesSimple size={36} color={theme.palette.primary.main} weight="fill" style={{ marginRight: "3px" }} />
+          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
+            redmusical.ar
+          </Typography>
+        </MuiLink>
+
+        <Typography variant="h4" component="h1" align="center" sx={{ fontWeight: 700, color: theme.palette.text.primary, mb: 1 }}>
+          ¡Hola!
+        </Typography>
+        <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
+          {getWelcomeMessage()}
+        </Typography>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
-          </div>
+          <Alert severity="error" sx={{ mb: 2.5, bgcolor: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.light }}>
+            {error}
+          </Alert>
         )}
 
-        <div className="flex flex-col gap-4">
+        <Stack spacing={2.5}>
           {!hasMusicianProfile && (
-            <button
-              className={`flex items-center justify-center px-6 py-3 rounded-md font-semibold transition-all duration-300 ${
-                selectedRole === 'musician'
-                  ? 'bg-red-700 text-white shadow-md'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => handleRoleSelection('musician')}
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
               disabled={isLoading}
+              size="large"
+              startIcon={<MusicNotes size={20} />}
+              onClick={() => handleRoleSelection('musician')}
+              sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1.1rem' }}
             >
-              <MusicNotes size={20} className="mr-2" /> Soy músico
-            </button>
+              {isLoading && selectedRole === 'musician' ? <CircularProgress size={24} color="inherit" /> : 'Soy músico'}
+            </Button>
           )}
           {!hasContractorProfile && (
-            <button
-              className={`flex items-center justify-center px-6 py-3 rounded-md font-semibold transition-all duration-300 ${
-                selectedRole === 'contractor'
-                  ? 'bg-red-700 text-white shadow-md'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={isLoading}
+              size="large"
+              startIcon={<MagnifyingGlass size={20} />}
               onClick={() => handleRoleSelection('contractor')}
-              disabled={isLoading}
+              sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1.1rem' }}
             >
-              <MagnifyingGlass size={20} className="mr-2" /> Activar modo búsqueda
-            </button>
+              {isLoading && selectedRole === 'contractor' ? <CircularProgress size={24} color="inherit" /> : 'Activar modo búsqueda'}
+            </Button>
           )}
-          {(!hasMusicianProfile && !hasContractorProfile) && ( // Only show 'both' if neither profile exists
-            <button
-              className={`flex items-center justify-center px-6 py-3 rounded-md font-semibold transition-all duration-300 ${
-                selectedRole === 'both'
-                  ? 'bg-red-700 text-white shadow-md'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          {(!hasMusicianProfile && !hasContractorProfile) && (
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={isLoading}
+              size="large"
+              startIcon={<Users size={20} />}
               onClick={() => handleRoleSelection('both')}
-              disabled={isLoading}
+              sx={{ py: 1.5, fontWeight: 'bold', fontSize: '1.1rem' }}
             >
-              <Users size={20} className="mr-2" /> Soy ambos
-            </button>
+              {isLoading && selectedRole === 'both' ? <CircularProgress size={24} color="inherit" /> : 'Soy ambos'}
+            </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </Paper>
+    </Box>
   );
 }

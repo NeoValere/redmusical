@@ -140,7 +140,7 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
     return (
       <Button
         component={Link}
-        href="/dashboard"
+        href="/dashboard/search"
         variant="contained"
         color="primary"
         size="large"

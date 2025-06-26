@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { useDashboard } from './context/DashboardContext';
 import ProfileStatus from './components/ProfileStatus';
 import Statistics from './components/Statistics';
@@ -11,36 +9,28 @@ import CurrentPlan from './components/CurrentPlan';
 import { Box, useTheme, alpha } from '@mui/material';
 import Grid from '@mui/material/Grid';
 
-interface MusicianProfile {
-  id: string;
-  userId: string;
-  isPublic: boolean;
-}
-
 export default function DashboardPage() {
-  const { activeView, setPageTitle } = useDashboard();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [musicianProfile, setMusicianProfile] = useState<MusicianProfile | null>(null);
-  const supabase = createClient();
-  const router = useRouter();
+  const { activeView, setPageTitle, userId, musicianProfile } = useDashboard();
   const theme = useTheme();
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const musicianProfileRes = await fetch(`/api/register-profile?userId=${user.id}&role=musician`);
-        const musicianData = await musicianProfileRes.json();
-        if (musicianData.exists) {
-          setMusicianProfile(musicianData.profile as MusicianProfile);
-        }
-      } else {
-        router.push('/login');
-      }
-    };
-    fetchUserProfile();
-  }, [supabase, router]);
+  // This function should ideally trigger an API call to update visibility
+  // and then the DashboardClientLayout's useEffect for fetching profiles
+  // would re-run and update the context.
+  const handleVisibilityChange = (newIsPublic: boolean) => {
+    // Placeholder for API call to update musician profile visibility
+    console.log(`Attempting to change visibility for userId: ${userId} to ${newIsPublic}`);
+    // In a real application, you would call an API here:
+    // fetch('/api/update-musician-visibility', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ userId, isPublic: newIsPublic }),
+    // }).then(response => {
+    //   if (response.ok) {
+    //     // Optionally, trigger a re-fetch in the parent layout if needed
+    //     // to ensure the context is updated.
+    //   }
+    // }).catch(error => console.error('Error updating visibility:', error));
+  };
 
   useEffect(() => {
     switch (activeView) {
@@ -60,15 +50,6 @@ export default function DashboardPage() {
         setPageTitle('Dashboard');
     }
   }, [activeView, setPageTitle]);
-
-  const handleVisibilityChange = (newIsPublic: boolean) => {
-    setMusicianProfile(prevProfile => {
-      if (prevProfile) {
-        return { ...prevProfile, isPublic: newIsPublic };
-      }
-      return null;
-    });
-  };
 
   return (
     <>

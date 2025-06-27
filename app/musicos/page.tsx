@@ -9,72 +9,19 @@ import {
   Box, 
   Container, 
   Typography, 
-  Button, 
   Stack, 
   CircularProgress,
   Paper,
-  Link as MuiLink,
-  AppBar,
-  Toolbar,
   useTheme,
-  InputAdornment, // Keep InputAdornment as it's used in TextField
-  TextField, // Keep TextField as it's used
-  Pagination, // Keep Pagination as it's used
+  InputAdornment,
+  TextField,
+  Pagination,
 } from '@mui/material';
-import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass } from 'phosphor-react'; // Removed unused phosphor-react icons
+import { MagnifyingGlass } from 'phosphor-react';
 import MusicianCard, { Musician } from '@/app/components/MusicianCard';
 import RoleBasedPrompts from './components/RoleBasedPrompts';
-
-const PublicPageHeader = () => {
-  const theme = useTheme();
-  const supabase = createClient();
-  const [currentUser, setCurrentUser] = useState<User | null>(null); // Changed from any
-  
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    };
-    getUser();
-  }, [supabase]);
-
-  return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      sx={{ 
-        borderBottom: `1px solid ${theme.palette.divider}`,
-        backgroundColor: theme.palette.background.paper, 
-      }}
-    >
-      <Toolbar sx={{ 
-        maxWidth: '1300px', 
-        width: '100%', 
-        mx: 'auto', 
-        px: { xs: 2, sm: 3 }, 
-        justifyContent: 'space-between',
-        backgroundColor: theme.palette.background.paper,
-      }}>
-        <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
-          <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} />
-          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-            redmusical.ar
-          </Typography>
-        </MuiLink>
-        <Stack direction="row" spacing={1}>
-          {!currentUser ? (
-            <>
-              <Button component={Link} href="/login" variant="outlined" startIcon={<SignIn />}>Ingresar</Button>
-              <Button component={Link} href="/register" variant="contained" color="primary" startIcon={<UserPlus />}>Registrarse</Button>
-            </>
-          ) : (
-            <Button component={Link} href="/dashboard" variant="outlined">Mi Panel</Button>
-          )}
-        </Stack>
-      </Toolbar>
-    </AppBar>
-  );
-};
+import SharedAppBar from '@/app/components/SharedAppBar';
+import GlobalBackground from '@/app/components/GlobalBackground';
 
 function MusicosPageContent() {
   const theme = useTheme();
@@ -160,13 +107,36 @@ function MusicosPageContent() {
   };
 
   return (
-    <Box sx={{ bgcolor: theme.palette.background.default, minHeight: '100vh' }}>
-      <PublicPageHeader />
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
-        <Typography variant="h3" component="h1" gutterBottom fontWeight="bold" color="text.primary" sx={{ textAlign: 'center', mb:1}}>
+    <Box sx={{ position: 'relative', minHeight: '100vh' }}>
+      <GlobalBackground />
+      <SharedAppBar />
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 }, position: 'relative', zIndex: 1 }}>
+        <Typography
+          variant="h1"
+          component="h1"
+          gutterBottom
+          fontWeight="bold"
+          color="text.primary"
+          sx={{
+            textAlign: 'center',
+            mb: 1,
+            fontSize: { xs: '2.2rem', sm: '3rem', md: '3.5rem' },
+          }}
+        >
           Explorá Músicos en Argentina
         </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ textAlign: 'center', mb: 4, maxWidth: '700px', mx:'auto' }}>
+        <Typography
+          variant="h5"
+          component="p"
+          color="text.secondary"
+          sx={{
+            textAlign: 'center',
+            mb: 4,
+            maxWidth: '700px',
+            mx: 'auto',
+            fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
+          }}
+        >
           Encontrá el talento perfecto para tu proyecto, banda o evento. Filtrá por instrumento, zona y más.
         </Typography>
 

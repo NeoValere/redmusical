@@ -223,9 +223,15 @@ export default function Sidebar({
                 minHeight: 48,
                 justifyContent: open ? 'initial' : 'center',
                 px: 2.5,
-                borderRadius: 1,
+                borderRadius: '8px',
                 mb: 0.5,
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
+                border: `1px solid ${theme.palette.success.main}`,
+                boxShadow: `0 0 5px ${theme.palette.success.main}`,
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.08)',
+                  boxShadow: `0 0 15px ${theme.palette.success.main}`,
+                },
               }}
             >
               <ListItemIcon

@@ -45,7 +45,7 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
           boxShadow: `0 4px 20px ${theme.palette.primary.main}33`
         }}
       >
-        Ingresar o Registrarse
+        Ingresar o Registrarme
       </Button>
     );
   }

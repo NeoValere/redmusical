@@ -211,11 +211,11 @@ const Musicians = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ my: 4 }}>
+    <Container maxWidth="xl" sx={{ my: 1 }}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {/* Search and Filters Section */}
         <Paper
-          elevation={2}
+          elevation={0}
           sx={{
             p: 2,
             borderRadius: "8px",

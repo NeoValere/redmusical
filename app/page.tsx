@@ -10,9 +10,11 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useRouter } from 'next/navigation';
 import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, Buildings, Quotes, Sparkle, MagnifyingGlass, User as UserIcon, SignOut } from 'phosphor-react'; // Aliased User to UserIcon
-import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, Paper, Card, CardContent, alpha, TextField, InputAdornment } from '@mui/material'; // Removed IconButton, Grid
+import { Box, Typography, Button, Container, Link as MuiLink, Stack, useTheme, Paper, Card, CardContent, alpha, TextField, InputAdornment } from '@mui/material';
 import { motion } from 'framer-motion';
-import DynamicHeroButton from '@/app/components/DynamicHeroButton'; // Import the new component
+import DynamicHeroButton from '@/app/components/DynamicHeroButton';
+import SharedAppBar from '@/app/components/SharedAppBar';
+import GlobalBackground from '@/app/components/GlobalBackground';
 
 // Animaciones
 const fadeIn = {
@@ -97,87 +99,9 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: theme.palette.secondary.main, color: 'text.primary', overflowX: 'hidden' }}>
-      {/* Navigation */}
-      <AppBar
-        position="sticky"
-        elevation={0}
-        sx={{
-          // backgroundColor ya está manejado por el override en MuiTheme.tsx
-          bgcolor: theme.palette.secondary.main, // Apply secondary color here
-          borderBottom: `1px solid ${theme.palette.divider}`
-        }}
-      >
-        <Toolbar
-         
-         sx={{ 
-          maxWidth: '1300px', 
-          width: '100%', 
-          mx: 'auto', 
-          px: { xs: 2, sm: 3 }, 
-          justifyContent: 'space-between',
-          bgcolor: theme.palette.secondary.main, // Apply secondary color here
-          color: theme.palette.secondary.contrastText // Ensure text contrasts
-        }}>
-          <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
-            <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} /> {/* Dorado */}
-            <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: 'inherit' }}>
-              redmusical.ar
-            </Typography>
-          </MuiLink>
-          {!currentUser && ( // Only show Ingresar/Registrarse if no user is logged in
-            <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}>
-              <Button
-                component={Link}
-                href="/login"
-                variant="outlined"
-                startIcon={<SignIn size={20} />}
-                sx={{
-                  color: 'inherit',
-                  borderColor: 'inherit',
-                  '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    color: theme.palette.primary.main,
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  },
-                }}
-              >
-                Ingresar
-              </Button>
-            <Button
-              component={Link}
-              href="/register"
-              variant="contained" 
-              color="primary"    
-              startIcon={<UserPlus size={20} />}
-              disableElevation
-            >
-              Registrarse
-            </Button>
-          </Stack>
-          )}
-          {currentUser && ( // Example: Show a different button or user info if logged in
-            <Button
-              onClick={handleLogout}
-              variant="outlined"
-              sx={{
-                color: 'inherit',
-                borderColor: 'inherit',
-                minWidth: 'auto',
-                px: 1.5,
-                '&:hover': {
-                  borderColor: theme.palette.primary.main,
-                  color: theme.palette.primary.main,
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                },
-              }}
-            >
-              <SignOut size={20} />
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
-
+    <Box sx={{ position: 'relative', minHeight: '100vh', color: 'text.primary', overflowX: 'hidden' }}>
+      <GlobalBackground />
+      <SharedAppBar />
       {/* 1. Hero Section - Redesigned */}
       <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
         <Box
@@ -192,7 +116,7 @@ export default function Home() {
             position: 'relative',
             overflow: 'hidden',
             px: 2,
-            bgcolor: theme.palette.background.default, // Fondo oscuro moderado
+            bgcolor: 'transparent', // Make Hero background transparent
           }}
         >
           {/* Elementos decorativos sutiles */}
@@ -243,7 +167,7 @@ export default function Home() {
             </motion.div>
             <motion.div variants={fadeIn}>
               <Typography variant="h5" component="p" sx={{ mb: 4, color: theme.palette.text.secondary, maxWidth: '800px', mx: 'auto' }}>
-                Desde bandas completas hasta instrumentistas solistas.
+                Desde bandas completas a instrumentistas o vocalistas solistas.
               </Typography>
             </motion.div>
             
@@ -256,11 +180,14 @@ export default function Home() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   sx={{
+                    // Add margin bottom on mobile to compensate for the hidden button
+                    mb: { xs: 2, sm: 0 },
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '8px', // Softer corners
-                      backgroundColor: alpha(theme.palette.background.paper, 0.9), // Slightly transparent paper
+                      backgroundColor: alpha(theme.palette.background.paper, 0.7), // More transparent
+                      backdropFilter: 'blur(10px)', // Frosted glass effect
                       '& fieldset': {
-                        borderColor: theme.palette.divider,
+                        borderColor: alpha(theme.palette.divider, 0.5),
                       },
                       '&:hover fieldset': {
                         borderColor: theme.palette.primary.main,
@@ -276,9 +203,13 @@ export default function Home() {
                     },
                   }}
                   InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <MagnifyingGlass size={24} color={theme.palette.text.secondary} />
+                    endAdornment: (
+                      <InputAdornment 
+                        position="end"
+                        onClick={() => router.push(`/musicos?q=${encodeURIComponent(searchTerm)}`)}
+                        sx={{ cursor: 'pointer', pr: 1 }} // Add padding right for spacing
+                      >
+                        <MagnifyingGlass size={24} color={theme.palette.primary.main} />
                       </InputAdornment>
                     ),
                   }}
@@ -301,6 +232,8 @@ export default function Home() {
                     fontSize: '1.1rem',
                     whiteSpace: 'nowrap', // Prevent text wrapping
                     boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+                    // Hide button on mobile, show on sm and up
+                    display: { xs: 'none', sm: 'block' },
                     width: { xs: '100%', sm: 'auto' }
                   }}
                 >
@@ -360,7 +293,7 @@ export default function Home() {
               ¿Qué es <span style={{ color: theme.palette.primary.main }}>redmusical.ar</span>? {/* Dorado */}
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ textAlign: 'center', mb: 6, maxWidth: '750px', mx: 'auto' }}>
-              Somos la plataforma que conecta a la vibrante comunidad musical de Argentina. Un espacio diseñado para que el talento encuentre oportunidades y las oportunidades encuentren talento.
+              Nuestra misión es conectar a la vibrante comunidad musical de Argentina. Diseñamos un espacio para que el talento encuentre oportunidades y las oportunidades encuentren talento.
             </Typography>
           </motion.div>
           <Box
@@ -425,7 +358,7 @@ export default function Home() {
       </Box>
 
       {/* 3. Cómo funciona */}
-      <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.default }}> {/* Fondo default */}
+      <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(10px)' }}> {/* Fondo default */}
         <Container maxWidth="lg">
           <motion.div variants={fadeIn}>
             <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
@@ -637,7 +570,7 @@ export default function Home() {
       </Box>
 
       {/* 5. Testimonios Carousel */}
-      <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.default, overflow: 'hidden' }}>
+      <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: alpha(theme.palette.background.default, 0.7), backdropFilter: 'blur(10px)', overflow: 'hidden' }}>
         <Container maxWidth="lg">
           <Box component={motion.div} variants={fadeIn} sx={{ mb: 5, textAlign: 'center' }}>
             <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', mb: 1, color: theme.palette.text.primary }}>
@@ -765,26 +698,13 @@ export default function Home() {
         viewport={{ once: true, amount: 0.3 }}
         variants={staggerContainer}
         sx={{
-          position: 'relative', // Para posicionar el SVG de fondo
           py: { xs: 8, md: 12 },
-          backgroundImage: `url('/images/musicians-bw.png')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          color: theme.palette.primary.contrastText, // Texto negro suave
-          overflow: 'hidden', // Para que el gradiente no se desborde
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            bgcolor: alpha(theme.palette.primary.main, 0.8), // Overlay dorado semi-transparente
-            zIndex: 0,
-          },
+          bgcolor: alpha(theme.palette.primary.main, 0.7),
+          backdropFilter: 'blur(10px)',
+          color: theme.palette.primary.contrastText,
         }}
       >
-        <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative', zIndex: 1 /* Contenido encima del gradiente */ }}>
+        <Container maxWidth="md" sx={{ textAlign: 'center' }}>
           <motion.div variants={fadeIn}>
             <Typography
               variant="h2"
@@ -793,7 +713,8 @@ export default function Home() {
                 fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' },
                 fontWeight: 'bold',
                 mb: 2,
-                textShadow: '0px 2px 4px rgba(0,0,0,0.6)', // Sombra de texto para legibilidad
+                color: 'inherit',
+                textShadow: '0px 2px 4px rgba(0,0,0,0.5)',
               }}
             >
               Unite a la Red Musical de Argentina
@@ -802,10 +723,11 @@ export default function Home() {
               variant="h6"
               sx={{
                 mb: 4,
-                color: alpha(theme.palette.primary.contrastText, 0.8),
+                color: 'inherit',
+                opacity: 0.85,
                 maxWidth: '600px',
                 mx: 'auto',
-                textShadow: '0px 1px 3px rgba(0,0,0,0.5)', // Sombra de texto para legibilidad
+                textShadow: '0px 1px 3px rgba(0,0,0,0.4)',
               }}
             >
               Creá tu perfil, mostrá tu talento, encontrá músicos o simplemente conectá con la comunidad. ¡El próximo gran paso en tu carrera musical empieza acá!

@@ -58,6 +58,8 @@ const RoleBasedPrompts = () => {
     return null; // User is not logged in, or has both roles, so we show nothing.
   }
 
+  const promptsCount = (!hasMusicianRole ? 1 : 0) + (!hasContractorRole ? 1 : 0);
+
   return (
     <Paper elevation={0} sx={{ 
       p: { xs: 2, sm: 3 }, 
@@ -68,7 +70,7 @@ const RoleBasedPrompts = () => {
     }}>
       <Box
         display="grid"
-        gridTemplateColumns={{ xs: '1fr', md: '1fr 1fr' }}
+        gridTemplateColumns={{ xs: '1fr', md: promptsCount === 2 ? '1fr 1fr' : '1fr' }}
         gap={4}
         justifyContent="center"
       >

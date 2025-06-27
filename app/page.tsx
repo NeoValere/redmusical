@@ -9,7 +9,7 @@ import Slider from 'react-slick'; // Added Slider
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
 import { useRouter } from 'next/navigation';
-import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, Buildings, Quotes, Sparkle, MagnifyingGlass, User as UserIcon } from 'phosphor-react'; // Aliased User to UserIcon
+import { MusicNotesSimple, SignIn, UserPlus, CheckCircle, Info, Lightbulb, UsersThree, Buildings, Quotes, Sparkle, MagnifyingGlass, User as UserIcon, SignOut } from 'phosphor-react'; // Aliased User to UserIcon
 import { Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink, Stack, useTheme, Paper, Card, CardContent, alpha, TextField, InputAdornment } from '@mui/material'; // Removed IconButton, Grid
 import { motion } from 'framer-motion';
 import DynamicHeroButton from '@/app/components/DynamicHeroButton'; // Import the new component
@@ -89,6 +89,13 @@ export default function Home() {
     checkUserAndRoles();
   }, [supabase]); // Removed router from dependencies as it's not directly used for redirection here anymore
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    setUserRoles({ isMusician: false, isContractor: false, userId: null });
+    router.refresh();
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: theme.palette.secondary.main, color: 'text.primary', overflowX: 'hidden' }}>
       {/* Navigation */}
@@ -119,7 +126,7 @@ export default function Home() {
             </Typography>
           </MuiLink>
           {!currentUser && ( // Only show Ingresar/Registrarse if no user is logged in
-            <Stack direction="row" spacing={1}>
+            <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', sm: 'flex' } }}>
               <Button
                 component={Link}
                 href="/login"
@@ -150,22 +157,23 @@ export default function Home() {
           </Stack>
           )}
           {currentUser && ( // Example: Show a different button or user info if logged in
-             <Button 
-                component={Link} 
-                href={userRoles.isMusician ? "/dashboard" : "/dashboard/search"} 
-                variant="outlined"
-                sx={{
-                  color: 'inherit',
-                  borderColor: 'inherit',
-                  '&:hover': {
-                    borderColor: theme.palette.primary.main,
-                    color: theme.palette.primary.main,
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  },
-                }}
-              >
-                Mi Panel
-              </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outlined"
+              sx={{
+                color: 'inherit',
+                borderColor: 'inherit',
+                minWidth: 'auto',
+                px: 1.5,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                },
+              }}
+            >
+              <SignOut size={20} />
+            </Button>
           )}
         </Toolbar>
       </AppBar>
@@ -224,7 +232,7 @@ export default function Home() {
                 component="h1"
                 sx={{
                   fontWeight: 700,
-                  fontSize: { xs: '2.8rem', sm: '3.5rem', md: '4.5rem' }, // Slightly smaller for new copy
+                  fontSize: { xs: '2.2rem', sm: '3.5rem', md: '4.5rem' }, // Adjusted for mobile
                   lineHeight: 1.2,
                   mb: 1, // Reduced margin
                   color: theme.palette.text.primary, // Main text color
@@ -285,13 +293,15 @@ export default function Home() {
                   variant="contained"
                   color="primary"
                   size="large"
+                  fullWidth
                   onClick={() => router.push(`/musicos?q=${encodeURIComponent(searchTerm)}`)}
                   sx={{ 
                     py: '14px', // Match TextField height
                     px: 4, 
                     fontSize: '1.1rem',
                     whiteSpace: 'nowrap', // Prevent text wrapping
-                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`
+                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+                    width: { xs: '100%', sm: 'auto' }
                   }}
                 >
                   Buscar
@@ -299,7 +309,7 @@ export default function Home() {
               </Stack>
             </motion.div>
 
-            <Box component={motion.div} variants={fadeIn} sx={{ mb: 6 }}>
+            <Box component={motion.div} variants={fadeIn} sx={{ mb: 4 }}>
               <DynamicHeroButton currentUser={currentUser} userRoles={userRoles} />
             </Box>
 
@@ -311,12 +321,30 @@ export default function Home() {
                 alignItems="center"
                 sx={{ mt: 4, mb: 2 }}
               >
-                <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
+                <Typography variant="h6" sx={{ color: theme.palette.text.secondary, display: { xs: 'none', md: 'block'} }}>
                   ¿Sos músico o banda? <MuiLink component={Link} href={currentUser ? (userRoles.isMusician ? `/m/${userRoles.userId}` : "/select-role?role=musician") : "/register?role=musician"} fontWeight="bold" color="primary">Creá tu perfil gratis y mostrate.</MuiLink>
                 </Typography>
-                <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
+                <Typography variant="h6" sx={{ color: theme.palette.text.secondary, display: { xs: 'none', md: 'block'} }}>
                   ¿Buscás músicos? <MuiLink component={Link} href="/musicos" fontWeight="bold" color="primary">Explorá nuestra red.</MuiLink>
                 </Typography>
+                <Stack 
+                  direction={{ xs: 'column', sm: 'row' }} 
+                  spacing={2} 
+                  justifyContent="center" 
+                  alignItems="stretch"
+                  sx={{ mt: 4, mb: 2, px: { xs: 2, sm: 0 }, display: {xs: 'flex', md: 'none'}, width: '100%' }}
+                >
+                  <Paper sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${theme.palette.divider}`, flex: 1 }}>
+                    <Typography variant="body1" sx={{ color: theme.palette.text.secondary, textAlign: 'center' }}>
+                      ¿Sos músico o banda? <MuiLink component={Link} href={currentUser ? (userRoles.isMusician ? `/m/${userRoles.userId}` : "/select-role?role=musician") : "/register?role=musician"} fontWeight="bold" color="primary">Creá tu perfil gratis y mostrate.</MuiLink>
+                    </Typography>
+                  </Paper>
+                  <Paper sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${theme.palette.divider}`, flex: 1 }}>
+                    <Typography variant="body1" sx={{ color: theme.palette.text.secondary, textAlign: 'center' }}>
+                      ¿Buscás músicos? <MuiLink component={Link} href="/musicos" fontWeight="bold" color="primary">Explorá nuestra red.</MuiLink>
+                    </Typography>
+                  </Paper>
+                </Stack>
               </Stack>
             </motion.div>
 
@@ -328,7 +356,7 @@ export default function Home() {
       <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.paper }}> {/* Fondo papel */}
         <Container maxWidth="lg">
           <motion.div variants={fadeIn}>
-            <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
+            <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
               ¿Qué es <span style={{ color: theme.palette.primary.main }}>redmusical.ar</span>? {/* Dorado */}
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ textAlign: 'center', mb: 6, maxWidth: '750px', mx: 'auto' }}>
@@ -400,7 +428,7 @@ export default function Home() {
       <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.default }}> {/* Fondo default */}
         <Container maxWidth="lg">
           <motion.div variants={fadeIn}>
-            <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
+            <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
               Simple, Rápido y Directo
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ textAlign: 'center', mb: 6, maxWidth: '750px', mx: 'auto' }}>
@@ -460,7 +488,9 @@ export default function Home() {
 
             {/* Para contratantes */}
             <motion.div variants={fadeIn}> 
-              <Card sx={{
+              <Card 
+                elevation={0}
+              sx={{
                 p: { xs: 2, sm: 3 },
                 boxShadow: theme.shadows[2],
                 borderRadius: 2,
@@ -510,7 +540,7 @@ export default function Home() {
       <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.paper }}> {/* Fondo paper */}
         <Container maxWidth="lg">
           <motion.div variants={fadeIn}>
-            <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
+            <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', textAlign: 'center', mb: 1, color: theme.palette.text.primary }}>
               ¿Es para vos? ¡Claro que sí!
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ textAlign: 'center', mb: 6, maxWidth: '750px', mx: 'auto' }}>
@@ -525,7 +555,9 @@ export default function Home() {
           >
             {/* ¿Sos músico? */}
             <motion.div variants={fadeIn}>
-              <Card sx={{
+              <Card 
+              
+              sx={{
                 p: { xs: 2, sm: 3 },
                 boxShadow: theme.shadows[2],
                 borderRadius: 2,
@@ -563,7 +595,9 @@ export default function Home() {
 
             {/* ¿Buscás músicos? */}
             <motion.div variants={fadeIn}>
-              <Card sx={{
+              <Card 
+               elevation={0}
+                sx={{
                 p: { xs: 2, sm: 3 },
                 boxShadow: theme.shadows[2],
                 borderRadius: 2,
@@ -606,7 +640,7 @@ export default function Home() {
       <Box component={motion.section} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={staggerContainer} sx={{ py: { xs: 6, md: 10 }, bgcolor: theme.palette.background.default, overflow: 'hidden' }}>
         <Container maxWidth="lg">
           <Box component={motion.div} variants={fadeIn} sx={{ mb: 5, textAlign: 'center' }}>
-            <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: theme.palette.text.primary }}>
+            <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', mb: 1, color: theme.palette.text.primary }}>
               Lo que dicen de <span style={{ color: theme.palette.primary.main }}>nosotros</span>
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ maxWidth: '750px', mx: 'auto' }}>
@@ -694,7 +728,7 @@ export default function Home() {
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>
           <motion.div variants={fadeIn}>
             <Sparkle size={48} color={theme.palette.primary.main} weight="fill" style={{ marginBottom: theme.spacing(2) }} /> {/* Dorado */}
-            <Typography variant="h2" component="h2" sx={{ fontWeight: 'bold', mb: 1, color: theme.palette.text.primary }}>
+            <Typography variant="h2" component="h2" sx={{ fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' }, fontWeight: 'bold', mb: 1, color: theme.palette.text.primary }}>
               Potenciá Tu Perfil
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 4, maxWidth: '600px', mx: 'auto' }}>
@@ -756,6 +790,7 @@ export default function Home() {
               variant="h2"
               component="h2"
               sx={{
+                fontSize: { xs: '1.8rem', sm: '2.5rem', md: '3rem' },
                 fontWeight: 'bold',
                 mb: 2,
                 textShadow: '0px 2px 4px rgba(0,0,0,0.6)', // Sombra de texto para legibilidad

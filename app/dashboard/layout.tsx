@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
+import SidebarToggle from './components/SidebarToggle';
 import Header from './components/Header';
 import { Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { darkenColor } from '../../utils';
@@ -140,6 +141,14 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     const newRole = activeRole === 'musician' ? 'contractor' : 'musician';
     localStorage.setItem('activeRole', newRole);
     setActiveRole(newRole);
+
+    if (newRole === 'contractor') {
+      setActiveView('inicio');
+      router.push('/dashboard/search');
+    } else {
+      setActiveView('mi-perfil');
+      router.push('/dashboard');
+    }
   };
 
   const handleCreateContractorProfile = async () => {
@@ -191,6 +200,11 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', background: gradient }}>
+      <SidebarToggle
+        handleDrawerToggle={handleDrawerToggle}
+        isSidebarOpen={isSidebarOpen}
+        isMobile={isMobile}
+      />
       {!isMobile && (
         <Sidebar
           userRole={userRole}

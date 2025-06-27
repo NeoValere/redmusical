@@ -9,7 +9,6 @@ import {
   Box, 
   Container, 
   Typography, 
-  Grid, // Standard Grid import for v6/v7
   Button, 
   Stack, 
   CircularProgress,
@@ -24,6 +23,7 @@ import {
 } from '@mui/material';
 import { MusicNotesSimple, SignIn, UserPlus, MagnifyingGlass } from 'phosphor-react'; // Removed unused phosphor-react icons
 import MusicianCard, { Musician } from '@/app/components/MusicianCard';
+import RoleBasedPrompts from './components/RoleBasedPrompts';
 
 const PublicPageHeader = () => {
   const theme = useTheme();
@@ -171,8 +171,8 @@ function MusicosPageContent() {
         </Typography>
 
         <Paper elevation={0} sx={{ p: {xs: 2, sm:3}, mb: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 10 }}>
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+            <Box sx={{ flexGrow: 1 }}>
               <TextField
                 fullWidth
                 label="Buscar por nombre, instrumento, ciudad..."
@@ -187,8 +187,8 @@ function MusicosPageContent() {
                   ),
                 }}
               />
-            </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            </Box>
+            <Box sx={{ minWidth: { md: 120 } }}>
               <TextField
                 fullWidth
                 select
@@ -211,8 +211,8 @@ function MusicosPageContent() {
                 <option value="Choir">Coro</option>
                 <option value="Orchestra">Orquesta</option>
               </TextField>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Paper>
 
         {isLoading && (
@@ -233,13 +233,20 @@ function MusicosPageContent() {
 
         {!isLoading && !error && musicians.length > 0 && (
           <>
-            <Grid container spacing={3}>
+            <Box
+              display="grid"
+              gridTemplateColumns={{
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+                lg: 'repeat(4, 1fr)',
+              }}
+              gap={3}
+            >
               {musicians.map((musician) => (
-                <Grid  key={musician.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                  <MusicianCard musician={musician} />
-                </Grid>
+                <MusicianCard key={musician.id} musician={musician} />
               ))}
-            </Grid>
+            </Box>
             {totalPages > 1 && (
               <Stack alignItems="center" sx={{ mt: 5 }}>
                 <Pagination count={totalPages} page={page} onChange={handlePageChange} color="primary" size="large"/>
@@ -248,24 +255,7 @@ function MusicosPageContent() {
           </>
         )}
 
-        <Box sx={{ textAlign: 'center', py: {xs: 4, md: 6}, mt: 4, borderTop: `1px solid ${theme.palette.divider}`, borderBottom: `1px solid ${theme.palette.divider}` }}>
-            <Typography variant="h5" component="p" fontWeight="bold" color="text.primary" gutterBottom>
-                ¿Sos músico o banda?
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{mb:2, maxWidth: '600px', mx:'auto'}}>
-                Creá tu perfil profesional en minutos y conectá con oportunidades en toda Argentina. ¡Es gratis!
-            </Typography>
-            <Button 
-                component={Link} 
-                href={currentUser ? `/select-role?role=musician&userId=${currentUser.id}` : "/register?role=musician"} 
-                variant="contained" 
-                color="primary" 
-                size="large"
-                startIcon={<UserPlus />}
-            >
-                Crear Perfil de Músico
-            </Button>
-        </Box>
+        <RoleBasedPrompts />
       </Container>
 
       {/* Modal for contact removed */}

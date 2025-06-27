@@ -18,6 +18,7 @@ import {
   Toolbar,
 } from '@mui/material';
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
   userRole: string | null;
@@ -53,9 +54,34 @@ export default function Sidebar({
   musicianProfile, // Destructure musicianProfile
 }: SidebarProps) {
   const theme = useTheme();
+  const pathname = usePathname();
 
   useEffect(() => {
-    localStorage.setItem('activeView', activeView);
+    // Determine active view based on pathname
+    if (pathname.includes('/dashboard/musicos')) {
+      setActiveView('explorar-musicos');
+    } else if (pathname.includes('/dashboard/favorites')) {
+      setActiveView('favoritos');
+    } else if (pathname.includes('/dashboard/messages')) {
+      setActiveView('mensajes');
+    } else if (pathname.includes('/dashboard/search')) {
+      setActiveView('inicio');
+    } else if (pathname === '/dashboard') {
+      // For musician role, check query params for more specific views
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get('view');
+      if (view) {
+        setActiveView(view);
+      } else {
+        setActiveView('mi-perfil');
+      }
+    }
+  }, [pathname, setActiveView]);
+
+  useEffect(() => {
+    if (activeView) {
+      localStorage.setItem('activeView', activeView);
+    }
   }, [activeView]);
 
   const musicianNavItems = [

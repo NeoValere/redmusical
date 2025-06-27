@@ -3,14 +3,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Container,
   TextField,
-  Grid,
   Typography,
   CircularProgress,
   Box,
   Paper,
   Button,
-  Collapse,
-  Slider,
   FormControl,
   InputLabel,
   Select,
@@ -21,9 +18,12 @@ import {
   Pagination,
   useTheme,
   useMediaQuery,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
+import { MagnifyingGlass, Faders } from "phosphor-react";
+import { motion, AnimatePresence } from "framer-motion";
 import MusicianCard, { Musician } from "@/app/components/MusicianCard";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 
@@ -37,11 +37,11 @@ const Musicians = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [filtersOpen, setFiltersOpen] = useState(true);
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [showFilters, setShowFilters] = useState(!isMobile);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -70,7 +70,7 @@ const Musicians = () => {
   const [availability, setAvailability] = useState<Option[]>([]);
   const [hourlyRate, setHourlyRate] = useState<number[]>([
     Number(searchParams.get("minRate")) || 0,
-    Number(searchParams.get("maxRate")) || 500,
+    Number(searchParams.get("maxRate")) || 100000,
   ]);
 
   // SWR hooks for fetching filter data
@@ -106,7 +106,6 @@ const Musicians = () => {
 
   const updateURL = useCallback(() => {
     const params = new URLSearchParams(searchParams);
-    // We set page to 1 when applying new filters.
     params.set("page", "1");
     if (searchTerm) params.set("q", searchTerm);
     else params.delete("q");
@@ -156,7 +155,6 @@ const Musicians = () => {
   ]);
 
   useEffect(() => {
-    // This effect updates the local state of filters when the options are loaded and search params change.
     const genreNames = searchParams.get("genres")?.split(",") || [];
     const instrumentNames = searchParams.get("instruments")?.split(",") || [];
     const skillNames = searchParams.get("skills")?.split(",") || [];
@@ -207,256 +205,296 @@ const Musicians = () => {
     setAcceptsGigs(null);
     setAcceptsCollabs(null);
     setAvailability([]);
-    setHourlyRate([0, 500]);
+    setHourlyRate([0, 100000]);
     setPage(1);
-    router.push(pathname); // Clears all query params
+    router.push(pathname);
   };
 
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Buscar Músicos
-        </Typography>
-
-        {isMobile && (
-          <Button
-            startIcon={<FilterListIcon />}
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            sx={{ mb: 2 }}
-          >
-            {filtersOpen ? "Ocultar Filtros" : "Mostrar Filtros"}
-          </Button>
-        )}
-
-        <Grid container spacing={3}>
-          <Grid
-            size={{ md: 3 }}
-            sx={{
-              display: isMobile ? "block" : "block",
-            }}
-          >
-            <Collapse in={filtersOpen}>
-              <Paper elevation={3} sx={{ p: 2 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Filtros
-                </Typography>
-                <Grid container spacing={2}>
-                  {/* All filter controls go here */}
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Buscar por nombre, etc."
-                      variant="outlined"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Tipo</InputLabel>
-                      <Select
-                        value={musicianType}
-                        label="Tipo"
-                        onChange={(e) => setMusicianType(e.target.value)}
-                      >
-                        <MenuItem value="">Todos</MenuItem>
-                        <MenuItem value="Musician">Músico Solista</MenuItem>
-                        <MenuItem value="Band">Banda</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Provincia"
-                      variant="outlined"
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <TextField
-                      fullWidth
-                      label="Ciudad"
-                      variant="outlined"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Autocomplete
-                      multiple
-                      options={allGenres}
-                      getOptionLabel={(option) => option.name}
-                      value={genres}
-                      onChange={(_, newValue) => setGenres(newValue)}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Géneros" />
-                      )}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Autocomplete
-                      multiple
-                      options={allInstruments}
-                      getOptionLabel={(option) => option.name}
-                      value={instruments}
-                      onChange={(_, newValue) => setInstruments(newValue)}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Instrumentos" />
-                      )}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Autocomplete
-                      multiple
-                      options={allSkills}
-                      getOptionLabel={(option) => option.name}
-                      value={skills}
-                      onChange={(_, newValue) => setSkills(newValue)}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Habilidades" />
-                      )}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={acceptsGigs === true}
-                          onChange={(e) =>
-                            setAcceptsGigs(e.target.checked ? true : null)
-                          }
-                        />
-                      }
-                      label="Acepta Contrataciones"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={acceptsCollabs === true}
-                          onChange={(e) =>
-                            setAcceptsCollabs(e.target.checked ? true : null)
-                          }
-                        />
-                      }
-                      label="Acepta Colaboraciones"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Typography gutterBottom>
-                      Tarifa por Hora: ${hourlyRate[0]} - ${hourlyRate[1]}
-                    </Typography>
-                    <Slider
-                      value={hourlyRate}
-                      onChange={(_, newValue) =>
-                        setHourlyRate(newValue as number[])
-                      }
-                      valueLabelDisplay="auto"
-                      min={0}
-                      max={500}
-                      step={10}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }}>
-                    <Autocomplete
-                      multiple
-                      options={allAvailability}
-                      getOptionLabel={(option) => option.name}
-                      value={availability}
-                      onChange={(_, newValue) => setAvailability(newValue)}
-                      renderInput={(params) => (
-                        <TextField {...params} label="Disponibilidad" />
-                      )}
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 12 }} sx={{ textAlign: "right" }}>
-                    <Button
-                      variant="outlined"
-                      onClick={handleClearFilters}
-                      sx={{ mr: 1 }}
+    <Container maxWidth="xl" sx={{ my: 4 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {/* Search and Filters Section */}
+        <Paper
+          elevation={2}
+          sx={{
+            p: 2,
+            borderRadius: "8px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Buscar por nombre, instrumento, género..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleApplyFilters()}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleApplyFilters}
+                      color="primary"
+                      aria-label="search"
                     >
-                      Limpiar
+                      <MagnifyingGlass size={20} />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "8px",
+                },
+              }}
+            />
+            <IconButton
+              onClick={() => setShowFilters(!showFilters)}
+              color="primary"
+              aria-label="toggle filters"
+            >
+              <Faders size={24} />
+            </IconButton>
+          </Box>
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{ overflow: "hidden" }}
+              >
+                <Box
+                  sx={{
+                    pt: 2,
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "1fr",
+                      sm: "1fr 1fr",
+                      md: "1fr 1fr 1fr",
+                    },
+                    gap: 2,
+                  }}
+                >
+                  <FormControl fullWidth>
+                <InputLabel>Tipo</InputLabel>
+                <Select
+                  value={musicianType}
+                  label="Tipo"
+                  onChange={(e) => setMusicianType(e.target.value)}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="Musician">Músico Solista</MenuItem>
+                  <MenuItem value="Band">Banda</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                fullWidth
+                label="Provincia"
+                variant="outlined"
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Ciudad"
+                variant="outlined"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+              <Autocomplete
+                multiple
+                options={allGenres}
+                getOptionLabel={(option) => option.name}
+                value={genres}
+                onChange={(_, newValue) => setGenres(newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Géneros" />
+                )}
+              />
+              <Autocomplete
+                multiple
+                options={allInstruments}
+                getOptionLabel={(option) => option.name}
+                value={instruments}
+                onChange={(_, newValue) => setInstruments(newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Instrumentos" />
+                )}
+              />
+              <Autocomplete
+                multiple
+                options={allSkills}
+                getOptionLabel={(option) => option.name}
+                value={skills}
+                onChange={(_, newValue) => setSkills(newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Habilidades" />
+                )}
+              />
+              <Autocomplete
+                multiple
+                options={allAvailability}
+                getOptionLabel={(option) => option.name}
+                value={availability}
+                onChange={(_, newValue) => setAvailability(newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="Disponibilidad" />
+                )}
+              />
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Tarifa Mínima"
+                  type="number"
+                  value={hourlyRate[0]}
+                  onChange={(e) => {
+                    const newMin =
+                      e.target.value === "" ? 0 : Number(e.target.value);
+                    setHourlyRate([newMin, hourlyRate[1]]);
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">$</InputAdornment>
+                    ),
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Tarifa Máxima"
+                  type="number"
+                  value={hourlyRate[1]}
+                  onChange={(e) => {
+                    const newMax =
+                      e.target.value === ""
+                        ? 100000
+                        : Number(e.target.value);
+                    setHourlyRate([hourlyRate[0], newMax]);
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">$</InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={acceptsGigs === true}
+                    onChange={(e) =>
+                      setAcceptsGigs(e.target.checked ? true : null)
+                    }
+                  />
+                }
+                label="Acepta Contrataciones"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={acceptsCollabs === true}
+                    onChange={(e) =>
+                      setAcceptsCollabs(e.target.checked ? true : null)
+                    }
+                  />
+                }
+                label="Acepta Colaboraciones"
+              />
+                  <Box
+                    sx={{
+                      gridColumn: "1 / -1",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      gap: 1,
+                      mt: 2,
+                    }}
+                  >
+                    <Button variant="outlined" onClick={handleClearFilters}>
+                      Limpiar Filtros
                     </Button>
                     <Button variant="contained" onClick={handleApplyFilters}>
                       Aplicar
                     </Button>
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Collapse>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 9 }}>
-            {musiciansLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : musiciansError ? (
-              <Typography color="error" sx={{ m: 4, width: "100%" }}>
-                Error al cargar los músicos. Por favor, intente de nuevo.
-              </Typography>
-            ) : (
-              <>
-                <Grid container spacing={3}>
-                  {musicians.length > 0 ? (
-                    musicians.map((musician) => (
-                      <Grid
-                        key={musician.id}
-                        size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-                      >
-                        <MusicianCard musician={musician} />
-                      </Grid>
-                    ))
-                  ) : (
-                    <Typography sx={{ m: 4, width: "100%" }}>
-                      No se encontraron músicos con esos criterios.
-                    </Typography>
-                  )}
-                </Grid>
-                {totalPages > 1 && (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      mt: 4,
-                      "& .MuiPagination-root": {
-                        // Targeting the root of the Pagination component
-                        p: 1, // Adding some padding
-                        borderRadius: "8px", // Rounding the corners of the background
-                        backgroundColor: "rgba(255, 255, 255, 0.1)", // A semi-transparent white background
-                        backdropFilter: "blur(10px)", // Applying a blur effect
-                      },
-                      "& .MuiPaginationItem-root": {
-                        // Targeting all pagination items
-                        color: "#fff", // White text color for the numbers
-                        "&.Mui-selected": {
-                          // Targeting the selected item
-                          backgroundColor: "rgba(255, 255, 255, 0.3)", // A more opaque white for the selected item's background
-                          fontWeight: "bold", // Make the selected number bold
-                        },
-                        "&:hover": {
-                          // Targeting items on hover
-                          backgroundColor: "rgba(255, 255, 255, 0.2)", // A slightly more opaque white on hover
-                        },
-                      },
-                    }}
-                  >
-                    <Pagination
-                      count={totalPages}
-                      page={page}
-                      onChange={handlePageChange}
-                      color="primary"
-                    />
                   </Box>
-                )}
-              </>
+                </Box>
+              </motion.div>
             )}
-          </Grid>
-        </Grid>
+          </AnimatePresence>
+        </Paper>
+
+        {/* Musicians List */}
+        <Box>
+          {musiciansLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : musiciansError ? (
+            <Typography color="error" sx={{ m: 4, width: "100%" }}>
+              Error al cargar los músicos. Por favor, intente de nuevo.
+            </Typography>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, 1fr)",
+                    md: "repeat(3, 1fr)",
+                    lg: "repeat(4, 1fr)",
+                  },
+                  gap: 3,
+                }}
+              >
+                {musicians.length > 0 ? (
+                  musicians.map((musician) => (
+                    <MusicianCard key={musician.id} musician={musician} />
+                  ))
+                ) : (
+                  <Typography sx={{ m: 4, gridColumn: "1 / -1" }}>
+                    No se encontraron músicos con esos criterios.
+                  </Typography>
+                )}
+              </Box>
+              {totalPages > 1 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    mt: 4,
+                    "& .MuiPagination-root": {
+                      p: 1,
+                      borderRadius: "8px",
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      backdropFilter: "blur(10px)",
+                    },
+                    "& .MuiPaginationItem-root": {
+                      color: "#fff",
+                      "&.Mui-selected": {
+                        backgroundColor: "rgba(255, 255, 255, 0.3)",
+                        fontWeight: "bold",
+                      },
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                      },
+                    },
+                  }}
+                >
+                  <Pagination sx={{ mb : 10 }}
+                    count={totalPages}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                  />
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
       </Box>
     </Container>
   );

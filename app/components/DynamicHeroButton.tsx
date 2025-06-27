@@ -40,8 +40,8 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
         sx={{
           fontWeight: 'bold',
           py: 1.5,
-          px: 4,
-          fontSize: '1.1rem',
+          px: { xs: 2, sm: 4 },
+          fontSize: { xs: '0.9rem', sm: '1.1rem' },
           boxShadow: `0 4px 20px ${theme.palette.primary.main}33`
         }}
       >
@@ -69,8 +69,8 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
           sx={{
             fontWeight: 'bold',
             py: 1.5,
-            px: 4,
-            fontSize: '1.1rem',
+            px: { xs: 2, sm: 4 },
+            fontSize: { xs: '0.9rem', sm: '1.1rem' },
             boxShadow: `0 4px 20px ${theme.palette.primary.main}33`
           }}
         >
@@ -126,8 +126,8 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
         sx={{
           fontWeight: 'bold',
           py: 1.5,
-          px: 4,
-          fontSize: '1.1rem',
+          px: { xs: 2, sm: 4 },
+          fontSize: { xs: '0.9rem', sm: '1.1rem' },
           boxShadow: `0 4px 20px ${theme.palette.primary.main}33`
         }}
       >
@@ -148,8 +148,8 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
         sx={{
           fontWeight: 'bold',
           py: 1.5,
-          px: 4,
-          fontSize: '1.1rem',
+          px: { xs: 2, sm: 4 },
+          fontSize: { xs: '0.9rem', sm: '1.1rem' },
           boxShadow: `0 4px 20px ${theme.palette.primary.main}33`
         }}
       >
@@ -171,8 +171,8 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
       sx={{
         fontWeight: 'bold',
         py: 1.5,
-        px: 4,
-        fontSize: '1.1rem',
+        px: { xs: 2, sm: 4 },
+        fontSize: { xs: '0.9rem', sm: '1.1rem' },
         boxShadow: `0 4px 20px ${theme.palette.primary.main}33`
       }}
     >

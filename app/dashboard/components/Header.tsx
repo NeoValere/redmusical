@@ -3,15 +3,14 @@
 import { Box, Typography, IconButton, AppBar, Toolbar } from '@mui/material';
 import { useTheme } from '@mui/material/styles'; // Import useTheme
 import { useDashboard } from '../context/DashboardContext';
-import { motion } from 'framer-motion';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
-// ArrowForwardIosIcon is no longer needed
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { usePathname } from 'next/navigation';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon'; // Added import
 import { useState } from 'react'; // Needed for Menu state
-import { SignOut, MagnifyingGlass } from 'phosphor-react'; // Removed Headphones, PlusCircle, UserCircle
+import { SignOut, MagnifyingGlass, MusicNote } from 'phosphor-react'; // Removed Headphones, PlusCircle, UserCircle
+import Link from 'next/link';
 
 interface HeaderProps {
   handleDrawerToggle: () => void; // For desktop sidebar, and potentially mobile menu if different icon
@@ -25,9 +24,7 @@ interface HeaderProps {
 }
 
 export default function Header({
-  handleDrawerToggle,
   isMobile,
-  isSidebarOpen,
   handleLogout,
   userRole,
   hasContractorProfile,
@@ -36,6 +33,7 @@ export default function Header({
 }: HeaderProps) {
   const theme = useTheme();
   const { pageTitle } = useDashboard();
+  const pathname = usePathname();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const mobileMenuOpen = Boolean(anchorEl);
 
@@ -47,10 +45,10 @@ export default function Header({
     setAnchorEl(null);
   };
 
-  const arrowVariants = {
-    open: { rotate: 0 },
-    closed: { rotate: 180 },
-  };
+  // Hide the entire header on the musician search page, as the toggle is handled separately
+  if (pathname === '/dashboard/musicos') {
+    return null;
+  }
 
   return (
     <AppBar
@@ -64,32 +62,7 @@ export default function Header({
       }}
     >
       <Toolbar sx={{ paddingLeft: { xs: 1, sm: 2 }, paddingRight: { xs: 1, sm: 2 } }}>
-        {/* Animated Arrow Icon for Desktop, Hamburger for Mobile */}
-        <IconButton
-          color="inherit"
-          aria-label={isMobile ? "open menu" : "toggle drawer"}
-          edge="start"
-          onClick={isMobile ? handleMobileMenuOpen : handleDrawerToggle}
-          sx={{
-            mr: 2,
-            color: theme.palette.text.primary, // Ensure icon color matches text
-            display: isMobile ? 'none' : 'inline-flex', // Hide desktop toggle on mobile
-          }}
-        >
-          {/* Desktop animated arrow */}
-          {!isMobile && (
-            <motion.div
-              animate={isSidebarOpen ? "open" : "closed"}
-              variants={arrowVariants}
-              transition={{ duration: 0.3 }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <ArrowBackIosNewIcon />
-            </motion.div>
-          )}
-        </IconButton>
-
-        <Box sx={{ flexGrow: 1 }}>
+        <Box sx={{ flexGrow: 1, ml: { xs: 0, md: '0px' } }}>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
             {pageTitle}
           </Typography>
@@ -125,6 +98,14 @@ export default function Header({
               }}
               sx={{ mt: '45px' }} // Adjust margin top as needed
             >
+              <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
+                <MenuItem>
+                  <ListItemIcon>
+                    <MusicNote size={22} />
+                  </ListItemIcon>
+                  Volver al Home
+                </MenuItem>
+              </Link>
               {(userRole === 'musician' || userRole === 'both') && (
                 hasContractorProfile ? (
                   <MenuItem onClick={() => { handleSwitchRole(); handleMobileMenuClose(); }}>

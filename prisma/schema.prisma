@@ -147,14 +147,18 @@ model MusicianPreference {
 }
 
 model Contractor {
-  id         String   @id @default(uuid())
-  userId     String
-  fullName   String
-  email      String   @unique
-  location   String?
-  isPremium  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  favorites  Favorite[]
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  fullName        String
+  email           String   @unique
+  location        String?
+  isPremium       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  favorites       Favorite[]
+  profileImageUrl String?
+  companyName     String?
+  websiteUrl      String?
+  bio             String?
 }
 
 model Favorite {

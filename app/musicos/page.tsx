@@ -191,9 +191,20 @@ function MusicosPageContent() {
           </Typography>
         )}
         {!isLoading && !error && musicians.length === 0 && (
-          <Typography textAlign="center" sx={{ my: 5 }} variant="h6" color="text.secondary">
-            No se encontraron músicos con los criterios actuales. Probá con otra búsqueda.
-          </Typography>
+          <Box textAlign="center" sx={{ my: 5 }}>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No se encontraron músicos con los criterios actuales.
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Probá con otra búsqueda o utilizá la{' '}
+              <Link href="/dashboard/musicos" passHref>
+                <Typography component="a" color="primary" sx={{ textDecoration: 'underline' }}>
+                  búsqueda avanzada
+                </Typography>
+              </Link>
+              .
+            </Typography>
+          </Box>
         )}
 
         {!isLoading && !error && musicians.length > 0 && (

@@ -83,9 +83,6 @@ export default function DashboardPage() {
       case 'visibilidad':
         setPageTitle('Visibilidad');
         break;
-      case 'mi-plan':
-        setPageTitle('Mi Plan');
-        break;
       default:
         setPageTitle('Dashboard');
     }
@@ -100,12 +97,12 @@ export default function DashboardPage() {
           sx={{
             mb: 4,
             p: { xs: 2, sm: 3 },
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            borderRadius: 2,
-            boxShadow: theme.shadows[2],
-            border: `1px solid ${theme.palette.divider}`,
+            //backgroundColor: alpha(theme.palette.background.paper, 0.7),
+            //backdropFilter: 'blur(10px)',
+            //WebkitBackdropFilter: 'blur(10px)',
+            //borderRadius: 2,
+            //boxShadow: theme.shadows[2],
+            //border: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Grid container spacing={3}>
@@ -136,6 +133,9 @@ export default function DashboardPage() {
                 </Box>
               )}
             </Grid>
+            <Grid size={12}>
+              <CurrentPlan />
+            </Grid>
           </Grid>
         </Box>
       )}
@@ -147,12 +147,12 @@ export default function DashboardPage() {
           sx={{
             mb: 4,
             p: { xs: 2, sm: 3 },
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
+           /*  backgroundColor: alpha(theme.palette.background.paper, 0.7),
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
             borderRadius: 2,
             boxShadow: theme.shadows[2],
-            border: `1px solid ${theme.palette.divider}`,
+            border: `1px solid ${theme.palette.divider}`, */
           }}
         >
           <Statistics />
@@ -166,12 +166,12 @@ export default function DashboardPage() {
           sx={{
             mb: 4,
             p: { xs: 2, sm: 3 },
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
+         /*    backgroundColor: alpha(theme.palette.background.paper, 0.7),
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
             borderRadius: 2,
             boxShadow: theme.shadows[2],
-            border: `1px solid ${theme.palette.divider}`,
+            border: `1px solid ${theme.palette.divider}`, */
           }}
         >
           {userId && <VisibilitySettings
@@ -179,25 +179,6 @@ export default function DashboardPage() {
             initialIsPublic={musicianProfile?.isPublic ?? false}
             onVisibilityChange={handleVisibilityChange}
           />}
-        </Box>
-      )}
-
-      {activeView === 'mi-plan' && (
-        <Box
-          component="section"
-          id="mi-plan-section"
-          sx={{
-            mb: 4,
-            p: { xs: 2, sm: 3 },
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            borderRadius: 2,
-            boxShadow: theme.shadows[2],
-            border: `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <CurrentPlan />
         </Box>
       )}
     </>

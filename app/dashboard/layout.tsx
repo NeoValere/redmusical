@@ -6,7 +6,6 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
 import SidebarToggle from './components/SidebarToggle';
-import Header from './components/Header';
 import { Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { darkenColor } from '../../utils';
 import MobileNavigationBar from './components/MobileNavigationBar';
@@ -44,28 +43,6 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  useEffect(() => {
-    // Contractor routes
-    if (pathname === '/dashboard/search') {
-      setActiveView('inicio');
-    } else if (pathname === '/dashboard/musicos') {
-      setActiveView('explorar');
-    } else if (pathname === '/dashboard/favorites') {
-      setActiveView('favoritos');
-    } else if (pathname === '/dashboard/messages') {
-      setActiveView('mensajes');
-    }
-    // Musician routes (and default)
-    else {
-      const view = searchParams.get('view');
-      if (view) {
-        setActiveView(view);
-      } else {
-        setActiveView('mi-perfil');
-      }
-    }
-  }, [pathname, searchParams]);
-
   const handleDrawerToggle = () => {
     setSidebarOpen(!isSidebarOpen);
   };
@@ -96,28 +73,29 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
       }
       setUserRole(determinedRole);
 
-      const currentPath = window.location.pathname;
+      const roleFromUrl = searchParams.get('role');
+      const roleFromStorage = localStorage.getItem('activeRole');
       let newActiveRole: string | null = null;
 
-      if (determinedRole === 'both') {
-        if (currentPath.startsWith('/dashboard/search') || currentPath.startsWith('/dashboard/musicos') || currentPath.startsWith('/dashboard/favorites') || currentPath.startsWith('/dashboard/messages')) {
+      if (roleFromUrl) {
+        newActiveRole = roleFromUrl;
+      } else if (roleFromStorage) {
+        newActiveRole = roleFromStorage;
+      } else if (determinedRole === 'both') {
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/dashboard/search') || currentPath.startsWith('/dashboard/musicos') || currentPath.startsWith('/dashboard/favorites')) {
           newActiveRole = 'contractor';
         } else {
           newActiveRole = 'musician';
         }
-      } else if (determinedRole === 'musician') {
-        newActiveRole = 'musician';
-      } else if (determinedRole === 'contractor') {
-        if (currentPath === '/dashboard' && !musicianExists) {
-          newActiveRole = 'musician';
-        } else {
-          newActiveRole = 'contractor';
-        }
-      } else if (!musicianExists && !contractorExists) {
-        newActiveRole = 'musician';
+      } else {
+        newActiveRole = determinedRole;
       }
+      
       setActiveRole(newActiveRole);
-      localStorage.setItem('activeRole', newActiveRole || '');
+      if (newActiveRole) {
+        localStorage.setItem('activeRole', newActiveRole);
+      }
     }
 
     if (profileError) {
@@ -136,14 +114,11 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     localStorage.setItem('activeRole', newRole);
     setActiveRole(newRole);
     mutate(`/api/register-profile?userId=${userId}`);
-
-    if (newRole === 'contractor') {
-      setActiveView('inicio');
-      router.push('/dashboard/search');
-    } else {
-      setActiveView('mi-perfil');
-      router.push('/dashboard');
-    }
+    
+    const currentPath = pathname.split('?')[0];
+    const newPath = `${currentPath}?role=${newRole}`;
+    router.push(newPath);
+    router.refresh();
   };
 
   const handleCreateContractorProfile = async () => {
@@ -227,20 +202,10 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
             duration: theme.transitions.duration.leavingScreen,
           }),
           minWidth: 0,
-          paddingBottom: isMobile ? '56px' : 0,
+          paddingBottom: isMobile ? '0px' : 0,
         }}
       >
         <DashboardContext.Provider value={{ activeView, setActiveView, pageTitle, setPageTitle, userId, musicianProfile, userFullName, userEmail }}>
-          <Header
-            handleDrawerToggle={handleDrawerToggle}
-            isMobile={isMobile}
-            isSidebarOpen={isSidebarOpen}
-            handleLogout={handleLogout}
-            userRole={userRole}
-            hasContractorProfile={hasContractorProfile}
-            handleSwitchRole={handleSwitchRole}
-            handleCreateContractorProfile={handleCreateContractorProfile}
-          />
           {children}
         </DashboardContext.Provider>
       </Box>

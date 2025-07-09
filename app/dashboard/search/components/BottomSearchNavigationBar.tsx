@@ -22,10 +22,6 @@ export default function BottomSearchNavigationBar({ activeView, setActiveView }:
     { id: 'mensajes', label: 'Mensajes', icon: <Message />, href: '/dashboard/messages' },
   ], []); // Empty dependency array means it's created once
 
-  const backgroundColor = useMemo(() => {
-    return navItems.some(item => item.id === activeView) ? theme.palette.primary.main : theme.palette.background.paper;
-  }, [activeView, theme.palette.primary.main, theme.palette.background.paper, navItems]);
-
   const paperSx = useMemo(() => ({
     position: 'fixed',
     bottom: 0,
@@ -33,8 +29,8 @@ export default function BottomSearchNavigationBar({ activeView, setActiveView }:
     right: 0,
     zIndex: 1000,
     borderTop: `1px solid ${theme.palette.divider}`,
-    backgroundColor: backgroundColor,
-  }), [backgroundColor, theme.palette.divider]);
+    backgroundColor: theme.palette.background.paper,
+  }), [theme.palette.background.paper, theme.palette.divider]);
 
   const bottomNavigationSx = useMemo(() => ({
     backgroundColor: theme.palette.background.paper,

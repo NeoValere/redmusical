@@ -1,7 +1,7 @@
 'use client';
 
 import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
-import { User, ChartBar, Eye, CreditCard } from 'phosphor-react'; // Removed MusicNotesSimple
+import { User, ChartBar, Eye, Chat } from 'phosphor-react'; // Removed MusicNotesSimple, CreditCard
 import { useTheme } from '@mui/material/styles';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
@@ -25,15 +25,11 @@ export default function BottomNavigationBar({ activeView, setActiveView, musicia
       items.push(
         { id: 'estadisticas', label: 'Datos', icon: <ChartBar size={26} /> },
         { id: 'visibilidad', label: 'Visibilidad', icon: <Eye size={26} /> },
-        { id: 'mi-plan', label: 'Plan', icon: <CreditCard size={26} /> }
+        { id: 'mensajes', label: 'Mensajes', icon: <Chat size={26} /> }
       );
     }
     return items;
   }, [musicianId]);
-
-  const backgroundColor = useMemo(() => {
-    return navItems.some(item => item.id === activeView) ? theme.palette.primary.main : theme.palette.background.paper;
-  }, [activeView, theme.palette.primary.main, theme.palette.background.paper, navItems]);
 
   const paperSx = useMemo(() => ({
     position: 'fixed',
@@ -42,8 +38,8 @@ export default function BottomNavigationBar({ activeView, setActiveView, musicia
     right: 0,
     zIndex: theme.zIndex.appBar, // Ensure it's above content
     borderTop: `1px solid ${theme.palette.divider}`,
-    backgroundColor: backgroundColor, // Use primary color when active
-  }), [backgroundColor, theme.palette.divider, theme.zIndex.appBar]);
+    backgroundColor: theme.palette.background.paper, // Use primary color when active
+  }), [theme.palette.background.paper, theme.palette.divider, theme.zIndex.appBar]);
 
   const bottomNavigationSx = useMemo(() => ({
     backgroundColor: theme.palette.background.paper, // Match theme
@@ -66,7 +62,10 @@ export default function BottomNavigationBar({ activeView, setActiveView, musicia
         onChange={(event, newValue) => {
           if (newValue === 'quick-edit' && musicianId) {
             router.push(`/m/${musicianId}/edit`);
+          } else if (newValue === 'mensajes') {
+            router.push('/dashboard/messages');
           } else {
+            router.push(`/dashboard?view=${newValue}`);
             setActiveView(newValue);
           }
         }}

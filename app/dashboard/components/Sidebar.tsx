@@ -17,7 +17,7 @@ import {
   Drawer,
   Toolbar,
 } from '@mui/material';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
@@ -56,33 +56,28 @@ export default function Sidebar({
   const theme = useTheme();
   const pathname = usePathname();
 
-  useEffect(() => {
-    // Determine active view based on pathname
-    if (pathname.includes('/dashboard/musicos')) {
-      setActiveView('explorar-musicos');
-    } else if (pathname.includes('/dashboard/favorites')) {
-      setActiveView('favoritos');
-    } else if (pathname.includes('/dashboard/messages')) {
-      setActiveView('mensajes');
-    } else if (pathname.includes('/dashboard/search')) {
-      setActiveView('inicio');
-    } else if (pathname === '/dashboard') {
-      // For musician role, check query params for more specific views
-      const urlParams = new URLSearchParams(window.location.search);
-      const view = urlParams.get('view');
-      if (view) {
-        setActiveView(view);
-      } else {
-        setActiveView('mi-perfil');
-      }
-    }
-  }, [pathname, setActiveView]);
+  const previousPathname = React.useRef<string>(pathname);
 
   useEffect(() => {
-    if (activeView) {
-      localStorage.setItem('activeView', activeView);
+    const currentPath = pathname.split('?')[0];
+    const view = new URLSearchParams(window.location.search).get('view');
+
+    if (currentPath.startsWith('/dashboard/messages')) {
+      setActiveView('mensajes');
+    } else if (currentPath.startsWith('/dashboard/musicos')) {
+      setActiveView('explorar-musicos');
+    } else if (currentPath.startsWith('/dashboard/favorites')) {
+      setActiveView('favoritos');
+    } else if (currentPath.startsWith('/dashboard/search')) {
+      setActiveView('inicio');
+    } else if (view === 'estadisticas') {
+      setActiveView('estadisticas');
+    } else if (view === 'visibilidad') {
+      setActiveView('visibilidad');
+    } else if (currentPath === '/dashboard') {
+      setActiveView('mi-perfil');
     }
-  }, [activeView]);
+  }, [pathname, setActiveView]);
 
   const musicianNavItems = [
     { id: 'mi-perfil', text: 'Mi perfil', icon: <User size={24} />, href: '/dashboard' },
@@ -90,15 +85,15 @@ export default function Sidebar({
     ...(musicianProfile ? [
       { id: 'estadisticas', text: 'Estadísticas', icon: <ChartBar size={24} />, href: '/dashboard?view=estadisticas' },
       { id: 'visibilidad', text: 'Visibilidad', icon: <Eye size={24} />, href: '/dashboard?view=visibilidad' },
-      { id: 'mi-plan', text: 'Mi Plan', icon: <CreditCard size={24} />, href: '/dashboard?view=mi-plan' },
+      { id: 'mensajes', text: 'Mensajes', icon: <Chat size={24} />, href: '/dashboard/messages' },
     ] : []),
   ];
 
   const contractorNavItems = [
     { id: 'inicio', text: 'Inicio', icon: <User size={24} />, href: '/dashboard/search' },
     { id: 'explorar-musicos', text: 'Explorar Músicos', icon: <MagnifyingGlass size={24} />, href: '/dashboard/musicos' },
-    { id: 'favoritos', text: 'Mis Favoritos', icon: <CreditCard size={24} />, href: '/dashboard/favorites?view=favoritos' },
-    { id: 'mensajes', text: 'Mensajes', icon: <Chat size={24} />, href: '/dashboard/messages?view=mensajes' },
+    { id: 'favoritos', text: 'Mis Favoritos', icon: <CreditCard size={24} />, href: '/dashboard/favorites' },
+    { id: 'mensajes', text: 'Mensajes', icon: <Chat size={24} />, href: '/dashboard/messages' },
   ];
 
   const navItems = activeRole === 'contractor' ? contractorNavItems : musicianNavItems;

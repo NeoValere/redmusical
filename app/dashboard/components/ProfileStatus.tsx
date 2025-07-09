@@ -102,7 +102,7 @@ export default function ProfileStatus({ userId, profileStatus, isPublic }: Profi
           >
             Ver Perfil Público
           </Button>
-          {isActive && (
+         {/*  {isActive && (
             <Button
               component={Link}
               href={`/m/${userId}/edit`}
@@ -116,7 +116,7 @@ export default function ProfileStatus({ userId, profileStatus, isPublic }: Profi
             >
               Editar Perfil
             </Button>
-          )}
+          )} */}
         </Stack>
       </Box>
     </Paper>

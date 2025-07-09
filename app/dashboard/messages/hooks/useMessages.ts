@@ -1,22 +1,26 @@
 import useSWR from 'swr';
 
-const fetcher = (args: string | [string, string]) => {
-  const url = Array.isArray(args) ? `${args[0]}/${args[1]}` : args;
-  return fetch(url).then((res) => res.json());
-}
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export function useMessages(musicianId: string | null) {
-  const { data, error } = useSWR(musicianId ? ['/api/messages', musicianId] : null, fetcher);
+export function useMessages(conversationId: string | null) {
+  const shouldFetch = conversationId ? `/api/messages/${conversationId}` : null;
+  const { data, error, mutate } = useSWR(shouldFetch, fetcher);
+
+  const messages = data?.messages || [];
+  const conversation = data;
 
   return {
-    messages: data || [],
-    isLoading: !error && !data,
+    messages,
+    conversation,
+    isLoading: shouldFetch && !error && !data,
     isError: error,
+    mutate,
   };
 }
 
-export function useConversations() {
-  const { data, error } = useSWR(`/api/conversations`, fetcher);
+export function useConversations(role: string | null) {
+  const url = role ? `/api/conversations?role=${role}` : '/api/conversations';
+  const { data, error } = useSWR(url, fetcher);
 
   return {
     conversations: data || [],

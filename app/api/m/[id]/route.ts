@@ -28,14 +28,14 @@ export async function GET(
       },
     }
   );
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  if (sessionError || !session) {
-    console.error('API /api/m/[id]: Unauthorized - No active session or session error:', sessionError);
+  if (userError || !user) {
+    console.error('API /api/m/[id]: Unauthorized - No active session or session error:', userError);
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const userIdFromSession = session.user.id;
+  const userIdFromSession = user.id;
 
   try {
     console.log(`API /api/m/[id]: Attempting to fetch musician with userId: ${id} from Prisma.`);

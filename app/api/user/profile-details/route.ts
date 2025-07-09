@@ -16,18 +16,18 @@ export async function GET() {
   );
 
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (sessionError) {
-      console.error('Error getting session:', sessionError.message);
-      return NextResponse.json({ error: 'Error getting session', details: sessionError.message }, { status: 500 });
+    if (userError) {
+      console.error('Error getting user:', userError.message);
+      return NextResponse.json({ error: 'Error getting user', details: userError.message }, { status: 500 });
     }
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ userId: null, isMusician: false, isContractor: false, error: 'User not authenticated' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     const musicianProfile = await prisma.musician.findFirst({
       where: { userId: userId },

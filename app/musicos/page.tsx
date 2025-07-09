@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
@@ -23,25 +24,32 @@ import RoleBasedPrompts from './components/RoleBasedPrompts';
 import SharedAppBar from '@/app/components/SharedAppBar';
 import GlobalBackground from '@/app/components/GlobalBackground';
 
+interface ApiResponse {
+  musicians: Musician[];
+  totalPages: number;
+}
+
+const fetcher = (url: string): Promise<ApiResponse> => fetch(url).then(res => {
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+  return res.json();
+});
+
 function MusicosPageContent() {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const [musicians, setMusicians] = useState<Musician[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
   // Initialize state from URL search parameters
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
- // const [experienceFilter, setExperienceFilter] = useState(() => searchParams.get('experience') || '');
   const [page, setPage] = useState(() => parseInt(searchParams.get('pageNumber') || '1', 10));
   const [tipoFilter, setTipoFilter] = useState<string | null>(searchParams.get('tipo') || null);
 
-  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 12;
 
   // Effect to update URL when search params change
@@ -58,39 +66,23 @@ function MusicosPageContent() {
     }
   }, [searchTerm, tipoFilter, page, router, searchParams]);
 
+  const query = new URLSearchParams();
+  if (searchTerm) query.append('q', searchTerm);
+  if (tipoFilter) query.append('tipo', tipoFilter);
+  query.append('page', page.toString());
+  query.append('limit', itemsPerPage.toString());
+  const { data, error, isLoading } = useSWR<ApiResponse>(
+    `/api/public/m?${query.toString()}`, 
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      keepPreviousData: true,
+    }
+  );
 
-  useEffect(() => {
-    const fetchMusicians = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const query = new URLSearchParams();
-        if (searchTerm) query.append('q', searchTerm);
-      //  if (experienceFilter) query.append('experience', experienceFilter);
-        if (tipoFilter) query.append('tipo', tipoFilter);
-        query.append('page', page.toString());
-        query.append('limit', itemsPerPage.toString());
-
-        const response = await fetch(`/api/public/m?${query.toString()}`);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-
-        setMusicians(data.musicians);
-        setTotalPages(data.totalPages);
-
-      } catch (e: unknown) { // Changed to unknown
-        setError('Error al cargar los músicos. Intente nuevamente.');
-        console.error(e instanceof Error ? e.message : 'An unknown error occurred'); // Added instanceof Error check
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMusicians();
-  }, [searchTerm, page, tipoFilter, supabase, itemsPerPage]);
+  const musicians = data?.musicians || [];
+  const totalPages = data?.totalPages || 1;
 
   useEffect(() => {
     const checkSession = async () => {
@@ -148,7 +140,10 @@ function MusicosPageContent() {
                 label="Buscar por nombre, instrumento, ciudad..."
                 variant="outlined"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -192,7 +187,7 @@ function MusicosPageContent() {
         )}
         {error && (
           <Typography color="error" textAlign="center" sx={{ my: 5 }}>
-            {error}
+            Error al cargar los músicos. Intente nuevamente.
           </Typography>
         )}
         {!isLoading && !error && musicians.length === 0 && (

@@ -16,7 +16,7 @@ async function getMusicianProfileData(userId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     const isOwner = user ? user.id === userId : false;
 
-    console.log( { user , isOwner })
+   // console.log( { user , isOwner })
 
     if (res.status === 403 && !isOwner)  {
       return { error: 'private_profile' };

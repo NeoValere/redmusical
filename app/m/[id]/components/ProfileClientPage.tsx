@@ -566,7 +566,15 @@ export default function ProfileClientPage({
   } = musicianProfile || {};
 
     const location = [(city ?? ''), (province ?? '')].filter(Boolean).join(', ');
-    const translatedMusicianOrBand = musicianOrBand === 'Musician' ? 'Solista' : musicianOrBand === 'Band' ? 'Banda' : musicianOrBand ?? null;
+    
+    const musicianOrBandMap: { [key: string]: string } = {
+      Musician: 'Solista',
+      Band: 'Banda',
+      Group: 'Grupo',
+      Choir: 'Coro',
+      Orchestra: 'Orquesta',
+    };
+    const translatedMusicianOrBand = musicianOrBand ? musicianOrBandMap[musicianOrBand] || musicianOrBand : null;
 
     const handleOpenColorPicker = (event: React.MouseEvent<HTMLButtonElement>) => {
       setAnchorElColorPicker(event.currentTarget);

@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const searchTerm = searchParams.get('q') || '';
-    const musicianOrBand = searchParams.get('musicianOrBand');
+    const tipo = searchParams.get('tipo');
     const province = searchParams.get('province');
     const city = searchParams.get('city');
     const genres = searchParams.get('genres')?.split(',');
@@ -35,8 +35,8 @@ export async function GET(request: Request) {
       });
     }
 
-    if (musicianOrBand) {
-      if (musicianOrBand === 'Musician') {
+    if (tipo) {
+      if (tipo === 'Musician') {
         andConditions.push({
           OR: [
             { musicianOrBand: { equals: 'Musician' } },
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
           ],
         });
       } else {
-        andConditions.push({ musicianOrBand: { equals: musicianOrBand } });
+        andConditions.push({ musicianOrBand: { equals: tipo } });
       }
     }
     if (province) {

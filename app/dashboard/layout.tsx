@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState, ReactNode } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Sidebar from './components/Sidebar';
@@ -12,7 +13,10 @@ import MobileNavigationBar from './components/MobileNavigationBar';
 import { DashboardContext } from './context/DashboardContext';
 import { Musician } from '@prisma/client'; // Import Musician type
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 function DashboardClientLayout({ children }: { children: ReactNode }) {
+  const { mutate } = useSWRConfig();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const [hasContractorProfile, setHasContractorProfile] = useState(false);
@@ -29,6 +33,12 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [activeView, setActiveView] = useState<string>('mi-perfil');
   const [pageTitle, setPageTitle] = useState<string>('Inicio');
+
+  const { data: sessionData } = useSWR('/api/auth/session', fetcher);
+  const user = sessionData?.user;
+
+  const { data: profileData, error: profileError } = useSWR(user ? `/api/register-profile?userId=${user.id}` : null, fetcher);
+
 
   useEffect(() => {
     setSidebarOpen(!isMobile);
@@ -60,76 +70,60 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     setSidebarOpen(!isSidebarOpen);
   };
 
-  // Effect to fetch user and profile data once on mount
   useEffect(() => {
-    const fetchUserAndProfiles = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
+    if (user) {
       setUserId(user.id);
       const derivedUserFullName = user.user_metadata.full_name || user.email?.split('@')[0] || 'Usuario';
       const derivedUserEmail = user.email || '';
-
       setUserFullName(derivedUserFullName);
       setUserEmail(derivedUserEmail);
+    }
 
-      try {
-        const profileRes = await fetch(`/api/register-profile?userId=${user.id}`);
-        const profileData = await profileRes.json();
+    if (profileData) {
+      const musicianExists = !!profileData.musicianProfile;
+      const contractorExists = !!profileData.contractorProfile;
 
-        const musicianExists = !!profileData.musicianProfile;
-        const contractorExists = !!profileData.contractorProfile;
+      setMusicianProfile(profileData.musicianProfile || null);
+      setHasContractorProfile(contractorExists);
 
-        setMusicianProfile(profileData.musicianProfile || null);
-        setHasContractorProfile(contractorExists);
-
-        let determinedRole: string | null = null;
-        if (musicianExists && contractorExists) {
-          determinedRole = 'both';
-        } else if (musicianExists) {
-          determinedRole = 'musician';
-        } else if (contractorExists) {
-          determinedRole = 'contractor';
-        }
-        setUserRole(determinedRole); // Set the overall user role based on existing profiles
-
-        // Determine active role immediately after userRole is set, considering the current path
-        const currentPath = window.location.pathname;
-        let newActiveRole: string | null = null;
-
-        if (determinedRole === 'both') {
-          if (currentPath.startsWith('/dashboard/search') || currentPath.startsWith('/dashboard/musicos') || currentPath.startsWith('/dashboard/favorites') || currentPath.startsWith('/dashboard/messages')) {
-            newActiveRole = 'contractor';
-          } else {
-            newActiveRole = 'musician';
-          }
-        } else if (determinedRole === 'musician') {
-          newActiveRole = 'musician';
-        } else if (determinedRole === 'contractor') {
-          // If user only has contractor profile, but is on the musician dashboard path,
-          // we still want to show the musician menu to allow profile creation.
-          if (currentPath === '/dashboard' && !musicianExists) {
-            newActiveRole = 'musician';
-          } else {
-            newActiveRole = 'contractor';
-          }
-        } else if (!musicianExists && !contractorExists) {
-          // If no profiles exist, default to musician view to prompt creation
-          newActiveRole = 'musician';
-        }
-        setActiveRole(newActiveRole); // Set the active role state immediately
-        localStorage.setItem('activeRole', newActiveRole || ''); // Store in local storage
-
-      } catch (error) {
-        console.error('Error checking user profiles and roles:', error);
+      let determinedRole: string | null = null;
+      if (musicianExists && contractorExists) {
+        determinedRole = 'both';
+      } else if (musicianExists) {
+        determinedRole = 'musician';
+      } else if (contractorExists) {
+        determinedRole = 'contractor';
       }
-    };
-    fetchUserAndProfiles();
-  }, [pathname, router, supabase]); // Dependencies: pathname, router, supabase
+      setUserRole(determinedRole);
+
+      const currentPath = window.location.pathname;
+      let newActiveRole: string | null = null;
+
+      if (determinedRole === 'both') {
+        if (currentPath.startsWith('/dashboard/search') || currentPath.startsWith('/dashboard/musicos') || currentPath.startsWith('/dashboard/favorites') || currentPath.startsWith('/dashboard/messages')) {
+          newActiveRole = 'contractor';
+        } else {
+          newActiveRole = 'musician';
+        }
+      } else if (determinedRole === 'musician') {
+        newActiveRole = 'musician';
+      } else if (determinedRole === 'contractor') {
+        if (currentPath === '/dashboard' && !musicianExists) {
+          newActiveRole = 'musician';
+        } else {
+          newActiveRole = 'contractor';
+        }
+      } else if (!musicianExists && !contractorExists) {
+        newActiveRole = 'musician';
+      }
+      setActiveRole(newActiveRole);
+      localStorage.setItem('activeRole', newActiveRole || '');
+    }
+
+    if (profileError) {
+      console.error('Error checking user profiles and roles:', profileError);
+    }
+  }, [user, profileData, profileError]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -141,6 +135,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     const newRole = activeRole === 'musician' ? 'contractor' : 'musician';
     localStorage.setItem('activeRole', newRole);
     setActiveRole(newRole);
+    mutate(`/api/register-profile?userId=${userId}`);
 
     if (newRole === 'contractor') {
       setActiveView('inicio');
@@ -170,6 +165,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const { redirectUrl } = await response.json();
+        mutate(`/api/register-profile?userId=${userId}`);
         router.push(redirectUrl);
         router.refresh();
       } else {
@@ -183,8 +179,7 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
     }
   };
 
-  // Wait until userId, userRole, and musicianProfile (if applicable) are determined
-  if (!userId || userRole === null || userFullName === null || userEmail === null || (userRole !== 'contractor' && musicianProfile === null)) {
+  if (!profileData && !profileError) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
         <CircularProgress />

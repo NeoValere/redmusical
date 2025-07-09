@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const role = searchParams.get('role');
   const email = searchParams.get('email');
 
-  console.log(`[register-profile GET] userId: ${userId}, role: ${role}, email: ${email}`);
+ // console.log(`[register-profile GET] userId: ${userId}, role: ${role}, email: ${email}`);
 
   try {
     // Prioritize checking by userId if it's valid
@@ -21,11 +21,11 @@ export async function GET(request: Request) {
       }
 
       if (profile) {
-        console.log(`[register-profile GET] Profile found for userId: ${userId}, role: ${role}`);
+      //  console.log(`[register-profile GET] Profile found for userId: ${userId}, role: ${role}`);
         return NextResponse.json({ profile, exists: true, roleFound: role }, { status: 200 });
       } else {
         // If no profile found by userId and specific role, check for any profile by userId
-        console.log(`[register-profile GET] No profile found for userId: ${userId}, role: ${role}. Checking for any profile by userId.`);
+      //  console.log(`[register-profile GET] No profile found for userId: ${userId}, role: ${role}. Checking for any profile by userId.`);
         const existingMusician = await prisma.musician.findFirst({ where: { userId } });
         const existingContractor = await prisma.contractor.findFirst({ where: { userId } });
 

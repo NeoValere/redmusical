@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // Assuming you have a Prisma client instance exported from here
 import { Prisma } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
 
 // Define the type for the included relations for the final fetch, explicitly listing fields as they come from Prisma (now camelCase)
 type MusicianWithRelations = {
@@ -219,6 +220,10 @@ export async function PUT(
     // Reconstruct the profile object to match the frontend's expected camelCase type
     // Assert result as MusicianWithRelations since the error case is handled above
     const finalResult = result as MusicianWithRelations;
+    // Invalidate the cache for the profile page
+    revalidatePath(`/m/${userId}`);
+    revalidatePath('/musicos');
+
     const profile = {
       ...finalResult,
       profileColorCover: finalResult.profileColorCover,

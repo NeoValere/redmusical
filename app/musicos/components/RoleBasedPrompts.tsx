@@ -47,6 +47,24 @@ const RoleBasedPrompts = () => {
     fetchUserData();
   }, [supabase]);
 
+  const handleCreateContractorProfile = async () => {
+    if (!currentUser) return;
+    try {
+      const response = await fetch('/api/switch-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, newRole: 'contractor' }),
+      });
+      if (response.ok) {
+        window.location.href = '/dashboard/search';
+      } else {
+        console.error('Failed to create contractor profile');
+      }
+    } catch (error) {
+      console.error('Error creating contractor profile:', error);
+    }
+  };
+
   const hasMusicianRole = roles.includes('musician');
   const hasContractorRole = roles.includes('contractor');
 
@@ -103,12 +121,12 @@ const RoleBasedPrompts = () => {
               Utilizá nuestros filtros avanzados, contactá músicos por mensajería directa y guardá tus perfiles favoritos. ¡Creá tu cuenta gratis!
             </Typography>
             <Button
-              component={Link}
-              href={currentUser ? `/select-role?role=contractor&userId=${currentUser.id}` : "/register?role=contractor"}
+              onClick={handleCreateContractorProfile}
               variant="contained"
               color="secondary"
               size="large"
               startIcon={<MagnifyingGlass />}
+              disabled={!currentUser}
             >
               Encontrá Músicos Ahora
             </Button>

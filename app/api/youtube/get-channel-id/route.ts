@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -22,7 +25,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Use the Search: list endpoint to find the channel by its custom URL or username
+    // Check cache first
+    const cachedChannel = await prisma.youtubeChannelCache.findUnique({
+      where: { vanityName },
+    });
+
+    if (cachedChannel) {
+      return NextResponse.json({ channelId: cachedChannel.channelId });
+    }
+
+    // If not in cache, fetch from YouTube API
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(vanityName)}&type=channel&key=${API_KEY}`
     );
@@ -30,17 +42,23 @@ export async function GET(req: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('YouTube API Error:', errorData);
+      // Do not cache failed requests to avoid storing incorrect data
       return NextResponse.json({ error: 'Failed to fetch channel from YouTube' }, { status: response.status });
     }
 
     const data = await response.json();
 
-    // The search can return multiple results. We need to find the one that is most likely the correct channel.
-    // A good heuristic is to find a channel where the title or custom URL closely matches the query.
-    // For vanity URLs starting with '@', the result is usually very accurate.
     if (data.items && data.items.length > 0) {
-      // Often, the first result is the correct one for specific queries.
       const channelId = data.items[0].snippet.channelId;
+
+      // Save to cache
+      await prisma.youtubeChannelCache.create({
+        data: {
+          vanityName,
+          channelId,
+        },
+      });
+
       return NextResponse.json({ channelId });
     } else {
       return NextResponse.json({ error: 'Channel not found for the given URL' }, { status: 404 });

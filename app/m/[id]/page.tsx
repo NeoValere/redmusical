@@ -7,40 +7,72 @@ import PrivateProfileError from './components/PrivateProfileError';
 /* import { Box, Container, Paper, Skeleton, Stack, Card, CardContent } from '@mui/material';
 import { initialTheme } from '@/lib/theme/MuiTheme'; */
 
+async function getStaticData() {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const fetchOptions = { next: { revalidate: 86400 } }; // Cache for 24 hours
+
+  try {
+    const [
+      genresRes,
+      instrumentsRes,
+      skillsRes,
+      availabilityRes,
+      preferencesRes
+    ] = await Promise.all([
+      fetch(`${baseUrl}/api/genres`, fetchOptions),
+      fetch(`${baseUrl}/api/instruments`, fetchOptions),
+      fetch(`${baseUrl}/api/skills`, fetchOptions),
+      fetch(`${baseUrl}/api/availability`, fetchOptions),
+      fetch(`${baseUrl}/api/preferences`, fetchOptions)
+    ]);
+
+    const [genres, instruments, skills, availability, preferences] = await Promise.all([
+      genresRes.ok ? genresRes.json() : [],
+      instrumentsRes.ok ? instrumentsRes.json() : [],
+      skillsRes.ok ? skillsRes.json() : [],
+      availabilityRes.ok ? availabilityRes.json() : [],
+      preferencesRes.ok ? preferencesRes.json() : [],
+    ]);
+
+    return { allGenres: genres, allInstruments: instruments, allSkills: skills, allAvailability: availability, allPreferences: preferences };
+  } catch (error) {
+    console.error('Failed to fetch static data:', error);
+    return { allGenres: [], allInstruments: [], allSkills: [], allAvailability: [], allPreferences: [] };
+  }
+}
+
 async function getMusicianProfileData(userId: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
-    const res = await fetch(`${baseUrl}/api/m/${userId}/get-profile`);
+    
+    // Fetch profile and static data in parallel
+    const [profileRes, staticData] = await Promise.all([
+      fetch(`${baseUrl}/api/m/${userId}/get-profile`, { cache: 'no-store' }),
+      getStaticData()
+    ]);
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const isOwner = user ? user.id === userId : false;
 
-   // console.log( { user , isOwner })
-
-    if (res.status === 403 && !isOwner)  {
+    if (profileRes.status === 403 && !isOwner)  {
       return { error: 'private_profile' };
     }
 
-    if (!res.ok) {
-      if ( res.status != 403){
-         // Handle error responses from the API
-      console.error('Error fetching musician profile from API:', res.status, res.statusText);
-      return null;
+    if (!profileRes.ok) {
+      if (profileRes.status !== 403) {
+        console.error('Error fetching musician profile from API:', profileRes.status, profileRes.statusText);
+        return null;
       }
     }
 
-    const profile = await res.json();
+    const profile = await profileRes.json();
 
     return {
       initialMusicianProfile: profile,
-      initialIsOwner: isOwner, // Ownership is handled by the API
-      initialCurrentUser: user, // Current user is handled by the API
-      allGenres: [],
-      allInstruments: [],
-      allSkills: [],
-      allAvailability: [],
-      allPreferences: [],
+      initialIsOwner: isOwner,
+      initialCurrentUser: user,
+      ...staticData,
       userIdFromParams: userId,
     };
   } catch (error) {
@@ -52,28 +84,25 @@ async function getMusicianProfileData(userId: string) {
 export default async function MusicianProfilePage({ params }: { params: { id: string } }) {
   const data = await getMusicianProfileData(params.id);
 
-  if (data?.error === 'private_profile') {
-    return <PrivateProfileError />;
+  if (!data) {
+    return <InvalidIdError />;
   }
 
-  if (!data || !data.initialMusicianProfile) {
-    return <InvalidIdError/>
+  // Type guard for error states
+  if ('error' in data) {
+    if (data.error === 'private_profile') {
+      return <PrivateProfileError />;
+    }
+    return <InvalidIdError />; // Handle other potential errors
+  }
+
+  if (!data.initialMusicianProfile) {
+    return <InvalidIdError />;
   }
 
   return (
     <Suspense fallback={<ProfileSkeleton />}>
-      <ProfileClientPage
-        {...data}
-        initialMusicianProfile={data.initialMusicianProfile}
-        initialIsOwner={data.initialIsOwner}
-        initialCurrentUser={data.initialCurrentUser}
-        allGenres={data.allGenres}
-        allInstruments={data.allInstruments}
-        allSkills={data.allSkills}
-        allAvailability={data.allAvailability}
-        allPreferences={data.allPreferences}
-        userIdFromParams={data.userIdFromParams}
-      />
+      <ProfileClientPage {...data} />
     </Suspense>
   );
 }

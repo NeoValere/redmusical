@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { MusicNotes, Users, MagnifyingGlass, MusicNotesSimple } from 'phosphor-react';
 import {
@@ -27,44 +27,10 @@ export default function SelectRolePage() {
   const [hasContractorProfile, setHasContractorProfile] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const roleFromUrl = searchParams.get('role');
 
-  useEffect(() => {
-    const checkUserAndProfiles = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      const [musicianProfileRes, contractorProfileRes] = await Promise.all([
-        fetch(`/api/register-profile?userId=${user.id}&role=musician`),
-        fetch(`/api/register-profile?userId=${user.id}&role=contractor`)
-      ]);
-
-      const musicianData = await musicianProfileRes.json();
-      const contractorData = await contractorProfileRes.json();
-
-      setHasMusicianProfile(musicianData.exists);
-      setHasContractorProfile(contractorData.exists);
-
-      if (musicianData.exists && contractorData.exists) {
-        router.push('/dashboard');
-      }
-    };
-    checkUserAndProfiles();
-  }, [router, supabase]);
-
-  const getWelcomeMessage = () => {
-    if (hasMusicianProfile && !hasContractorProfile) {
-      return 'Ya tenés un perfil de músico. ¿Querés activar también el modo búsqueda?';
-    }
-    if (!hasMusicianProfile && hasContractorProfile) {
-      return 'Ya tenés el modo búsqueda activado. ¿Querés crear también un perfil de músico?';
-    }
-    return 'Para empezar, contanos, ¿qué rol vas a cumplir en redmusical.ar?';
-  };
-
-  const handleRoleSelection = async (role: string) => {
+  const handleRoleSelection = useCallback(async (role: string) => {
     setSelectedRole(role);
     setIsLoading(true);
     setError('');
@@ -122,7 +88,65 @@ export default function SelectRolePage() {
     } finally {
       setIsLoading(false);
     }
+  }, [supabase, router]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkAndProcessRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (isMounted) router.push('/login');
+        return;
+      }
+
+      const [musicianProfileRes, contractorProfileRes] = await Promise.all([
+        fetch(`/api/register-profile?userId=${user.id}&role=musician`),
+        fetch(`/api/register-profile?userId=${user.id}&role=contractor`)
+      ]);
+
+      if (!isMounted) return;
+
+      const musicianData = await musicianProfileRes.json();
+      const contractorData = await contractorProfileRes.json();
+
+      setHasMusicianProfile(musicianData.exists);
+      setHasContractorProfile(contractorData.exists);
+
+      if (musicianData.exists && contractorData.exists) {
+        if (isMounted) router.push('/dashboard');
+        return;
+      }
+
+      if (roleFromUrl) {
+        if (roleFromUrl === 'musician' && !musicianData.exists) {
+          handleRoleSelection(roleFromUrl);
+        } else if (roleFromUrl === 'contractor' && !contractorData.exists) {
+          handleRoleSelection(roleFromUrl);
+        } else if (isMounted) {
+          if (roleFromUrl === 'musician') router.push('/dashboard');
+          else if (roleFromUrl === 'contractor') router.push('/dashboard/search');
+        }
+      }
+    };
+
+    checkAndProcessRole();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [roleFromUrl, router, supabase, handleRoleSelection]);
+
+  const getWelcomeMessage = () => {
+    if (hasMusicianProfile && !hasContractorProfile) {
+      return 'Ya tenés un perfil de músico. ¿Querés activar también el modo búsqueda?';
+    }
+    if (!hasMusicianProfile && hasContractorProfile) {
+      return 'Ya tenés el modo búsqueda activado. ¿Querés crear también un perfil de músico?';
+    }
+    return 'Para empezar, contanos, ¿qué rol vas a cumplir en redmusical.ar?';
   };
+
 
   return (
     <Box

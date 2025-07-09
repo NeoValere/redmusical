@@ -353,8 +353,9 @@ export default function ProfileClientPage({
       }
 
       const updatedProfile = await response.json();
-      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      setMusicianProfile(updatedProfile);
       enqueueSnackbar(`${field} actualizado!`, { variant: 'success' });
+      router.refresh();
     } catch (err: unknown) {
       console.error(`Error saving ${field}:`, err);
       enqueueSnackbar(`Error al guardar ${field}: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
@@ -383,8 +384,9 @@ export default function ProfileClientPage({
       }
 
       const updatedProfile = await response.json();
-      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      setMusicianProfile(updatedProfile);
       enqueueSnackbar('ADN Musical actualizado!', { variant: 'success' });
+      router.refresh();
     } catch (err: unknown) {
       console.error('Error saving DNA:', err);
       enqueueSnackbar(`Error al guardar ADN Musical: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
@@ -413,8 +415,9 @@ export default function ProfileClientPage({
       }
 
       const updatedProfile = await response.json();
-      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      setMusicianProfile(updatedProfile);
       enqueueSnackbar('Logística actualizada!', { variant: 'success' });
+      router.refresh();
     } catch (err: unknown) {
       console.error('Error saving logistics:', err);
       enqueueSnackbar(`Error al guardar logística: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
@@ -436,8 +439,9 @@ export default function ProfileClientPage({
       }
 
       const updatedProfile = await response.json();
-      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      setMusicianProfile(updatedProfile);
       enqueueSnackbar('Información de contacto actualizada!', { variant: 'success' });
+      router.refresh();
     } catch (err: unknown) {
       console.error('Error saving contact info:', err);
       enqueueSnackbar(`Error al guardar contacto: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
@@ -459,8 +463,9 @@ export default function ProfileClientPage({
       }
 
       const updatedProfile = await response.json();
-      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      setMusicianProfile(updatedProfile);
       enqueueSnackbar('Media actualizada!', { variant: 'success' });
+      router.refresh();
     } catch (err: unknown) {
       console.error('Error saving media:', err);
       enqueueSnackbar(`Error al guardar media: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
@@ -482,8 +487,9 @@ export default function ProfileClientPage({
       }
 
       const updatedProfile = await response.json();
-      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      setMusicianProfile(updatedProfile);
       enqueueSnackbar('Detalles actualizados!', { variant: 'success' });
+      router.refresh();
     } catch (err: unknown) {
       console.error('Error saving details:', err);
       enqueueSnackbar(`Error al guardar detalles: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
@@ -628,8 +634,9 @@ export default function ProfileClientPage({
         };
       }
 
-      setMusicianProfile(prevProfile => ({ ...prevProfile, ...profileDataToSetStateWith }));
+      setMusicianProfile(profileDataToSetStateWith);
       handleCloseColorPicker();
+      router.refresh();
     } catch (err: unknown) {
       console.error('Error saving colors:', err);
       setError((err instanceof Error ? err.message : 'Unknown error') || 'Could not save color preferences.');
@@ -933,9 +940,9 @@ export default function ProfileClientPage({
                 {genres && genres.length > 0 && (
                   <Box sx={{ mb: 2.5 }}>
                     <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Géneros</Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {genres.map((genre: Genre) => (
-                        <Chip key={genre.id} label={genre.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={genre.id} label={genre.name}  size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
@@ -943,9 +950,9 @@ export default function ProfileClientPage({
                 {instruments && instruments.length > 0 && (
                   <Box sx={{ mb: 2.5 }}>
                     <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Instrumentos</Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {instruments.map((instrument: Instrument) => (
-                        <Chip key={instrument.id} icon={<SpeakerSimpleHigh size={16} color={currentColorCover} />} label={instrument.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} /> 
+                        <Chip key={instrument.id} icon={<SpeakerSimpleHigh size={16} color={currentColorCover} />} label={instrument.name}  size="small" sx={{borderColor: currentColorCover, color: currentColorText}} /> 
                       ))}
                     </Stack>
                   </Box>
@@ -953,9 +960,9 @@ export default function ProfileClientPage({
                 {skills && skills.length > 0 && (
                   <Box>
                     <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Habilidades Adicionales</Typography>
-                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {skills.map((skill: Skill) => (
-                        <Chip key={skill.id} icon={<Sparkle size={16} color={currentColorCover} />} label={skill.name} variant="outlined" size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={skill.id} icon={<Sparkle size={16} color={currentColorCover} />} label={skill.name}  size="small" sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>

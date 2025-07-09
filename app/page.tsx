@@ -267,12 +267,12 @@ export default function Home() {
                   alignItems="stretch"
                   sx={{ mt: 4, mb: 2, px: { xs: 2, sm: 0 }, display: {xs: 'flex', md: 'none'}, width: '100%' }}
                 >
-                  <Paper sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${theme.palette.divider}`, flex: 1 }}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${theme.palette.divider}`, flex: 1 }}>
                     <Typography variant="body1" sx={{ color: theme.palette.text.secondary, textAlign: 'center' }}>
                       ¿Sos músico o banda? <MuiLink component={Link} href={currentUser ? (userRoles.isMusician ? `/m/${userRoles.userId}` : "/select-role?role=musician") : "/register?role=musician"} fontWeight="bold" color="primary">Creá tu perfil gratis y mostrate.</MuiLink>
                     </Typography>
                   </Paper>
-                  <Paper sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${theme.palette.divider}`, flex: 1 }}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: `1px solid ${theme.palette.divider}`, flex: 1 }}>
                     <Typography variant="body1" sx={{ color: theme.palette.text.secondary, textAlign: 'center' }}>
                       ¿Buscás músicos? <MuiLink component={Link} href="/musicos" fontWeight="bold" color="primary">Explorá nuestra red.</MuiLink>
                     </Typography>

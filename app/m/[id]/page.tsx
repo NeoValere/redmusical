@@ -6,7 +6,15 @@ import { User } from '@supabase/supabase-js';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import ProfileImageUploader from './components/ProfileImageUploader'; // Import ProfileImageUploader
+import EditableField from './components/EditableField';
+import EditMusicalDnaModal from './components/EditMusicalDnaModal';
+import EditMediaModal from './components/EditMediaModal';
+import EditLogisticsModal from './components/EditLogisticsModal';
+import EditContactModal from './components/EditContactModal';
+import EditDetailsModal, { MusicianDetails } from './components/EditDetailsModal';
 import ContactFormModal from '@/components/ContactFormModal';
+import YouTubeFeed from './components/YouTubeFeed';
+//import TwitterFeed from './components/TwitterFeed';
 import {
   Box,
   Typography,
@@ -46,6 +54,7 @@ import {
   ShareNetwork,
   Play,
   Palette,
+  PencilSimple,
   Globe, // Explicitly import Globe from phosphor-react
   MusicNotesSimple, // Keep MusicNotesSimple as it's used in the logo
 } from 'phosphor-react';
@@ -55,6 +64,7 @@ import { SxProps, Theme } from '@mui/material/styles'; // Import SxProps and The
 // Import react-icons
 import { FaXTwitter, FaTwitch, FaTiktok, FaSquareFacebook, FaYoutube, FaInstagram, FaSpotify, FaSoundcloud } from 'react-icons/fa6';
 import { FaLink } from 'react-icons/fa';
+import { v4 as uuidv4 } from 'uuid';
 
 import { Database } from '@/lib/database.types';
 import { initialTheme } from '@/lib/theme/MuiTheme';
@@ -131,16 +141,25 @@ interface SectionCardProps {
   children: React.ReactNode;
   cardBackgroundColor?: string;
   titleColor?: string;
+  onEdit?: () => void;
+  editMode?: boolean;
 }
 
-const SectionCard: React.FC<SectionCardProps> = ({ title, icon, children, cardBackgroundColor, titleColor }) => (
-  <Card elevation={2} sx={{ mb: 3, backgroundColor: cardBackgroundColor }}>
+const SectionCard: React.FC<SectionCardProps> = ({ title, icon, children, cardBackgroundColor, titleColor, onEdit, editMode }) => (
+  <Card elevation={0} sx={{ mb: 3, backgroundColor: cardBackgroundColor }}>
     <CardContent>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-        {icon}
-        <Typography variant="h6" component="h3" sx={{ fontWeight: 'semibold', color: titleColor }}>
-          {title}
-        </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 2 }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          {icon}
+          <Typography variant="h6" component="h3" sx={{ fontWeight: 'semibold', color: titleColor }}>
+            {title}
+          </Typography>
+        </Stack>
+        {editMode && onEdit && (
+          <IconButton onClick={onEdit} size="small">
+            <PencilSimple />
+          </IconButton>
+        )}
       </Stack>
       {children}
     </CardContent>
@@ -259,9 +278,22 @@ function MusicianProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isPrivateProfileError, setIsPrivateProfileError] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [profileThemeSettings, setProfileThemeSettings] = useState<ThemeSettings | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isDnaModalOpen, setIsDnaModalOpen] = useState(false);
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [isLogisticsModalOpen, setIsLogisticsModalOpen] = useState(false);
+  const [isContactEditModalOpen, setIsContactEditModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  const [allGenres, setAllGenres] = useState<Genre[]>([]);
+  const [allInstruments, setAllInstruments] = useState<Instrument[]>([]);
+  const [allSkills, setAllSkills] = useState<Skill[]>([]);
+  const [allAvailability, setAllAvailability] = useState<Availability[]>([]);
+  const [allPreferences, setAllPreferences] = useState<Preference[]>([]);
+
   const theme = initialTheme;
   const { enqueueSnackbar } = useSnackbar();
 
@@ -298,6 +330,159 @@ function MusicianProfilePage() {
 
   const [anchorElColorPicker, setAnchorElColorPicker] = useState<HTMLButtonElement | null>(null);
   const [isSavingColors, setIsSavingColors] = useState(false);
+
+  const handleSaveField = async (field: keyof MusicianProfileData, value: any) => {
+    if (!musicianProfile) return;
+
+    try {
+      const response = await fetch(`/api/m/${userIdFromParams}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update ${field}`);
+      }
+
+      const updatedProfile = await response.json();
+      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      enqueueSnackbar(`${field} actualizado!`, { variant: 'success' });
+    } catch (err: unknown) {
+      console.error(`Error saving ${field}:`, err);
+      enqueueSnackbar(`Error al guardar ${field}: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
+    }
+  };
+
+  const handleSaveDna = async (data: { genres: Genre[], instruments: Instrument[], skills: Skill[] }) => {
+    if (!musicianProfile) return;
+
+    const payload = {
+      genres: data.genres.map(g => ({ id: g.id, name: g.name })),
+      instruments: data.instruments.map(i => ({ id: i.id, name: i.name })),
+      skills: data.skills.map(s => ({ id: s.id, name: s.name })),
+    };
+
+    try {
+      const response = await fetch(`/api/m/${userIdFromParams}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update musical DNA');
+      }
+
+      const updatedProfile = await response.json();
+      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      enqueueSnackbar('ADN Musical actualizado!', { variant: 'success' });
+    } catch (err: unknown) {
+      console.error('Error saving DNA:', err);
+      enqueueSnackbar(`Error al guardar ADN Musical: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
+    }
+  };
+
+  const handleSaveLogistics = async (data: { availability: Availability[], preferences: Preference[], hourlyRate: number | null }) => {
+    if (!musicianProfile) return;
+
+    const payload = {
+      availability: data.availability.map(a => ({ id: a.id, name: a.name })),
+      preferences: data.preferences.map(p => ({ id: p.id, name: p.name })),
+      hourlyRate: data.hourlyRate,
+    };
+
+    try {
+      const response = await fetch(`/api/m/${userIdFromParams}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update logistics');
+      }
+
+      const updatedProfile = await response.json();
+      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      enqueueSnackbar('Logística actualizada!', { variant: 'success' });
+    } catch (err: unknown) {
+      console.error('Error saving logistics:', err);
+      enqueueSnackbar(`Error al guardar logística: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
+    }
+  };
+
+  const handleSaveContact = async (data: { websiteUrl: string | null, socialMediaLinks: Record<string, string> | null }) => {
+    if (!musicianProfile) return;
+    try {
+      const response = await fetch(`/api/m/${userIdFromParams}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update contact info');
+      }
+
+      const updatedProfile = await response.json();
+      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      enqueueSnackbar('Información de contacto actualizada!', { variant: 'success' });
+    } catch (err: unknown) {
+      console.error('Error saving contact info:', err);
+      enqueueSnackbar(`Error al guardar contacto: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
+    }
+  };
+
+  const handleSaveMedia = async (data: { audioTracks: AudioTrack[] }) => {
+    if (!musicianProfile) return;
+    try {
+      const response = await fetch(`/api/m/${userIdFromParams}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update media');
+      }
+
+      const updatedProfile = await response.json();
+      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      enqueueSnackbar('Media actualizada!', { variant: 'success' });
+    } catch (err: unknown) {
+      console.error('Error saving media:', err);
+      enqueueSnackbar(`Error al guardar media: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
+    }
+  };
+
+  const handleSaveDetails = async (data: Partial<MusicianDetails>) => {
+    if (!musicianProfile) return;
+    try {
+      const response = await fetch(`/api/m/${userIdFromParams}/update-profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update details');
+      }
+
+      const updatedProfile = await response.json();
+      setMusicianProfile(prev => ({ ...prev, ...updatedProfile }));
+      enqueueSnackbar('Detalles actualizados!', { variant: 'success' });
+    } catch (err: unknown) {
+      console.error('Error saving details:', err);
+      enqueueSnackbar(`Error al guardar detalles: ${(err instanceof Error ? err.message : 'Unknown error')}`, { variant: 'error' });
+    }
+  };
 
   const router = useRouter();
   const params = useParams();
@@ -392,10 +577,38 @@ function MusicianProfilePage() {
     }
   }, [userIdFromParams, supabase]);
 
+  const fetchMetadata = useCallback(async () => {
+    try {
+      const [genresRes, instrumentsRes, skillsRes, availabilityRes, preferencesRes] = await Promise.all([
+        fetch('/api/genres'),
+        fetch('/api/instruments'),
+        fetch('/api/skills'),
+        fetch('/api/availability'),
+        fetch('/api/preferences'),
+      ]);
+
+      setAllGenres(genresRes.ok ? await genresRes.json() : []);
+      setAllInstruments(instrumentsRes.ok ? await instrumentsRes.json() : []);
+      setAllSkills(skillsRes.ok ? await skillsRes.json() : []);
+      setAllAvailability(availabilityRes.ok ? await availabilityRes.json() : []);
+      setAllPreferences(preferencesRes.ok ? await preferencesRes.json() : []);
+    } catch (err: unknown) {
+      console.error('Error fetching metadata:', err);
+      enqueueSnackbar('Error al cargar opciones de selección.', { variant: 'error' });
+    }
+  }, [enqueueSnackbar]);
+
   useEffect(() => {
     console.log('MusicianProfilePage useEffect triggered.');
     fetchProfileAndCheckOwner();
-  }, [fetchProfileAndCheckOwner]);
+    fetchMetadata();
+  }, [fetchProfileAndCheckOwner, fetchMetadata]);
+
+  useEffect(() => {
+    if (isOwner) {
+      setEditMode(true);
+    }
+  }, [isOwner]);
 
   const socialLinks = useMemo(() => {
     if (!musicianProfile?.socialMediaLinks) return [];
@@ -405,6 +618,16 @@ function MusicianProfilePage() {
   }, [musicianProfile?.socialMediaLinks]);
 
   const spotifyLink = useMemo(() => socialLinks.find(link => link.platform === 'spotify'), [socialLinks]);
+  const youtubeLink = useMemo(() => socialLinks.find(link => link.platform === 'youtube'), [socialLinks]);
+  //const twitterLink = useMemo(() => socialLinks.find(link => link.platform === 'x'), [socialLinks]);
+
+  const audioTracksForModal = useMemo(() => {
+    if (!musicianProfile?.audioTracks) return [];
+    return musicianProfile.audioTracks.map(track => ({
+      ...track,
+      id: (track as any).id || uuidv4(),
+    }));
+  }, [musicianProfile?.audioTracks]);
 
   if (loading) {
     return (
@@ -685,24 +908,27 @@ function MusicianProfilePage() {
       >
         <Container maxWidth="lg" sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: isMobile ? 2 : 3 }}>
-            {typeof window !== 'undefined' && document.referrer !== '' ? (
-              <IconButton edge="start" aria-label="back" onClick={() => router.back()} sx={{color: currentColorText}}>
-                <ArrowBackIosNewIcon sx={{ fontSize: 28 }} />
-              </IconButton>
-            ) : (
+           
               <MuiLink component={Link} href="/" color="inherit" underline="none" sx={{ display: 'flex', alignItems: 'center' }}>
                 <MusicNotesSimple size={32} color={theme.palette.primary.main} weight="fill" style={{ marginRight: 3 }} />
                 <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
                   redmusical.ar
                 </Typography>
               </MuiLink>
-            )}
+           
             {isOwner && (
-              <Tooltip title="Personalizar Colores del Perfil">
-                <IconButton onClick={handleOpenColorPicker} sx={{color: theme.palette.common.white}}>
-                  <Palette size={28} />
-                </IconButton>
-              </Tooltip>
+              <Stack direction="row" spacing={1}>
+                <Tooltip title={editMode ? "Vista pública" : "Editar Perfil"}>
+                  <IconButton onClick={() => setEditMode(!editMode)} sx={{color: theme.palette.common.white}}>
+                    {editMode ? <Globe size={28} /> : <PencilSimple size={28} />}
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Personalizar Colores del Perfil">
+                  <IconButton onClick={handleOpenColorPicker} sx={{color: theme.palette.common.white}}>
+                    <Palette size={28} />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
             )}
           </Box>
           <Popover
@@ -770,34 +996,47 @@ function MusicianProfilePage() {
               />
             )}
             <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
-              <Typography variant={isMobile ? "h4" : "h3"} component="h1" sx={{ fontWeight: 'bold', color: currentColorText, textShadow: '1px 1px 3px rgba(0,0,0,0.3)', mb: 0 }}>
-                {musicianProfile.artisticName || fullName}
-              </Typography>
-              {location && (
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: currentColorText, opacity: 0.95 }}>
-                  <MapPin size={isMobile ? 18 : 20} color={currentColorText} />
-                  <Typography variant={isMobile ? "body1" : "h6"} component="p">
-                    {location}
-                  </Typography>
+              <EditableField
+                label="Nombre Artístico"
+                value={musicianProfile.artisticName || fullName}
+                onSave={(newValue) => handleSaveField('artisticName', newValue)}
+                editMode={editMode}
+                variant={isMobile ? "h4" : "h3"}
+              />
+              <Stack direction="column" alignItems={isMobile ? "center" : "flex-start"} spacing={0.5}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  {location && (
+                    <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: currentColorText, opacity: 0.95 }}>
+                      <MapPin size={isMobile ? 18 : 20} color={currentColorText} />
+                      <Typography variant={isMobile ? "body1" : "h6"} component="p">
+                        {location}
+                      </Typography>
+                    </Stack>
+                  )}
+                  {editMode && (
+                    <IconButton onClick={() => setIsDetailsModalOpen(true)} size="small" sx={{color: theme.palette.common.white, ml: 1}}>
+                      <PencilSimple />
+                    </IconButton>
+                  )}
                 </Stack>
-              )}
-              {translatedMusicianOrBand && (
-                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ opacity: 0.95, mt: 0.5 }}>
-                  <Chip
-                    label={translatedMusicianOrBand}
-                    size="small"
-                    sx={{
-                      backgroundColor: currentColorCardBg,
-                      color: currentColorCover,
-                      fontWeight: 'normal',
-                      fontStyle: 'normal',
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: '16px',
-                    }}
-                  />
-                </Stack>
-              )}
+                {translatedMusicianOrBand && (
+                  <Stack direction="row" alignItems="center" spacing={0.5} sx={{ opacity: 0.95 }}>
+                    <Chip
+                      label={translatedMusicianOrBand}
+                      size="small"
+                      sx={{
+                        backgroundColor: currentColorCardBg,
+                        color: currentColorCover,
+                        fontWeight: 'normal',
+                        fontStyle: 'normal',
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: '16px',
+                      }}
+                    />
+                  </Stack>
+                )}
+              </Stack>
             </Box>
           </Stack>
         </Container>
@@ -806,9 +1045,15 @@ function MusicianProfilePage() {
       <Container maxWidth="lg" sx={{ py: isMobile ? 3 : 4 }}>
         <Grid container spacing={isMobile ? 3 : 4}>
           <Grid size={isMobile ? 12 : 8}>
-            {bio && (
+            {(bio || editMode) && (
               <SectionCard title="Bio" icon={<Info size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: currentColorText }}>{bio}</Typography>
+                <EditableField
+                  label="Biografía"
+                  value={bio}
+                  onSave={(newValue) => handleSaveField('bio', newValue)}
+                  editMode={editMode}
+                  multiline
+                />
               </SectionCard>
             )}
 
@@ -825,10 +1070,29 @@ function MusicianProfilePage() {
                 </SectionCard>
             )}
 
-            {audioTracks && audioTracks.length > 0 && (
-              <SectionCard title="Música" icon={<Play size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+            {youtubeLink && (
+              <SectionCard title="YouTube" icon={<FaYoutube size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+                <YouTubeFeed channelUrl={youtubeLink.url} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText} />
+              </SectionCard>
+            )}
+
+            {/* {twitterLink && (
+              <SectionCard title="X (Twitter)" icon={<FaXTwitter size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+                <TwitterFeed twitterUrl={twitterLink.url} />
+              </SectionCard>
+            )} */}
+
+            {(audioTracks && audioTracks.length > 0 || editMode) && (
+              <SectionCard 
+                title="Videos" 
+                icon={<Play size={24} color={currentColorCover} />} 
+                cardBackgroundColor={currentColorCardBg} 
+                titleColor={currentColorText}
+                editMode={editMode}
+                onEdit={() => setIsMediaModalOpen(true)}
+              >
                 <Stack spacing={2}>
-                  {audioTracks.map((track, index) => {
+                  {audioTracks?.map((track, index) => {
                     const videoId = getYoutubeVideoId(track.url);
                     return (
                       <Paper key={index} variant="outlined" sx={{ p: 2, backgroundColor: currentColorCardBg }}>
@@ -873,8 +1137,41 @@ function MusicianProfilePage() {
               </SectionCard>
             )}
 
-            {(genres && genres.length > 0) || (instruments && instruments.length > 0) || (skills && skills.length > 0) ? (
-              <SectionCard title="ADN Musical" icon={<Atom size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+            <EditMediaModal
+              open={isMediaModalOpen}
+              onClose={() => setIsMediaModalOpen(false)}
+              onSave={handleSaveMedia}
+              currentAudioTracks={audioTracksForModal}
+            />
+            
+            {(acceptsGigs || acceptsCollaborations || editMode) && (
+              <SectionCard 
+                title="Oportunidades" 
+                icon={<Handshake size={24} color={currentColorCover} />} 
+                cardBackgroundColor={currentColorCardBg} 
+                titleColor={currentColorText}
+                editMode={editMode}
+                onEdit={() => setIsDetailsModalOpen(true)}
+              >
+                <Stack spacing={1}>
+                  {acceptsGigs && <Typography variant="body2" sx={{color: currentColorText}}>Disponible para conciertos/eventos</Typography>}
+                  {acceptsCollaborations && <Typography variant="body2" sx={{color: currentColorText}}>Abierto/a a colaboraciones</Typography>}
+                </Stack>
+              </SectionCard>
+            )}
+
+          </Grid>
+
+          <Grid size={isMobile ? 12 : 4}>
+            {(genres && genres.length > 0) || (instruments && instruments.length > 0) || (skills && skills.length > 0) || editMode ? (
+              <SectionCard 
+                title="ADN Musical" 
+                icon={<Atom size={24} color={currentColorCover} />} 
+                cardBackgroundColor={currentColorCardBg} 
+                titleColor={currentColorText}
+                editMode={editMode}
+                onEdit={() => setIsDnaModalOpen(true)}
+              >
                 {genres && genres.length > 0 && (
                   <Box sx={{ mb: 2.5 }}>
                     <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Géneros</Typography>
@@ -907,27 +1204,34 @@ function MusicianProfilePage() {
                 )}
               </SectionCard>
             ) : null}
-            
-            {(acceptsGigs || acceptsCollaborations) && (
-              <SectionCard title="Oportunidades" icon={<Handshake size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
-                <Stack spacing={1}>
-                  {acceptsGigs && <Typography variant="body2" sx={{color: currentColorText}}><CheckCircleIcon sx={{color: currentColorCover, mr:1, verticalAlign: 'bottom'}}/>Disponible para conciertos/eventos</Typography>}
-                  {acceptsCollaborations && <Typography variant="body2" sx={{color: currentColorText}}><CheckCircleIcon sx={{color: currentColorCover, mr:1, verticalAlign: 'bottom'}}/>Abierto/a a colaboraciones</Typography>}
-                </Stack>
-              </SectionCard>
-            )}
 
-          </Grid>
+            <EditMusicalDnaModal
+              open={isDnaModalOpen}
+              onClose={() => setIsDnaModalOpen(false)}
+              onSave={handleSaveDna}
+              currentGenres={musicianProfile.genres || []}
+              currentInstruments={musicianProfile.instruments || []}
+              currentSkills={musicianProfile.skills || []}
+              allGenres={allGenres}
+              allInstruments={allInstruments}
+              allSkills={allSkills}
+            />
 
-          <Grid size={isMobile ? 12 : 4}>
-            {(availability && availability.length > 0) || (hourlyRate !== null && hourlyRate !== undefined) || (preferences && preferences.length > 0) ? (
-              <SectionCard title="Logística" icon={<Briefcase size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
+            {(availability && availability.length > 0) || (hourlyRate !== null && hourlyRate !== undefined) || (preferences && preferences.length > 0) || editMode ? (
+              <SectionCard 
+                title="Preferencias" 
+                icon={<Briefcase size={24} color={currentColorCover} />} 
+                cardBackgroundColor={currentColorCardBg} 
+                titleColor={currentColorText}
+                editMode={editMode}
+                onEdit={() => setIsLogisticsModalOpen(true)}
+              >
                 {availability && availability.length > 0 && (
                   <Box sx={{ mb: 2.5 }}>
                     <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Disponibilidad</Typography>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {availability.map((avail: Availability) => (
-                        <Chip key={avail.id} icon={<CalendarCheck size={16} color={currentColorCover} />} label={avail.name} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={avail.id} icon={<CalendarCheck size={16} color={currentColorCover} />} label={avail.name} size="small"  sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
@@ -935,15 +1239,15 @@ function MusicianProfilePage() {
                 {hourlyRate !== null && hourlyRate !== undefined && (
                   <Box sx={{ mb: 2.5 }}>
                     <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Tarifa por Hora</Typography>
-                    <Chip label={`$${hourlyRate} USD`} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                    <Chip label={`$${hourlyRate} USD`} size="small"  sx={{borderColor: currentColorCover, color: currentColorText}} />
                   </Box>
                 )}
                 {preferences && preferences.length > 0 && (
                   <Box>
-                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Preferencias</Typography>
+                    <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'medium', color: currentColorText }}>Eventos</Typography>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                       {preferences.map((pref: Preference) => (
-                        <Chip key={pref.id} icon={<ListChecks size={16} color={currentColorCover} />} label={pref.name} size="small" variant="outlined" sx={{borderColor: currentColorCover, color: currentColorText}} />
+                        <Chip key={pref.id} icon={<ListChecks size={16} color={currentColorCover} />} label={pref.name} size="small"  sx={{borderColor: currentColorCover, color: currentColorText}} />
                       ))}
                     </Stack>
                   </Box>
@@ -951,11 +1255,28 @@ function MusicianProfilePage() {
               </SectionCard>
             ) : null}
 
-            <SectionCard title="Contacto" icon={<ShareNetwork size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
-               <Button style={{ marginBottom: "15px" }}  variant="contained" color="primary" onClick={() => setIsContactModalOpen(true)}>
-              Contactar
-            </Button>
+            <EditLogisticsModal
+              open={isLogisticsModalOpen}
+              onClose={() => setIsLogisticsModalOpen(false)}
+              onSave={handleSaveLogistics}
+              currentAvailability={musicianProfile.availability || []}
+              currentPreferences={musicianProfile.preferences || []}
+              currentHourlyRate={musicianProfile.hourlyRate || null}
+              allAvailability={allAvailability}
+              allPreferences={allPreferences}
+            />
 
+            <SectionCard 
+              title="Contacto" 
+              icon={<ShareNetwork size={24} color={currentColorCover} />} 
+              cardBackgroundColor={currentColorCardBg} 
+              titleColor={currentColorText}
+              editMode={editMode}
+              onEdit={() => setIsContactEditModalOpen(true)}
+            >
+              <Button style={{ marginBottom: "15px" }}  variant="contained" color="primary" onClick={() => setIsContactModalOpen(true)}>
+                Contactar
+              </Button>
               {websiteUrl && (
                 <MuiLink href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: currentColorText, mb: 1.5, '&:hover': {color: currentColorCover} }}>
                   <Globe size={20} style={{ marginRight: theme.spacing(1) }} color={currentColorCover} />
@@ -979,6 +1300,27 @@ function MusicianProfilePage() {
               )}
             </SectionCard>
 
+            <EditContactModal
+              open={isContactEditModalOpen}
+              onClose={() => setIsContactEditModalOpen(false)}
+              onSave={handleSaveContact}
+              currentWebsiteUrl={musicianProfile.websiteUrl || null}
+              currentSocialMediaLinks={musicianProfile.socialMediaLinks || null}
+            />
+
+            <EditDetailsModal
+              open={isDetailsModalOpen}
+              onClose={() => setIsDetailsModalOpen(false)}
+              onSave={handleSaveDetails}
+              currentData={{
+                city: musicianProfile.city,
+                province: musicianProfile.province,
+                musicianOrBand: musicianProfile.musicianOrBand,
+                acceptsGigs: musicianProfile.acceptsGigs,
+                acceptsCollaborations: musicianProfile.acceptsCollaborations,
+              }}
+            />
+
             <ContactFormModal
               open={isContactModalOpen}
               onClose={() => setIsContactModalOpen(false)}
@@ -998,7 +1340,7 @@ function MusicianProfilePage() {
             )}
             
             {!isPublic && (
-              <Paper elevation={1} sx={{p:2, mt:2, backgroundColor: currentColorCardBg}}>
+              <Paper elevation={0} sx={{p:2, mt:2, backgroundColor: currentColorCardBg}}>
                   <Stack direction="row" alignItems="center" spacing={1}>
                       {isPublic ? <Eye size={20} color={currentColorCover} /> : <EyeSlash size={20} color={currentColorCover} />}
                       <Typography variant="body2" sx={{fontWeight:'medium', color: currentColorText}}>

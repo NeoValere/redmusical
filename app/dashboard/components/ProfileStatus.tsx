@@ -79,6 +79,7 @@ export default function ProfileStatus({ userId, profileStatus, isPublic }: Profi
           <Button
             component={Link}
             href={`/m/${userId}`}
+            target="_blank"
             variant="outlined"
             color="primary"
             startIcon={<Eye size={20} />}

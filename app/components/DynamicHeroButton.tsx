@@ -118,7 +118,7 @@ const DynamicHeroButton: React.FC<DynamicHeroButtonProps> = ({ currentUser, user
     return (
       <Button
         component={Link}
-        href={`/m/${userId}`}
+        href={`/dashboard`}
         variant="contained"
         color="primary"
         size="large"

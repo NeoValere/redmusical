@@ -33,7 +33,6 @@ import {
   Popover,
   Input,
 } from '@mui/material';
-import Grid from '@mui/material/Grid'; // Changed Grid import
 import {
   MapPin,
   Briefcase,
@@ -266,23 +265,21 @@ const rgbToHex = (rgb: string): string => {
 };
 
 interface ProfileClientPageProps {
-    initialMusicianProfile: MusicianProfileData;
-    initialIsOwner: boolean;
-    initialCurrentUser: User | null;
-    initialProfileThemeSettings: ThemeSettings | null;
-    allGenres: Genre[];
-    allInstruments: Instrument[];
-    allSkills: Skill[];
-    allAvailability: Availability[];
-    allPreferences: Preference[];
-    userIdFromParams: string;
+    initialMusicianProfile?: MusicianProfileData;
+    initialIsOwner?: boolean;
+    initialCurrentUser?: User | null;
+    allGenres?: Genre[];
+    allInstruments?: Instrument[];
+    allSkills?: Skill[];
+    allAvailability?: Availability[];
+    allPreferences?: Preference[];
+    userIdFromParams?: string;
 }
 
 export default function ProfileClientPage({
     initialMusicianProfile,
     initialIsOwner,
     initialCurrentUser,
-    initialProfileThemeSettings,
     allGenres,
     allInstruments,
     allSkills,
@@ -290,13 +287,12 @@ export default function ProfileClientPage({
     allPreferences,
     userIdFromParams,
 }: ProfileClientPageProps) {
-  const [musicianProfile, setMusicianProfile] = useState<MusicianProfileData | null>(initialMusicianProfile);
+  const [musicianProfile, setMusicianProfile] = useState<MusicianProfileData | null>(initialMusicianProfile ?? null);
   const [claimingProfile, setClaimingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isOwner, setIsOwner] = useState(initialIsOwner);
-  const [editMode, setEditMode] = useState(initialIsOwner);
-  const [currentUser, setCurrentUser] = useState<User | null>(initialCurrentUser);
-  const [profileThemeSettings, setProfileThemeSettings] = useState<ThemeSettings | null>(initialProfileThemeSettings);
+  const [isOwner, setIsOwner] = useState(initialIsOwner ?? false);
+  const [editMode, setEditMode] = useState(initialIsOwner ?? false);
+  const [currentUser, setCurrentUser] = useState<User | null>(initialCurrentUser || null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isDnaModalOpen, setIsDnaModalOpen] = useState(false);
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -498,22 +494,8 @@ export default function ProfileClientPage({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
-    const getFallbackPalette = () => {
-      if (isOwner) {
-        return theme.palette;
-      }
-      if (profileThemeSettings && profileThemeSettings.defaultPreset) {
-        const defaultPreset = profileThemeSettings.presets?.find(
-          (p) => p.name === profileThemeSettings.defaultPreset
-        );
-        if (defaultPreset) {
-          return defaultPreset.palette;
-        }
-      }
-      return theme.palette;
-    };
 
-    const fallbackPalette = getFallbackPalette();
+    const fallbackPalette = theme.palette;
 
     if (musicianProfile) {
       setCurrentColorCover(rgbToHex(musicianProfile.profileColorCover || fallbackPalette.primary.dark));
@@ -526,7 +508,7 @@ export default function ProfileClientPage({
       setCurrentColorText(rgbToHex(fallbackPalette.text.primary));
       setCurrentColorSectionBg(rgbToHex(fallbackPalette.background.default));
     }
-  }, [musicianProfile, theme, isOwner, profileThemeSettings]);
+  }, [musicianProfile, theme, isOwner]);
 
   const socialLinks = useMemo(() => {
     if (!musicianProfile?.socialMediaLinks) return [];
@@ -564,31 +546,31 @@ export default function ProfileClientPage({
   }
 
   const {
-    fullName,
-    bio,
-    profileImageUrl,
-    city,
-    province,
-    instruments,
-    genres,
-    skills,
-    availability,
-    hourlyRate,
-    preferences,
-    websiteUrl,
-    acceptsCollaborations,
-    acceptsGigs,
-    isPublic,
-    audioTracks,
-    musicianOrBand,
-  } = musicianProfile;
+    fullName = '',
+    bio = '',
+    profileImageUrl = '',
+    city = '',
+    province = '',
+    instruments = [],
+    genres = [],
+    skills = [],
+    availability = [],
+    hourlyRate = null,
+    preferences = [],
+    websiteUrl = '',
+    acceptsCollaborations = false,
+    acceptsGigs = false,
+    isPublic = true,
+    audioTracks = [],
+    musicianOrBand = '',
+  } = musicianProfile || {};
 
-  const location = [city, province].filter(Boolean).join(', ');
-  const translatedMusicianOrBand = musicianOrBand === 'Musician' ? 'Solista' : musicianOrBand === 'Band' ? 'Banda' : null;
+    const location = [(city ?? ''), (province ?? '')].filter(Boolean).join(', ');
+    const translatedMusicianOrBand = musicianOrBand === 'Musician' ? 'Solista' : musicianOrBand === 'Band' ? 'Banda' : musicianOrBand ?? null;
 
-  const handleOpenColorPicker = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorElColorPicker(event.currentTarget);
-  };
+    const handleOpenColorPicker = (event: React.MouseEvent<HTMLButtonElement>) => {
+      setAnchorElColorPicker(event.currentTarget);
+    };
 
   const handleCloseColorPicker = () => {
     setAnchorElColorPicker(null);
@@ -746,7 +728,7 @@ export default function ProfileClientPage({
           </Popover>
 
           <Stack direction={isMobile ? "column" : "row"} alignItems={isMobile ? "center" : "flex-start"} spacing={isMobile ? 1 : 2}>
-            {isOwner ? (
+            {isOwner && userIdFromParams ? (
               <ProfileImageUploader
                 musicianId={userIdFromParams}
                 currentImageUrl={profileImageUrl || null}
@@ -768,7 +750,7 @@ export default function ProfileClientPage({
             <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
               <EditableField
                 label="Nombre Artístico"
-                value={musicianProfile.artisticName || fullName}
+                value={musicianProfile?.artisticName || musicianProfile?.fullName || ''}
                 onSave={(newValue) => handleSaveField('artisticName', newValue)}
                 editMode={editMode}
                 variant={isMobile ? "h4" : "h3"}
@@ -813,8 +795,12 @@ export default function ProfileClientPage({
       </Paper>
 
       <Container maxWidth="lg" sx={{ py: isMobile ? 3 : 4 }}>
-        <Grid container spacing={isMobile ? 3 : 4}>
-          <Grid size={isMobile ? 12 : 8}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(12, 1fr)' },
+          gap: isMobile ? 3 : 4,
+        }}>
+          <Box sx={{ gridColumn: { xs: '1 / -1', md: 'span 8' } }}>
             {(bio || editMode) && (
               <SectionCard title="Bio" icon={<Info size={24} color={currentColorCover} />} cardBackgroundColor={currentColorCardBg} titleColor={currentColorText}>
                 <EditableField
@@ -924,9 +910,9 @@ export default function ProfileClientPage({
               </SectionCard>
             )}
 
-          </Grid>
+          </Box>
 
-          <Grid size={isMobile ? 12 : 4}>
+          <Box sx={{ gridColumn: { xs: '1 / -1', md: 'span 4' } }}>
             {(genres && genres.length > 0) || (instruments && instruments.length > 0) || (skills && skills.length > 0) || editMode ? (
               <SectionCard 
                 title="ADN Musical" 
@@ -973,12 +959,12 @@ export default function ProfileClientPage({
               open={isDnaModalOpen}
               onClose={() => setIsDnaModalOpen(false)}
               onSave={handleSaveDna}
-              currentGenres={musicianProfile.genres || []}
-              currentInstruments={musicianProfile.instruments || []}
-              currentSkills={musicianProfile.skills || []}
-              allGenres={allGenres}
-              allInstruments={allInstruments}
-              allSkills={allSkills}
+              currentGenres={genres}
+              currentInstruments={instruments}
+              currentSkills={skills}
+              allGenres={allGenres || []}
+              allInstruments={allInstruments || []}
+              allSkills={allSkills || []}
             />
 
             {(availability && availability.length > 0) || (hourlyRate !== null && hourlyRate !== undefined) || (preferences && preferences.length > 0) || editMode ? (
@@ -1023,11 +1009,11 @@ export default function ProfileClientPage({
               open={isLogisticsModalOpen}
               onClose={() => setIsLogisticsModalOpen(false)}
               onSave={handleSaveLogistics}
-              currentAvailability={musicianProfile.availability || []}
-              currentPreferences={musicianProfile.preferences || []}
-              currentHourlyRate={musicianProfile.hourlyRate || null}
-              allAvailability={allAvailability}
-              allPreferences={allPreferences}
+              currentAvailability={availability}
+              currentPreferences={preferences}
+              currentHourlyRate={hourlyRate}
+              allAvailability={allAvailability || []}
+              allPreferences={allPreferences || []}
             />
 
             <SectionCard 
@@ -1117,8 +1103,8 @@ export default function ProfileClientPage({
               </Paper>
             )}
 
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );

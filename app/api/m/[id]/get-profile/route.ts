@@ -130,9 +130,9 @@ export async function GET(
     const isOwner = user && user.id === musicianData.userId;
 
     // Check if the profile is private AND the requesting user is NOT the owner
-    if (musicianData.isPublic === false && !isOwner) {
+  /*   if (musicianData.isPublic === false && !isOwner) {
       return NextResponse.json({ error: 'Este perfil es privado y no puede ser accedido.' }, { status: 403 });
-    }
+    } */
 
     // Reconstruct the profile object to match the frontend's expected camelCase type
     // Prisma now returns camelCase fields directly after schema update

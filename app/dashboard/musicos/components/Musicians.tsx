@@ -41,7 +41,7 @@ const Musicians = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [showFilters, setShowFilters] = useState(!isMobile);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState(searchParams.get("q") || "");
@@ -211,9 +211,17 @@ const Musicians = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ my: 1 }}>
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {/* Search and Filters Section */}
+    <Container maxWidth="xl">
+      {/* Search and Filters Section */}
+      <Box
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
+          backgroundColor: theme.palette.background.default,
+          py: 0,
+        }}
+      >
         <Paper
           elevation={0}
           sx={{
@@ -425,10 +433,11 @@ const Musicians = () => {
             )}
           </AnimatePresence>
         </Paper>
+      </Box>
 
-        {/* Musicians List */}
-        <Box>
-          {musiciansLoading ? (
+      {/* Musicians List */}
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4, lg: 3 }, pt: 4 }}>
+        {musiciansLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
               <CircularProgress />
             </Box>
@@ -493,8 +502,7 @@ const Musicians = () => {
                 </Box>
               )}
             </>
-          )}
-        </Box>
+        )}
       </Box>
     </Container>
   );

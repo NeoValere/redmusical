@@ -221,14 +221,12 @@ function DashboardClientLayout({ children }: { children: ReactNode }) {
       <Box
         component="main"
         sx={{
-          p: { xs: 2, sm: 3, md: 4, lg: 3 },
           flexGrow: 1,
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
           minWidth: 0,
-          overflow: 'auto',
           paddingBottom: isMobile ? '56px' : 0,
         }}
       >
